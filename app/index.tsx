@@ -7,17 +7,64 @@ export default function Index() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const pulseAnim1 = useRef(new Animated.Value(1)).current;
-  const pulseAnim2 = useRef(new Animated.Value(1)).current;
-  const pulseAnim3 = useRef(new Animated.Value(1)).current;
+  const pulseAnim1 = useRef(new Animated.Value(0.3)).current;
+  const pulseAnim2 = useRef(new Animated.Value(0.3)).current;
+  const pulseAnim3 = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
-    // Small delay to ensure Root Layout is mounted
+    // Start animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Pulsing loading dots animation
+    const createPulse = (anim: Animated.Value, delay: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 600,
+            delay,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0.3,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+    };
+
+    const pulse1 = createPulse(pulseAnim1, 0);
+    const pulse2 = createPulse(pulseAnim2, 200);
+    const pulse3 = createPulse(pulseAnim3, 400);
+
+    pulse1.start();
+    pulse2.start();
+    pulse3.start();
+
+    // Navigate after animations
     const navigationTimer = setTimeout(() => {
       router.replace('/onboarding');
-    }, 100);
+    }, 2000);
 
-    return () => clearTimeout(navigationTimer);
+    return () => {
+      clearTimeout(navigationTimer);
+      pulse1.stop();
+      pulse2.stop();
+      pulse3.stop();
+    };
   }, []);
 
   async function checkAuth() {
@@ -45,47 +92,44 @@ export default function Index() {
         }}
       >
         {/* Main Logo Badge */}
-        <View className="bg-white/20 border-4 border-white rounded-full px-12 py-6 mb-6 shadow-2xl">
-          <Text className="text-white font-black text-2xl tracking-widest uppercase">
+        <View style={styles.logoBadge}>
+          <Text style={styles.logoText}>
             ⚡ LUMBUS
           </Text>
         </View>
 
         {/* Tagline */}
-        <View className="bg-white/10 px-8 py-3 rounded-full border-2 border-white/30">
-          <Text className="text-white font-black text-sm tracking-widest uppercase">
+        <View style={styles.taglineBadge}>
+          <Text style={styles.taglineText}>
             🌍 Global eSIM Solutions
           </Text>
         </View>
 
         {/* Loading indicator */}
-        <View className="mt-12 flex-row gap-2">
+        <View style={styles.loadingContainer}>
           <Animated.View
-            style={{
-              width: 12,
-              height: 12,
-              backgroundColor: 'white',
-              borderRadius: 6,
-              opacity: pulseAnim1,
-            }}
+            style={[
+              styles.loadingDot,
+              {
+                opacity: pulseAnim1,
+              }
+            ]}
           />
           <Animated.View
-            style={{
-              width: 12,
-              height: 12,
-              backgroundColor: 'rgba(255, 255, 255, 0.7)',
-              borderRadius: 6,
-              opacity: pulseAnim2,
-            }}
+            style={[
+              styles.loadingDot,
+              {
+                opacity: pulseAnim2,
+              }
+            ]}
           />
           <Animated.View
-            style={{
-              width: 12,
-              height: 12,
-              backgroundColor: 'rgba(255, 255, 255, 0.5)',
-              borderRadius: 6,
-              opacity: pulseAnim3,
-            }}
+            style={[
+              styles.loadingDot,
+              {
+                opacity: pulseAnim3,
+              }
+            ]}
           />
         </View>
       </Animated.View>
@@ -98,35 +142,85 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2EFECC', // Primary turquoise
+    backgroundColor: '#FFFFFF',
   },
   blob1: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 384,
-    height: 384,
-    backgroundColor: 'rgba(253, 253, 116, 0.15)', // Yellow #FDFD74
-    borderRadius: 192,
+    top: -50,
+    right: -50,
+    width: 300,
+    height: 300,
+    backgroundColor: '#FDFD74', // Yellow
+    borderRadius: 150,
+    opacity: 0.3,
   },
   blob2: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: 320,
-    height: 320,
-    backgroundColor: 'rgba(247, 226, 251, 0.3)', // Purple #F7E2FB
-    borderRadius: 160,
+    bottom: -80,
+    left: -80,
+    width: 350,
+    height: 350,
+    backgroundColor: '#F7E2FB', // Purple
+    borderRadius: 175,
+    opacity: 0.4,
   },
   blob3: {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: 288,
-    height: 288,
-    backgroundColor: 'rgba(135, 239, 255, 0.2)', // Cyan #87EFFF
-    borderRadius: 144,
-    marginTop: -144,
-    marginLeft: -144,
+    top: '40%',
+    right: -100,
+    width: 280,
+    height: 280,
+    backgroundColor: '#87EFFF', // Cyan
+    borderRadius: 140,
+    opacity: 0.35,
+  },
+  logoBadge: {
+    backgroundColor: '#2EFECC',
+    borderWidth: 3,
+    borderColor: '#1A1A1A',
+    borderRadius: 999,
+    paddingHorizontal: 48,
+    paddingVertical: 24,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  logoText: {
+    color: '#1A1A1A',
+    fontWeight: '900',
+    fontSize: 32,
+    letterSpacing: 4,
+    textTransform: 'uppercase',
+  },
+  taglineBadge: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: '#E5E5E5',
+  },
+  taglineText: {
+    color: '#1A1A1A',
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  loadingContainer: {
+    marginTop: 48,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  loadingDot: {
+    width: 16,
+    height: 16,
+    backgroundColor: '#2EFECC',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
   },
 });

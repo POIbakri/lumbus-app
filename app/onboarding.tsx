@@ -31,17 +31,6 @@ interface OnboardingScreen {
 
 const screens: OnboardingScreen[] = [
   {
-    stepNumber: -1, // Splash screen
-    stepBadge: {
-      backgroundColor: COLORS.primary,
-      number: '-1',
-    },
-    emoji: '',
-    title: '',
-    description: '',
-    features: [],
-  },
-  {
     stepNumber: 0,
     stepBadge: {
       backgroundColor: COLORS.yellow, // No badge displayed, just for reference
@@ -131,89 +120,6 @@ export default function Onboarding() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Splash screen animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const pulseAnim1 = useRef(new Animated.Value(1)).current;
-  const pulseAnim2 = useRef(new Animated.Value(1)).current;
-  const pulseAnim3 = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (currentIndex === 0) {
-      // Animate splash screen
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 4,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
-      // Animate loading dots
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim1, {
-            toValue: 0.3,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim1, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-
-      setTimeout(() => {
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(pulseAnim2, {
-              toValue: 0.3,
-              duration: 400,
-              useNativeDriver: true,
-            }),
-            Animated.timing(pulseAnim2, {
-              toValue: 1,
-              duration: 400,
-              useNativeDriver: true,
-            }),
-          ])
-        ).start();
-      }, 150);
-
-      setTimeout(() => {
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(pulseAnim3, {
-              toValue: 0.3,
-              duration: 400,
-              useNativeDriver: true,
-            }),
-            Animated.timing(pulseAnim3, {
-              toValue: 1,
-              duration: 400,
-              useNativeDriver: true,
-            }),
-          ])
-        ).start();
-      }, 300);
-
-      // Auto-advance to next screen after 7 seconds
-      const timer = setTimeout(() => {
-        handleNext();
-      }, 7000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [currentIndex]);
-
   const handleNext = () => {
     if (currentIndex < screens.length - 1) {
       const nextIndex = currentIndex + 1;
@@ -243,67 +149,6 @@ export default function Onboarding() {
       <View style={styles.content}>
         {screens.map((screen, index) => {
           if (index !== currentIndex) return null;
-
-          // Render Splash Screen (stepNumber === -1)
-          if (screen.stepNumber === -1) {
-            return (
-              <View key={index} style={styles.splashContainer}>
-                {/* Decorative Blobs */}
-                <View style={styles.blob1} />
-                <View style={styles.blob2} />
-                <View style={styles.blob3} />
-
-                <Animated.View
-                  style={{
-                    opacity: fadeAnim,
-                    transform: [{ scale: scaleAnim }],
-                    alignItems: 'center',
-                  }}
-                >
-                  {/* Main Logo Badge */}
-                  <View style={styles.logoBadge}>
-                    <Text style={styles.logoText}>⚡ LUMBUS</Text>
-                  </View>
-
-                  {/* Tagline */}
-                  <View style={styles.taglineBadge}>
-                    <Text style={styles.taglineText}>🌍 Global eSIM Solutions</Text>
-                  </View>
-
-                  {/* Loading indicator */}
-                  <View style={styles.loadingDots}>
-                    <Animated.View
-                      style={{
-                        width: 12,
-                        height: 12,
-                        backgroundColor: 'white',
-                        borderRadius: 6,
-                        opacity: pulseAnim1,
-                      }}
-                    />
-                    <Animated.View
-                      style={{
-                        width: 12,
-                        height: 12,
-                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                        borderRadius: 6,
-                        opacity: pulseAnim2,
-                      }}
-                    />
-                    <Animated.View
-                      style={{
-                        width: 12,
-                        height: 12,
-                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                        borderRadius: 6,
-                        opacity: pulseAnim3,
-                      }}
-                    />
-                  </View>
-                </Animated.View>
-              </View>
-            );
-          }
 
           return (
             <View
@@ -667,82 +512,5 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: COLORS.black,
     letterSpacing: 1,
-  },
-  // Splash Screen Styles
-  splashContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    position: 'absolute',
-    top: -60,
-    left: -24,
-    right: -24,
-    bottom: -40,
-  },
-  blob1: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 384,
-    height: 384,
-    backgroundColor: 'rgba(253, 253, 116, 0.15)', // Yellow #FDFD74
-    borderRadius: 192,
-  },
-  blob2: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: 320,
-    height: 320,
-    backgroundColor: 'rgba(247, 226, 251, 0.3)', // Purple #F7E2FB
-    borderRadius: 160,
-  },
-  blob3: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: 288,
-    height: 288,
-    backgroundColor: 'rgba(135, 239, 255, 0.2)', // Cyan #87EFFF
-    borderRadius: 144,
-    marginTop: -144,
-    marginLeft: -144,
-  },
-  logoBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 4,
-    borderColor: 'white',
-    borderRadius: 999,
-    paddingHorizontal: 48,
-    paddingVertical: 24,
-    marginBottom: 24,
-  },
-  logoText: {
-    color: 'white',
-    fontWeight: '900',
-    fontSize: 24,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-  },
-  taglineBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  taglineText: {
-    color: 'white',
-    fontWeight: '900',
-    fontSize: 14,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  loadingDots: {
-    flexDirection: 'row',
-    marginTop: 48,
-    gap: 8,
   },
 });
