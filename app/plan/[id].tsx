@@ -65,7 +65,12 @@ export default function PlanDetail() {
   };
 
   async function handleCheckout() {
-    if (!plan) return;
+    if (!plan) {
+      Alert.alert('Error', 'Plan information is not available. Please try again.');
+      return;
+    }
+
+    if (loading) return; // Prevent double-tap
 
     setLoading(true);
 
@@ -73,10 +78,13 @@ export default function PlanDetail() {
       // Get current user - should always exist due to auth guard
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        Alert.alert('Error', 'Session expired. Please log in again.');
+        Alert.alert('Session Expired', 'Please log in again to continue.');
+        setLoading(false);
         router.replace('/(auth)/login');
         return;
       }
+
+      console.log('💳 Starting checkout for plan:', plan.id);
 
       // Create checkout session - optimized single API call
       const { clientSecret, orderId } = await createCheckout({
@@ -85,7 +93,13 @@ export default function PlanDetail() {
         currency, // Pass user's detected currency
       });
 
-      // Initialize and present payment sheet in parallel
+      if (!clientSecret || !orderId) {
+        throw new Error('Invalid checkout response from server');
+      }
+
+      console.log('✅ Checkout session created, initializing payment sheet...');
+
+      // Initialize payment sheet
       const { error: initError } = await initPaymentSheet({
         merchantDisplayName: 'Lumbus',
         paymentIntentClientSecret: clientSecret,
@@ -93,32 +107,48 @@ export default function PlanDetail() {
           email: user.email!,
         },
         returnURL: 'lumbus://payment-complete',
+        appearance: {
+          colors: {
+            primary: '#2EFECC',
+          },
+        },
       });
 
       if (initError) {
-        Alert.alert('Error', initError.message);
+        console.error('❌ Payment sheet initialization error:', initError);
+        Alert.alert('Payment Setup Error', initError.message);
         setLoading(false);
         return;
       }
 
-      // Present payment sheet immediately
+      console.log('📱 Presenting payment sheet...');
+
+      // Present payment sheet
       const { error: paymentError } = await presentPaymentSheet();
 
       if (paymentError) {
         setLoading(false);
         // User cancelled - no error alert needed
-        if (paymentError.code !== 'Canceled') {
+        if (paymentError.code === 'Canceled') {
+          console.log('ℹ️ User cancelled payment');
+        } else {
+          console.error('❌ Payment error:', paymentError);
           Alert.alert('Payment Error', paymentError.message);
         }
         return;
       }
 
-      // Payment successful - navigate immediately to installation
-      // No alert needed - user sees progress on next screen
+      // Payment successful
+      console.log('✅ Payment successful! Navigating to install screen...');
       router.replace(`/install/${orderId}`);
     } catch (error: any) {
+      console.error('❌ Checkout error:', error);
       setLoading(false);
-      Alert.alert('Error', error.message || 'Failed to process payment');
+      Alert.alert(
+        'Checkout Error',
+        error.message || 'Failed to process payment. Please try again.',
+        [{ text: 'OK' }]
+      );
     }
   }
 

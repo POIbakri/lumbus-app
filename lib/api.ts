@@ -212,18 +212,42 @@ export async function fetchOrderById(orderId: string): Promise<Order | null> {
 
 // Checkout API
 export async function createCheckout(params: CheckoutParams): Promise<PaymentIntentResponse> {
-  const headers = await getAuthHeaders();
-  const response = await fetch(`${API_URL}/checkout`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(params),
-  });
+  try {
+    console.log('💳 Creating checkout:', params);
+    const headers = await getAuthHeaders();
 
-  if (!response.ok) {
+    // Add timeout for checkout request (30 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const response = await fetch(`${API_URL}/checkout`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.message || errorData?.error || `Checkout failed with status ${response.status}`;
+      console.error('❌ Checkout error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log('✅ Checkout created:', { orderId: data.orderId });
+    return data;
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Checkout request timed out. Please try again.');
+      }
+      throw error;
+    }
     throw new Error('Failed to create checkout');
   }
-
-  return response.json();
 }
 
 // Usage Tracking API
