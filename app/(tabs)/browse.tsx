@@ -73,9 +73,15 @@ export default function Browse() {
     : searchFilteredPlans;
 
   function renderPlanCard(plan: Plan) {
+    // Remove quotes from plan name
+    const cleanName = (name: string) => {
+      return name.replace(/['"]+/g, '').trim();
+    };
+
     const extractRegion = (name: string) => {
-      const match = name.match(/^([^0-9]+?)\s+\d+/);
-      return match ? match[1].trim() : name.split(' ')[0];
+      const cleaned = cleanName(name);
+      const match = cleaned.match(/^([^0-9]+?)\s+\d+/);
+      return match ? match[1].trim() : cleaned.split(' ')[0];
     };
 
     return (
