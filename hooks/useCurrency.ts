@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { detectCurrency, convertPrices, formatPrice as formatPriceUtil, type CurrencyInfo, type Currency } from '../lib/currency';
 
 interface ConvertedPrice {
@@ -7,9 +7,15 @@ interface ConvertedPrice {
   formatted: string;
 }
 
+// In-memory cache for converted prices
+const priceCache = new Map<string, ConvertedPrice[]>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const cacheTimestamps = new Map<string, number>();
+
 /**
  * Hook to detect user's currency and convert prices
  * Automatically detects on mount based on user's location (via backend API)
+ * Uses caching to minimize API calls
  */
 export function useCurrency() {
   const [currencyInfo, setCurrencyInfo] = useState<CurrencyInfo | null>(null);
@@ -40,9 +46,9 @@ export function useCurrency() {
   }, []);
 
   /**
-   * Convert multiple USD prices to user's currency
+   * Convert multiple USD prices to user's currency with caching
    */
-  const convertMultiplePrices = async (
+  const convertMultiplePrices = useCallback(async (
     usdPrices: number[]
   ): Promise<ConvertedPrice[]> => {
     if (!currencyInfo) {
@@ -53,8 +59,25 @@ export function useCurrency() {
       }));
     }
 
-    return await convertPrices(usdPrices, currencyInfo);
-  };
+    // Create cache key from prices and currency
+    const cacheKey = `${currencyInfo.currency}_${usdPrices.join('_')}`;
+
+    // Check cache
+    const cached = priceCache.get(cacheKey);
+    const cacheTime = cacheTimestamps.get(cacheKey);
+
+    if (cached && cacheTime && (Date.now() - cacheTime < CACHE_DURATION)) {
+      console.log('💰 Using cached price conversion');
+      return cached;
+    }
+
+    // Convert and cache
+    const converted = await convertPrices(usdPrices, currencyInfo);
+    priceCache.set(cacheKey, converted);
+    cacheTimestamps.set(cacheKey, Date.now());
+
+    return converted;
+  }, [currencyInfo]);
 
   /**
    * Format a price in user's currency

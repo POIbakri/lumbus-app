@@ -59,10 +59,10 @@ export default function RootLayout() {
 
     return () => {
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        notificationListener.current.remove();
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        responseListener.current.remove();
       }
     };
   }, []);
@@ -73,8 +73,12 @@ export default function RootLayout() {
         <StripeProvider publishableKey={config.stripePublishableKey}>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="plan" options={{ headerShown: false }} />
+            <Stack.Screen name="region" options={{ headerShown: false }} />
+            <Stack.Screen name="install" options={{ headerShown: false }} />
           </Stack>
         </StripeProvider>
       </QueryClientProvider>

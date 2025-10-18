@@ -206,11 +206,11 @@ export default function Dashboard() {
   return (
     <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
       {/* Header with brand color */}
-      <View className="px-6 pt-12 pb-6" style={{backgroundColor: '#87EFFF'}}>
-        <Text className="text-4xl font-black uppercase tracking-tight" style={{color: '#1A1A1A'}}>
+      <View className="px-6 pt-16 pb-6" style={{backgroundColor: '#87EFFF'}}>
+        <Text className="text-4xl font-black uppercase tracking-tight" style={{color: '#1A1A1A', marginBottom: 12}}>
           MY eSIMs
         </Text>
-        <Text className="text-base font-bold mt-2" style={{color: '#1A1A1A', opacity: 0.8}}>
+        <Text className="text-base font-bold" style={{color: '#1A1A1A', opacity: 0.8}}>
           Manage your active eSIM plans
         </Text>
       </View>

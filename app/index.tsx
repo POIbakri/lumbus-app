@@ -12,75 +12,12 @@ export default function Index() {
   const pulseAnim3 = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Animate splash screen
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 4,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Small delay to ensure Root Layout is mounted
+    const navigationTimer = setTimeout(() => {
+      router.replace('/onboarding');
+    }, 100);
 
-    // Animate loading dots
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim1, {
-          toValue: 0.3,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim1, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    setTimeout(() => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim2, {
-            toValue: 0.3,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim2, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    }, 150);
-
-    setTimeout(() => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim3, {
-            toValue: 0.3,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim3, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    }, 300);
-
-    // Skip auth check for testing - go straight to login
-    setTimeout(() => {
-      router.replace('/(auth)/login');
-    }, 1000);
+    return () => clearTimeout(navigationTimer);
   }, []);
 
   async function checkAuth() {
