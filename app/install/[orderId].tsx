@@ -6,11 +6,13 @@ import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
 import { fetchOrderById, subscribeToOrderUpdates } from '../../lib/api';
+import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 
 export default function InstallEsim() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const router = useRouter();
   const [showManual, setShowManual] = useState(false);
+  const { scale, moderateScale, isSmallDevice } = useResponsive();
 
   const { data: order, isLoading, refetch } = useQuery({
     queryKey: ['order', orderId],
@@ -38,31 +40,46 @@ export default function InstallEsim() {
 
   async function handleDirectInstall(lpaString: string) {
     try {
-      // Copy LPA string to clipboard first
-      await Clipboard.setStringAsync(lpaString);
-
-      // iOS: Open Settings app directly to eSIM installation
+      // iOS: Try iOS 17.4+ deep link first, fallback to manual
       if (Platform.OS === 'ios') {
-        const settingsUrl = 'App-prefs:MOBILE_DATA_SETTINGS_ID';
-        const canOpen = await Linking.canOpenURL(settingsUrl);
+        // Check iOS version for deep link support (iOS 17.4+)
+        const iosVersion = parseInt(Platform.Version as string, 10);
 
+        if (iosVersion >= 17) {
+          // iOS 17.4+ supports direct deep linking for eSIM installation
+          const deepLinkUrl = `https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=${encodeURIComponent(lpaString)}`;
+
+          try {
+            const canOpen = await Linking.canOpenURL(deepLinkUrl);
+            if (canOpen) {
+              // Try to open the deep link directly
+              await Linking.openURL(deepLinkUrl);
+              Alert.alert(
+                '🎉 Installing eSIM',
+                'Follow the on-screen prompts to complete your eSIM installation.',
+                [{ text: 'OK' }]
+              );
+              return;
+            }
+          } catch (deepLinkError) {
+            console.log('Deep link failed, falling back to manual install:', deepLinkError);
+          }
+        }
+
+        // Fallback: Copy to clipboard and guide to Settings
+        await Clipboard.setStringAsync(lpaString);
         Alert.alert(
           '✓ Code Copied!',
-          'The activation code has been copied to your clipboard.\n\nNext steps:\n\n1. Tap "Open Settings" below\n2. Tap "Add eSIM" or "Add Cellular Plan"\n3. Choose "Enter Details Manually"\n4. Paste the code (long press and tap Paste)\n5. Follow the on-screen instructions',
+          'The activation code has been copied to your clipboard.\n\nNext steps:\n\n1. Tap "Open Settings" below\n2. Tap "Cellular" or "Mobile Data"\n3. Tap "Add eSIM" or "Add Cellular Plan"\n4. Choose "Enter Details Manually"\n5. Paste the code (long press and tap Paste)\n6. Follow the on-screen instructions',
           [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Open Settings',
               onPress: async () => {
                 try {
-                  if (canOpen) {
-                    await Linking.openURL(settingsUrl);
-                  } else {
-                    await Linking.openSettings();
-                  }
-                } catch (error) {
-                  // Fallback to general settings
                   await Linking.openSettings();
+                } catch (error) {
+                  Alert.alert('Error', 'Unable to open Settings. Please open Settings manually.');
                 }
               }
             }
@@ -78,7 +95,13 @@ export default function InstallEsim() {
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Open Settings',
-              onPress: () => Linking.openSettings()
+              onPress: async () => {
+                try {
+                  await Linking.openSettings();
+                } catch (error) {
+                  Alert.alert('Error', 'Unable to open Settings. Please open Settings manually.');
+                }
+              }
             }
           ]
         );
@@ -99,17 +122,17 @@ export default function InstallEsim() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#3B82F6" />
+      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
+        <ActivityIndicator size="large" color="#2EFECC" />
       </View>
     );
   }
 
   if (!order) {
     return (
-      <View className="flex-1 items-center justify-center bg-white px-6">
+      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF', paddingHorizontal: getHorizontalPadding()}}>
         <Ionicons name="alert-circle" size={64} color="#EF4444" />
-        <Text className="text-gray-900 text-lg font-semibold mt-4">
+        <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(18), marginTop: moderateScale(16)}}>
           Order not found
         </Text>
       </View>
@@ -119,19 +142,19 @@ export default function InstallEsim() {
   // Order is still processing
   if (order.status !== 'completed' || !order.qr_url || !order.activation_code) {
     return (
-      <View className="flex-1 bg-white">
-        <View className="px-6 pt-16 pb-8">
-          <TouchableOpacity onPress={() => router.back()} className="mb-4">
-            <Ionicons name="arrow-back" size={24} color="#111827" />
+      <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
+        <View style={{paddingHorizontal: getHorizontalPadding(), paddingTop: moderateScale(64), paddingBottom: moderateScale(32)}}>
+          <TouchableOpacity onPress={() => router.back()} style={{marginBottom: moderateScale(16)}}>
+            <Ionicons name="arrow-back" size={scale(24)} color="#1A1A1A" />
           </TouchableOpacity>
         </View>
 
-        <View className="flex-1 items-center justify-center px-6">
-          <ActivityIndicator size="large" color="#3B82F6" className="mb-4" />
-          <Text className="text-2xl font-bold text-gray-900 mb-2 text-center">
+        <View className="flex-1 items-center justify-center" style={{paddingHorizontal: getHorizontalPadding()}}>
+          <ActivityIndicator size="large" color="#2EFECC" style={{marginBottom: moderateScale(16)}} />
+          <Text className="font-black uppercase tracking-tight text-center" style={{color: '#1A1A1A', fontSize: getFontSize(24), marginBottom: moderateScale(8)}}>
             Provisioning your eSIM
           </Text>
-          <Text className="text-gray-600 text-center">
+          <Text className="font-bold text-center" style={{color: '#666666', fontSize: getFontSize(14)}}>
             This usually takes 1-2 minutes. You'll receive an email when your eSIM is ready.
           </Text>
         </View>
@@ -144,109 +167,124 @@ export default function InstallEsim() {
   const lpaString = `LPA:1$${order.smdp}$${order.activation_code}`;
 
   return (
-    <ScrollView className="flex-1 bg-white">
-      <View className="px-6 pt-16 pb-8">
-        <TouchableOpacity onPress={() => router.back()} className="mb-4">
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+    <ScrollView className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
+      <View style={{paddingHorizontal: getHorizontalPadding(), paddingTop: moderateScale(64), paddingBottom: moderateScale(32)}}>
+        <TouchableOpacity onPress={() => router.back()} style={{marginBottom: moderateScale(16)}}>
+          <Ionicons name="arrow-back" size={scale(24)} color="#1A1A1A" />
         </TouchableOpacity>
 
-        <Text className="text-3xl font-bold text-gray-900 mb-2">
+        <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(32), lineHeight: getFontSize(36), marginBottom: moderateScale(8)}}>
           Install eSIM
         </Text>
-        <Text className="text-gray-600 text-lg">
+        <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(16)}}>
           {region} • {order.plan?.data_gb || 0} GB
         </Text>
       </View>
 
-      <View className="px-6 pb-6">
+      <View style={{paddingHorizontal: getHorizontalPadding(), paddingBottom: moderateScale(24)}}>
         {/* Quick Install Button */}
         <TouchableOpacity
-          className="bg-blue-500 rounded-xl p-4 mb-6 flex-row items-center justify-center shadow-md"
+          className="rounded-2xl flex-row items-center justify-center"
+          style={{backgroundColor: '#2EFECC', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8, paddingVertical: moderateScale(20), marginBottom: moderateScale(16)}}
           onPress={() => handleDirectInstall(lpaString)}
+          activeOpacity={0.8}
         >
-          <Ionicons name="download-outline" size={24} color="white" />
-          <Text className="text-white text-lg font-bold ml-3">
-            Install eSIM Now
+          <Ionicons name="download-outline" size={scale(24)} color="#1A1A1A" />
+          <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(16), marginLeft: scale(12)}}>
+            Install eSIM Now →
           </Text>
         </TouchableOpacity>
 
-        <View className="flex-row items-center mb-6">
-          <View className="flex-1 h-px bg-gray-300" />
-          <Text className="px-4 text-gray-500 text-sm">or scan QR code</Text>
-          <View className="flex-1 h-px bg-gray-300" />
+        {/* Open in Browser Button */}
+        <TouchableOpacity
+          className="rounded-2xl flex-row items-center justify-center"
+          style={{backgroundColor: '#F7E2FB', borderWidth: 2, borderColor: '#E5E5E5', paddingVertical: moderateScale(16), marginBottom: moderateScale(24)}}
+          onPress={() => Linking.openURL(`https://getlumbus.com/install/${orderId}`)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="globe-outline" size={scale(20)} color="#1A1A1A" />
+          <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(13), marginLeft: scale(8)}}>
+            Open in Browser
+          </Text>
+        </TouchableOpacity>
+
+        <View className="flex-row items-center" style={{marginBottom: moderateScale(24)}}>
+          <View className="flex-1" style={{height: 1, backgroundColor: '#E5E5E5'}} />
+          <Text className="font-bold uppercase" style={{color: '#666666', fontSize: getFontSize(11), paddingHorizontal: scale(16)}}>or scan QR code</Text>
+          <View className="flex-1" style={{height: 1, backgroundColor: '#E5E5E5'}} />
         </View>
 
         {/* QR Code Section */}
-        <View className="bg-white border-2 border-gray-200 rounded-2xl p-6 mb-6 items-center">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
+        <View className="rounded-2xl items-center" style={{backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#E5E5E5', padding: moderateScale(24), marginBottom: moderateScale(24)}}>
+          <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(16), marginBottom: moderateScale(16)}}>
             Scan QR Code
           </Text>
 
-          <View className="bg-white p-4 rounded-xl">
+          <View className="rounded-xl" style={{backgroundColor: '#FFFFFF', padding: moderateScale(16)}}>
             <QRCode
               value={lpaString}
-              size={200}
+              size={scale(200)}
               backgroundColor="white"
             />
           </View>
 
-          <Text className="text-sm text-gray-600 mt-4 text-center">
+          <Text className="font-bold text-center" style={{color: '#666666', fontSize: getFontSize(12), marginTop: moderateScale(16)}}>
             Open Settings on this device and scan this QR code to install the eSIM
           </Text>
         </View>
 
         {/* Installation Methods */}
-        <View className="bg-blue-50 rounded-xl p-4 mb-6">
-          <Text className="text-base font-semibold text-gray-900 mb-3">
+        <View className="rounded-2xl" style={{backgroundColor: '#E0FEF7', padding: moderateScale(20), marginBottom: moderateScale(24)}}>
+          <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(14), marginBottom: moderateScale(12)}}>
             Installation Methods
           </Text>
 
-          <View className="mb-4">
-            <Text className="text-sm font-bold text-blue-600 mb-2">
+          <View style={{marginBottom: moderateScale(16)}}>
+            <Text className="font-black" style={{color: '#2EFECC', fontSize: getFontSize(13), marginBottom: moderateScale(8)}}>
               Method 1: One-Tap Install (Recommended)
             </Text>
-            <Text className="text-sm text-gray-700 leading-5">
+            <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(12), lineHeight: getFontSize(18)}}>
               Tap the "Install eSIM Now" button above. The activation code will be copied automatically, and you'll be guided to your device settings to complete installation.
             </Text>
           </View>
 
           <View>
-            <Text className="text-sm font-bold text-blue-600 mb-2">
+            <Text className="font-black" style={{color: '#2EFECC', fontSize: getFontSize(13), marginBottom: moderateScale(8)}}>
               Method 2: QR Code
             </Text>
-            <View className="space-y-2">
-              <View className="flex-row">
-                <View className="bg-blue-500 w-5 h-5 rounded-full items-center justify-center mr-2">
-                  <Text className="text-white font-bold text-xs">1</Text>
+            <View>
+              <View className="flex-row" style={{marginBottom: moderateScale(8)}}>
+                <View className="rounded-full items-center justify-center" style={{backgroundColor: '#2EFECC', width: scale(20), height: scale(20), marginRight: scale(8)}}>
+                  <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(10)}}>1</Text>
                 </View>
-                <Text className="flex-1 text-sm text-gray-700">
+                <Text className="flex-1 font-bold" style={{color: '#666666', fontSize: getFontSize(12)}}>
                   Go to Settings → Cellular/Mobile Data
                 </Text>
               </View>
 
-              <View className="flex-row">
-                <View className="bg-blue-500 w-5 h-5 rounded-full items-center justify-center mr-2">
-                  <Text className="text-white font-bold text-xs">2</Text>
+              <View className="flex-row" style={{marginBottom: moderateScale(8)}}>
+                <View className="rounded-full items-center justify-center" style={{backgroundColor: '#2EFECC', width: scale(20), height: scale(20), marginRight: scale(8)}}>
+                  <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(10)}}>2</Text>
                 </View>
-                <Text className="flex-1 text-sm text-gray-700">
+                <Text className="flex-1 font-bold" style={{color: '#666666', fontSize: getFontSize(12)}}>
                   Tap "Add eSIM" or "Add Cellular Plan"
                 </Text>
               </View>
 
-              <View className="flex-row">
-                <View className="bg-blue-500 w-5 h-5 rounded-full items-center justify-center mr-2">
-                  <Text className="text-white font-bold text-xs">3</Text>
+              <View className="flex-row" style={{marginBottom: moderateScale(8)}}>
+                <View className="rounded-full items-center justify-center" style={{backgroundColor: '#2EFECC', width: scale(20), height: scale(20), marginRight: scale(8)}}>
+                  <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(10)}}>3</Text>
                 </View>
-                <Text className="flex-1 text-sm text-gray-700">
+                <Text className="flex-1 font-bold" style={{color: '#666666', fontSize: getFontSize(12)}}>
                   Scan the QR code above
                 </Text>
               </View>
 
               <View className="flex-row">
-                <View className="bg-blue-500 w-5 h-5 rounded-full items-center justify-center mr-2">
-                  <Text className="text-white font-bold text-xs">4</Text>
+                <View className="rounded-full items-center justify-center" style={{backgroundColor: '#2EFECC', width: scale(20), height: scale(20), marginRight: scale(8)}}>
+                  <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(10)}}>4</Text>
                 </View>
-                <Text className="flex-1 text-sm text-gray-700">
+                <Text className="flex-1 font-bold" style={{color: '#666666', fontSize: getFontSize(12)}}>
                   Follow the prompts to complete installation
                 </Text>
               </View>
@@ -256,101 +294,103 @@ export default function InstallEsim() {
 
         {/* Manual Installation Toggle */}
         <TouchableOpacity
-          className="bg-gray-100 rounded-xl p-4 mb-6 flex-row items-center justify-between"
+          className="rounded-2xl flex-row items-center justify-between"
+          style={{backgroundColor: '#F5F5F5', padding: moderateScale(20), marginBottom: moderateScale(24)}}
           onPress={() => setShowManual(!showManual)}
+          activeOpacity={0.8}
         >
-          <Text className="text-base font-semibold text-gray-900">
+          <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
             Manual Installation Details
           </Text>
           <Ionicons
             name={showManual ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color="#6B7280"
+            size={scale(20)}
+            color="#666666"
           />
         </TouchableOpacity>
 
         {/* Manual Installation Details */}
         {showManual && (
-          <View className="bg-gray-50 rounded-xl p-4 mb-6 space-y-4">
-            <View>
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
+          <View className="rounded-2xl" style={{backgroundColor: '#F5F5F5', padding: moderateScale(20), marginBottom: moderateScale(24)}}>
+            <View style={{marginBottom: moderateScale(16)}}>
+              <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(11), marginBottom: moderateScale(8)}}>
                 Full Activation Code (LPA String)
               </Text>
-              <View className="bg-white border border-gray-200 rounded-lg p-3 flex-row items-center justify-between">
-                <Text className="text-xs text-gray-900 flex-1 mr-2 font-mono">
+              <View className="rounded-xl flex-row items-center justify-between" style={{backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E5E5', padding: moderateScale(12)}}>
+                <Text className="font-mono flex-1" style={{color: '#1A1A1A', fontSize: getFontSize(10), marginRight: scale(8)}}>
                   {lpaString}
                 </Text>
                 <TouchableOpacity
                   onPress={() => copyToClipboard(lpaString, 'Full activation code')}
                 >
-                  <Ionicons name="copy-outline" size={20} color="#3B82F6" />
+                  <Ionicons name="copy-outline" size={scale(20)} color="#2EFECC" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View>
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
+            <View style={{marginBottom: moderateScale(16)}}>
+              <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(11), marginBottom: moderateScale(8)}}>
                 SM-DP+ Address
               </Text>
-              <View className="bg-white border border-gray-200 rounded-lg p-3 flex-row items-center justify-between">
-                <Text className="text-sm text-gray-900 flex-1 mr-2">
+              <View className="rounded-xl flex-row items-center justify-between" style={{backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E5E5', padding: moderateScale(12)}}>
+                <Text className="font-bold flex-1" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginRight: scale(8)}}>
                   {order.smdp}
                 </Text>
                 <TouchableOpacity
                   onPress={() => copyToClipboard(order.smdp!, 'SM-DP+ Address')}
                 >
-                  <Ionicons name="copy-outline" size={20} color="#3B82F6" />
+                  <Ionicons name="copy-outline" size={scale(20)} color="#2EFECC" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View>
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
+            <View style={{marginBottom: moderateScale(16)}}>
+              <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(11), marginBottom: moderateScale(8)}}>
                 Activation Code
               </Text>
-              <View className="bg-white border border-gray-200 rounded-lg p-3 flex-row items-center justify-between">
-                <Text className="text-sm text-gray-900 flex-1 mr-2">
+              <View className="rounded-xl flex-row items-center justify-between" style={{backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E5E5', padding: moderateScale(12)}}>
+                <Text className="font-bold flex-1" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginRight: scale(8)}}>
                   {order.activation_code}
                 </Text>
                 <TouchableOpacity
                   onPress={() => copyToClipboard(order.activation_code!, 'Activation Code')}
                 >
-                  <Ionicons name="copy-outline" size={20} color="#3B82F6" />
+                  <Ionicons name="copy-outline" size={scale(20)} color="#2EFECC" />
                 </TouchableOpacity>
               </View>
             </View>
 
             {order.iccid && (
-              <View>
-                <Text className="text-sm font-semibold text-gray-700 mb-2">
+              <View style={{marginBottom: moderateScale(16)}}>
+                <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(11), marginBottom: moderateScale(8)}}>
                   ICCID
                 </Text>
-                <View className="bg-white border border-gray-200 rounded-lg p-3 flex-row items-center justify-between">
-                  <Text className="text-sm text-gray-900 flex-1 mr-2">
+                <View className="rounded-xl flex-row items-center justify-between" style={{backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E5E5', padding: moderateScale(12)}}>
+                  <Text className="font-bold flex-1" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginRight: scale(8)}}>
                     {order.iccid}
                   </Text>
                   <TouchableOpacity
                     onPress={() => copyToClipboard(order.iccid!, 'ICCID')}
                   >
-                    <Ionicons name="copy-outline" size={20} color="#3B82F6" />
+                    <Ionicons name="copy-outline" size={scale(20)} color="#2EFECC" />
                   </TouchableOpacity>
                 </View>
               </View>
             )}
 
             {order.apn && (
-              <View>
-                <Text className="text-sm font-semibold text-gray-700 mb-2">
+              <View style={{marginBottom: moderateScale(16)}}>
+                <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(11), marginBottom: moderateScale(8)}}>
                   APN
                 </Text>
-                <View className="bg-white border border-gray-200 rounded-lg p-3 flex-row items-center justify-between">
-                  <Text className="text-sm text-gray-900 flex-1 mr-2">
+                <View className="rounded-xl flex-row items-center justify-between" style={{backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E5E5', padding: moderateScale(12)}}>
+                  <Text className="font-bold flex-1" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginRight: scale(8)}}>
                     {order.apn}
                   </Text>
                   <TouchableOpacity
                     onPress={() => copyToClipboard(order.apn!, 'APN')}
                   >
-                    <Ionicons name="copy-outline" size={20} color="#3B82F6" />
+                    <Ionicons name="copy-outline" size={scale(20)} color="#2EFECC" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -358,11 +398,11 @@ export default function InstallEsim() {
 
             {order.activate_before && (
               <View>
-                <Text className="text-sm font-semibold text-gray-700 mb-2">
+                <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(11), marginBottom: moderateScale(8)}}>
                   Activate Before
                 </Text>
-                <View className="bg-white border border-gray-200 rounded-lg p-3">
-                  <Text className="text-sm text-gray-900">
+                <View className="rounded-xl" style={{backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E5E5', padding: moderateScale(12)}}>
+                  <Text className="font-bold" style={{color: '#1A1A1A', fontSize: getFontSize(12)}}>
                     {new Date(order.activate_before).toLocaleDateString('en-US', {
                       month: 'long',
                       day: 'numeric',
@@ -376,18 +416,16 @@ export default function InstallEsim() {
         )}
 
         {/* Important Notes */}
-        <View className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-          <View className="flex-row items-start">
-            <Ionicons name="information-circle" size={24} color="#F59E0B" />
-            <View className="flex-1 ml-3">
-              <Text className="text-sm font-semibold text-gray-900 mb-1">
-                Important
-              </Text>
-              <Text className="text-sm text-gray-700">
-                Your eSIM will activate when you connect to a supported network in {region}.
-                Make sure to install before your trip!
-              </Text>
-            </View>
+        <View className="rounded-2xl flex-row items-start" style={{backgroundColor: '#FFFEF0', borderWidth: 2, borderColor: '#FDFD74', padding: moderateScale(20)}}>
+          <Ionicons name="information-circle" size={scale(24)} color="#FDFD74" />
+          <View className="flex-1" style={{marginLeft: scale(12)}}>
+            <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(13), marginBottom: moderateScale(4)}}>
+              Important
+            </Text>
+            <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(12)}}>
+              Your eSIM will activate when you connect to a supported network in {region}.
+              Make sure to install before your trip!
+            </Text>
           </View>
         </View>
       </View>

@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Dimensions } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -6,12 +6,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { fetchPlans } from '../../lib/api';
 import { Plan } from '../../types';
 import { useCurrency } from '../../hooks/useCurrency';
+import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 
 export default function Browse() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
   const { convertMultiplePrices, symbol, loading: currencyLoading } = useCurrency();
+  const { scale, moderateScale, isSmallDevice } = useResponsive();
 
   const { data: plans, isLoading, error } = useQuery({
     queryKey: ['plans'],
@@ -57,35 +59,39 @@ export default function Browse() {
     return (
       <TouchableOpacity
         key={plan.id}
-        className="bg-white rounded-xl p-4 mb-4 shadow-sm border border-gray-100"
+        className="bg-white rounded-2xl p-5 mb-4"
+        style={{shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.08, shadowRadius: 8, borderWidth: 2, borderColor: '#E5E5E5'}}
         onPress={() => router.push(`/plan/${plan.id}`)}
+        activeOpacity={0.8}
       >
-        <View className="flex-row justify-between items-start mb-3">
+        <View className="flex-row justify-between items-start mb-4">
           <View className="flex-1">
-            <Text className="text-lg font-bold text-gray-900 mb-1">
+            <Text className="text-2xl font-black mb-2 uppercase tracking-tight" style={{color: '#1A1A1A'}}>
               {extractRegion(plan.name)}
             </Text>
-            <Text className="text-sm text-gray-600">
-              {plan.region_code}
-            </Text>
+            <View className="flex-row items-center gap-1">
+              <Text className="text-base font-bold uppercase tracking-wide" style={{color: '#666666'}}>
+                🌍 {plan.region_code}
+              </Text>
+            </View>
           </View>
-          <View className="bg-blue-50 px-3 py-1 rounded-full">
-            <Text className="text-blue-600 font-bold text-lg">
+          <View className="px-4 py-3 rounded-xl" style={{backgroundColor: '#2EFECC'}}>
+            <Text className="font-black text-xl" style={{color: '#1A1A1A'}}>
               {plan.displayPrice || `${symbol}${plan.price}`}
             </Text>
           </View>
         </View>
 
-        <View className="flex-row items-center space-x-4">
-          <View className="flex-row items-center">
-            <Ionicons name="cellular" size={16} color="#6B7280" />
-            <Text className="text-gray-700 ml-2 font-medium">
+        <View className="flex-row items-center gap-6">
+          <View className="flex-row items-center px-4 py-2 rounded-full" style={{backgroundColor: '#E0FEF7'}}>
+            <Ionicons name="cellular" size={18} color="#2EFECC" />
+            <Text className="ml-2 font-black text-sm uppercase" style={{color: '#1A1A1A'}}>
               {plan.data_gb} GB
             </Text>
           </View>
-          <View className="flex-row items-center">
-            <Ionicons name="time" size={16} color="#6B7280" />
-            <Text className="text-gray-700 ml-2 font-medium">
+          <View className="flex-row items-center px-4 py-2 rounded-full" style={{backgroundColor: '#F7E2FB'}}>
+            <Ionicons name="time" size={18} color="#2EFECC" />
+            <Text className="ml-2 font-black text-sm uppercase" style={{color: '#1A1A1A'}}>
               {plan.validity_days} days
             </Text>
           </View>
@@ -96,8 +102,8 @@ export default function Browse() {
 
   if (isLoading || currencyLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50">
-        <ActivityIndicator size="large" color="#3B82F6" />
+      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
+        <ActivityIndicator size="large" color="#2EFECC" />
       </View>
     );
   }
@@ -117,17 +123,23 @@ export default function Browse() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <View className="bg-white px-6 pt-12 pb-4 border-b border-gray-200">
-        <Text className="text-3xl font-bold text-gray-900 mb-4">
-          Browse Plans
+    <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
+      {/* Header with brand color background */}
+      <View style={{backgroundColor: '#2EFECC', paddingHorizontal: getHorizontalPadding(), paddingTop: moderateScale(48), paddingBottom: moderateScale(24)}}>
+        <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 32 : 40), lineHeight: getFontSize(isSmallDevice ? 36 : 44), marginBottom: moderateScale(8)}}>
+          BROWSE{'\n'}PLANS
+        </Text>
+        <Text className="font-bold" style={{color: '#1A1A1A', opacity: 0.8, fontSize: getFontSize(14), marginBottom: moderateScale(24)}}>
+          Find the perfect eSIM for your destination
         </Text>
 
-        <View className="bg-gray-100 rounded-lg px-4 py-3 flex-row items-center">
-          <Ionicons name="search" size={20} color="#9CA3AF" />
+        <View className="bg-white rounded-2xl flex-row items-center" style={{borderWidth: 2, borderColor: '#E5E5E5', paddingHorizontal: scale(20), paddingVertical: moderateScale(16)}}>
+          <Ionicons name="search" size={scale(22)} color="#2EFECC" />
           <TextInput
-            className="flex-1 ml-2 text-base"
+            className="flex-1 font-bold"
+            style={{color: '#1A1A1A', marginLeft: scale(12), fontSize: getFontSize(15)}}
             placeholder="Search by country or region..."
+            placeholderTextColor="#666666"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -139,13 +151,18 @@ export default function Browse() {
         renderItem={({ item }) => renderPlanCard(item)}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
-          padding: 16,
+          padding: getHorizontalPadding(),
         }}
         ListEmptyComponent={
           <View className="items-center justify-center py-12">
-            <Ionicons name="search" size={64} color="#D1D5DB" />
-            <Text className="text-gray-600 text-lg mt-4">
+            <View className="rounded-full p-6 mb-4" style={{backgroundColor: '#F5F5F5'}}>
+              <Ionicons name="search" size={64} color="#666666" />
+            </View>
+            <Text className="text-xl font-black uppercase" style={{color: '#1A1A1A'}}>
               No plans found
+            </Text>
+            <Text className="font-bold mt-2" style={{color: '#666666'}}>
+              Try a different search term
             </Text>
           </View>
         }

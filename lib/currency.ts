@@ -85,12 +85,15 @@ export async function convertPrices(
   currencyInfo: CurrencyInfo
 ): Promise<Array<{ usd: number; converted: number; formatted: string }>> {
   try {
-    const response = await fetch(`${config.apiUrl}/currency/detect`, {
+    const response = await fetch(`${config.apiUrl}/currency/convert`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prices: usdPrices }),
+      body: JSON.stringify({
+        prices: usdPrices,
+        currency: currencyInfo.currency
+      }),
     });
 
     if (!response.ok) {

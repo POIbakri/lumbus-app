@@ -57,24 +57,42 @@ export default function Signup() {
       className="flex-1 bg-white"
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 justify-center px-6">
-          <View className="mb-8">
-            <Text className="text-4xl font-bold text-gray-900 mb-2">
-              Create account
+        {/* Decorative Blobs - Brand Colors */}
+        <View className="absolute top-0 left-0 w-64 h-64 rounded-full" style={{backgroundColor: 'rgba(253, 253, 116, 0.1)'}} />
+        <View className="absolute bottom-0 right-0 w-80 h-80 rounded-full" style={{backgroundColor: 'rgba(135, 239, 255, 0.1)'}} />
+        <View className="absolute top-1/2 right-1/4 w-72 h-72 rounded-full" style={{backgroundColor: 'rgba(247, 226, 251, 0.15)'}} />
+
+        <View className="flex-1 justify-center px-6 relative">
+          {/* Logo Badge */}
+          <View className="items-center mb-8">
+            <View className="border-4 rounded-full px-8 py-3" style={{backgroundColor: 'rgba(46, 254, 204, 0.1)', borderColor: '#2EFECC'}}>
+              <Text className="font-black text-xs tracking-widest uppercase" style={{color: '#2EFECC'}}>
+                ⚡ LUMBUS
+              </Text>
+            </View>
+          </View>
+
+          {/* Title */}
+          <View className="mb-10">
+            <Text className="text-5xl font-black mb-3 uppercase tracking-tight text-center" style={{color: '#1A1A1A'}}>
+              CREATE{'\n'}ACCOUNT
             </Text>
-            <Text className="text-gray-600 text-lg">
+            <Text className="text-lg font-bold text-center" style={{color: '#666666'}}>
               Join Lumbus to get started with eSIMs
             </Text>
           </View>
 
+          {/* Form */}
           <View className="space-y-4">
             <View>
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+              <Text className="text-sm font-black mb-2 uppercase tracking-wide" style={{color: '#1A1A1A'}}>
                 Email
               </Text>
               <TextInput
-                className="bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-base"
+                className="rounded-2xl px-5 py-4 text-base font-bold"
+                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A'}}
                 placeholder="you@example.com"
+                placeholderTextColor="#666666"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -84,12 +102,14 @@ export default function Signup() {
             </View>
 
             <View className="mt-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+              <Text className="text-sm font-black mb-2 uppercase tracking-wide" style={{color: '#1A1A1A'}}>
                 Password
               </Text>
               <TextInput
-                className="bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-base"
+                className="rounded-2xl px-5 py-4 text-base font-bold"
+                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A'}}
                 placeholder="••••••••"
+                placeholderTextColor="#666666"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -98,12 +118,14 @@ export default function Signup() {
             </View>
 
             <View className="mt-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+              <Text className="text-sm font-black mb-2 uppercase tracking-wide" style={{color: '#1A1A1A'}}>
                 Confirm Password
               </Text>
               <TextInput
-                className="bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-base"
+                className="rounded-2xl px-5 py-4 text-base font-bold"
+                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A'}}
                 placeholder="••••••••"
+                placeholderTextColor="#666666"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry
@@ -111,23 +133,37 @@ export default function Signup() {
               />
             </View>
 
+            {/* Create Account Button */}
             <TouchableOpacity
-              className={`mt-6 rounded-lg py-4 ${loading ? 'bg-blue-300' : 'bg-blue-500'}`}
+              className="mt-8 rounded-2xl py-5"
+              style={{backgroundColor: '#2EFECC', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8}}
               onPress={handleSignup}
               disabled={loading}
+              activeOpacity={0.8}
             >
-              <Text className="text-white text-center text-base font-semibold">
-                {loading ? 'Creating account...' : 'Sign up'}
+              <Text className="text-center text-lg font-black uppercase tracking-wide" style={{color: '#1A1A1A'}}>
+                {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT →'}
               </Text>
             </TouchableOpacity>
 
-            <View className="flex-row justify-center mt-6">
-              <Text className="text-gray-600">
+            {/* Login Link */}
+            <View className="flex-row justify-center mt-8">
+              <Text className="font-bold" style={{color: '#666666'}}>
                 Already have an account?{' '}
               </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                <Text className="text-blue-500 font-semibold">Sign in</Text>
+                <Text className="font-black" style={{color: '#2EFECC'}}>SIGN IN</Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Trust Badge */}
+            <View className="items-center mt-8">
+              <View className="flex-row items-center gap-2 px-4 py-2 rounded-full" style={{backgroundColor: '#FDFD74'}}>
+                <Text className="text-lg">🌍</Text>
+                <Text className="text-xs font-bold uppercase" style={{color: '#1A1A1A'}}>
+                  Join 50,000+ Users
+                </Text>
+              </View>
             </View>
           </View>
         </View>

@@ -30,7 +30,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     package: 'com.lumbus.app',
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    permissions: ['android.permission.CAMERA'],
+    permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
   },
   web: {
     favicon: './assets/favicon.png',
@@ -43,18 +44,27 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         merchantIdentifier: 'merchant.com.lumbus.app',
       },
     ],
+    [
+      'expo-notifications',
+      {
+        icon: './assets/notification-icon.png',
+        color: '#2EFECC',
+        sounds: ['./assets/notification-sound.wav'],
+        mode: 'production',
+      },
+    ],
   ],
   extra: {
     router: {
       origin: false,
     },
     eas: {
-      projectId: 'your-project-id-here',
+      projectId: process.env.EAS_PROJECT_ID || 'local-dev',
     },
-    // Environment variables - these are safe to expose in the app
-    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://qflokprwpxeynodcndbc.supabase.co',
-    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmbG9rcHJ3cHhleW5vZGNuZGJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1OTQ1MDMsImV4cCI6MjA3NjE3MDUwM30.ef9h1oSJ7eYizwPrMfeXGi57j5FKjsnBol2ww2EzpXg',
-    stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_live_51SIpVDHqtxSfzV1toTSKPTl35biMGkzD0PoqUwTZg2hKWAOWSWNQpfQkZuZvDA8i0fsTegIi6pHXNrstIkn625FL00AYqdFng2',
-    apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://getlumbus.com/api',
+    // Environment variables - these MUST be set in .env file
+    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    apiUrl: process.env.EXPO_PUBLIC_API_URL,
   },
 });

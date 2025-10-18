@@ -7,6 +7,7 @@ import { useStripe } from '@stripe/stripe-react-native';
 import { fetchPlanById, createCheckout } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../hooks/useCurrency';
+import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 
 export default function PlanDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -15,6 +16,7 @@ export default function PlanDetail() {
   const [loading, setLoading] = useState(false);
   const [displayPrice, setDisplayPrice] = useState<string>('');
   const { convertMultiplePrices, symbol, loading: currencyLoading, currency } = useCurrency();
+  const { scale, moderateScale, isSmallDevice } = useResponsive();
 
   const { data: plan, isLoading } = useQuery({
     queryKey: ['plan', id],
@@ -102,17 +104,17 @@ export default function PlanDetail() {
 
   if (isLoading || currencyLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#3B82F6" />
+      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
+        <ActivityIndicator size="large" color="#2EFECC" />
       </View>
     );
   }
 
   if (!plan) {
     return (
-      <View className="flex-1 items-center justify-center bg-white px-6">
+      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF', paddingHorizontal: getHorizontalPadding()}}>
         <Ionicons name="alert-circle" size={64} color="#EF4444" />
-        <Text className="text-gray-900 text-lg font-semibold mt-4">
+        <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(18), marginTop: moderateScale(16)}}>
           Plan not found
         </Text>
       </View>
@@ -120,87 +122,92 @@ export default function PlanDetail() {
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
       <ScrollView>
-        <View className="bg-gradient-to-br from-blue-500 to-blue-600 px-6 pt-16 pb-8">
+        {/* Header with brand turquoise */}
+        <View style={{backgroundColor: '#2EFECC', paddingHorizontal: getHorizontalPadding(), paddingTop: moderateScale(64), paddingBottom: moderateScale(32)}}>
           <TouchableOpacity
             onPress={() => router.back()}
-            className="mb-4"
+            style={{marginBottom: moderateScale(16)}}
           >
-            <Ionicons name="arrow-back" size={24} color="white" />
+            <Ionicons name="arrow-back" size={scale(24)} color="#1A1A1A" />
           </TouchableOpacity>
 
-          <Text className="text-white text-4xl font-bold mb-2">
+          <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 36 : 48), lineHeight: getFontSize(isSmallDevice ? 40 : 52), marginBottom: moderateScale(8)}}>
             {extractRegion(plan.name)}
           </Text>
-          <Text className="text-blue-100 text-lg">
-            {plan.region_code}
+          <Text className="font-bold uppercase" style={{color: '#1A1A1A', opacity: 0.8, fontSize: getFontSize(16)}}>
+            🌍 {plan.region_code}
           </Text>
         </View>
 
-        <View className="px-6 py-6">
-          <View className="bg-gray-50 rounded-xl p-6 mb-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-gray-600 text-base">Price</Text>
-              <Text className="text-3xl font-bold text-gray-900">
-                {displayPrice || `${symbol}${plan.price}`}
-              </Text>
+        <View style={{paddingHorizontal: getHorizontalPadding(), paddingVertical: moderateScale(24)}}>
+          {/* Price Card */}
+          <View className="rounded-2xl" style={{backgroundColor: '#F5F5F5', padding: moderateScale(24), marginBottom: moderateScale(24)}}>
+            <View className="flex-row justify-between items-center" style={{marginBottom: moderateScale(20)}}>
+              <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(12)}}>Price</Text>
+              <View className="rounded-xl" style={{backgroundColor: '#2EFECC', paddingHorizontal: scale(16), paddingVertical: moderateScale(8)}}>
+                <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(28)}}>
+                  {displayPrice || `${symbol}${plan.price}`}
+                </Text>
+              </View>
             </View>
 
-            <View className="border-t border-gray-200 pt-4 space-y-3">
-              <View className="flex-row justify-between">
-                <Text className="text-gray-600">Data</Text>
-                <Text className="text-gray-900 font-semibold">
+            <View style={{borderTopWidth: 2, borderColor: '#E5E5E5', paddingTop: moderateScale(16)}}>
+              <View className="flex-row justify-between" style={{marginBottom: moderateScale(12)}}>
+                <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14)}}>Data</Text>
+                <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
                   {plan.data_gb} GB
                 </Text>
               </View>
-              <View className="flex-row justify-between">
-                <Text className="text-gray-600">Validity</Text>
-                <Text className="text-gray-900 font-semibold">
+              <View className="flex-row justify-between" style={{marginBottom: moderateScale(12)}}>
+                <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14)}}>Validity</Text>
+                <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
                   {plan.validity_days} days
                 </Text>
               </View>
               <View className="flex-row justify-between">
-                <Text className="text-gray-600">Region Code</Text>
-                <Text className="text-gray-900 font-semibold">
+                <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14)}}>Region Code</Text>
+                <Text className="font-black uppercase" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
                   {plan.region_code}
                 </Text>
               </View>
             </View>
           </View>
 
-          <View className="mb-6">
-            <Text className="text-xl font-bold text-gray-900 mb-3">
+          {/* What's Included Section */}
+          <View style={{marginBottom: moderateScale(24)}}>
+            <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(20), marginBottom: moderateScale(16)}}>
               What's included
             </Text>
-            <View className="space-y-3">
-              <View className="flex-row items-start">
-                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                <Text className="text-gray-700 ml-3 flex-1">
+            <View>
+              <View className="flex-row items-start" style={{marginBottom: moderateScale(12)}}>
+                <Ionicons name="checkmark-circle" size={scale(24)} color="#2EFECC" />
+                <Text className="font-bold flex-1" style={{color: '#666666', fontSize: getFontSize(14), marginLeft: scale(12)}}>
                   {plan.data_gb} GB of high-speed data
                 </Text>
               </View>
-              <View className="flex-row items-start">
-                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                <Text className="text-gray-700 ml-3 flex-1">
+              <View className="flex-row items-start" style={{marginBottom: moderateScale(12)}}>
+                <Ionicons name="checkmark-circle" size={scale(24)} color="#2EFECC" />
+                <Text className="font-bold flex-1" style={{color: '#666666', fontSize: getFontSize(14), marginLeft: scale(12)}}>
                   Valid for {plan.validity_days} days from activation
                 </Text>
               </View>
-              <View className="flex-row items-start">
-                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                <Text className="text-gray-700 ml-3 flex-1">
+              <View className="flex-row items-start" style={{marginBottom: moderateScale(12)}}>
+                <Ionicons name="checkmark-circle" size={scale(24)} color="#2EFECC" />
+                <Text className="font-bold flex-1" style={{color: '#666666', fontSize: getFontSize(14), marginLeft: scale(12)}}>
                   Instant eSIM delivery via email
                 </Text>
               </View>
-              <View className="flex-row items-start">
-                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                <Text className="text-gray-700 ml-3 flex-1">
-                  One-tap eSIM installation
+              <View className="flex-row items-start" style={{marginBottom: moderateScale(12)}}>
+                <Ionicons name="checkmark-circle" size={scale(24)} color="#2EFECC" />
+                <Text className="font-bold flex-1" style={{color: '#666666', fontSize: getFontSize(14), marginLeft: scale(12)}}>
+                  One-tap eSIM installation (iOS 17.4+)
                 </Text>
               </View>
               <View className="flex-row items-start">
-                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                <Text className="text-gray-700 ml-3 flex-1">
+                <Ionicons name="checkmark-circle" size={scale(24)} color="#2EFECC" />
+                <Text className="font-bold flex-1" style={{color: '#666666', fontSize: getFontSize(14), marginLeft: scale(12)}}>
                   24/7 customer support
                 </Text>
               </View>
@@ -209,14 +216,17 @@ export default function PlanDetail() {
         </View>
       </ScrollView>
 
-      <View className="px-6 py-4 border-t border-gray-200 bg-white">
+      {/* Fixed Bottom CTA */}
+      <View style={{backgroundColor: '#FFFFFF', borderTopWidth: 2, borderColor: '#E5E5E5', paddingHorizontal: getHorizontalPadding(), paddingVertical: moderateScale(20)}}>
         <TouchableOpacity
-          className={`rounded-lg py-4 ${loading ? 'bg-blue-300' : 'bg-blue-500'}`}
+          className="rounded-2xl"
+          style={{backgroundColor: loading ? '#87EFFF' : '#2EFECC', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8, paddingVertical: moderateScale(20)}}
           onPress={handleCheckout}
           disabled={loading}
+          activeOpacity={0.8}
         >
-          <Text className="text-white text-center text-base font-semibold">
-            {loading ? 'Processing...' : `Buy now for ${displayPrice || `${symbol}${plan.price}`}`}
+          <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
+            {loading ? 'Processing...' : `Buy now for ${displayPrice || `${symbol}${plan.price}`} →`}
           </Text>
         </TouchableOpacity>
       </View>
