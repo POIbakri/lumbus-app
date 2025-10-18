@@ -59,13 +59,22 @@ export async function detectCurrency(): Promise<CurrencyInfo> {
     });
 
     if (!response.ok) {
+      console.log('⚠️ Currency detection not available, defaulting to USD');
       throw new Error('Failed to detect currency');
     }
 
     const data = await response.json();
+
+    // Handle wrapped response
+    if (data.currency) {
+      return data;
+    } else if (data.data && data.data.currency) {
+      return data.data;
+    }
+
     return data;
   } catch (error) {
-    console.error('Currency detection error:', error);
+    console.log('💵 Using USD (currency detection unavailable)');
 
     // Fallback to USD
     return {
@@ -79,31 +88,49 @@ export async function detectCurrency(): Promise<CurrencyInfo> {
 
 /**
  * Convert USD prices to user's currency
+ * Uses POST /api/currency/detect with prices array
  */
 export async function convertPrices(
   usdPrices: number[],
   currencyInfo: CurrencyInfo
 ): Promise<Array<{ usd: number; converted: number; formatted: string }>> {
+  // If already USD, no conversion needed
+  if (currencyInfo.currency === 'USD') {
+    return usdPrices.map((usd) => ({
+      usd,
+      converted: usd,
+      formatted: `$${usd.toFixed(2)}`,
+    }));
+  }
+
   try {
-    const response = await fetch(`${config.apiUrl}/currency/convert`, {
+    // Backend endpoint: POST /api/currency/detect with prices array
+    const response = await fetch(`${config.apiUrl}/currency/detect`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prices: usdPrices,
-        currency: currencyInfo.currency
+        prices: usdPrices, // Already in correct format (retail_price is in dollars)
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to convert prices');
+      console.log('⚠️ Currency conversion failed, using USD fallback');
+      throw new Error(`Failed to convert prices: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.prices;
+    console.log('💱 Currency conversion successful:', data.currency);
+
+    // Backend returns: { currency, symbol, name, prices: [...] }
+    if (data.prices && Array.isArray(data.prices)) {
+      return data.prices;
+    }
+
+    throw new Error('Invalid response format');
   } catch (error) {
-    console.error('Price conversion error:', error);
+    console.log('💵 Using USD prices (currency conversion unavailable)');
 
     // Fallback to USD
     return usdPrices.map((usd) => ({

@@ -23,25 +23,51 @@ async function getAuthHeaders(): Promise<HeadersInit> {
 export async function fetchPlans(): Promise<Plan[]> {
   try {
     const headers = await getAuthHeaders();
+    console.log('🌐 Fetching plans from:', `${API_URL}/plans`);
+
     const response = await fetch(`${API_URL}/plans`, {
       method: 'GET',
       headers,
     });
 
+    console.log('📡 Response status:', response.status);
+
     if (!response.ok) {
-      throw new Error('Failed to fetch plans');
+      const errorText = await response.text();
+      console.error('❌ API error:', response.status, errorText);
+      throw new Error(`Failed to fetch plans: ${response.status}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('✅ Plans from API:', data);
+    console.log('✅ Is array?', Array.isArray(data));
+
+    // Handle both formats: array or object with plans property
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data && Array.isArray(data.plans)) {
+      console.log('📦 Extracting plans from response.plans');
+      return data.plans;
+    } else {
+      console.error('❌ Unexpected response format:', data);
+      throw new Error('Invalid response format from API');
+    }
   } catch (error) {
-    console.error('Error fetching plans:', error);
+    console.error('❌ Error fetching plans from API:', error);
+    console.log('🔄 Falling back to Supabase...');
+
     // Fallback to direct Supabase query if API fails
     const { data, error: supabaseError } = await supabase
       .from('plans')
       .select('*')
       .order('price', { ascending: true });
 
-    if (supabaseError) throw supabaseError;
+    if (supabaseError) {
+      console.error('❌ Supabase error:', supabaseError);
+      throw supabaseError;
+    }
+
+    console.log('✅ Plans from Supabase fallback:', data);
     return data || [];
   }
 }
@@ -59,7 +85,13 @@ export async function fetchPlanById(id: string): Promise<Plan | null> {
       throw new Error('Failed to fetch plan');
     }
 
-    return response.json();
+    const data = await response.json();
+
+    // Handle both formats: plan object or object with plan property
+    if (data && data.plan) {
+      return data.plan;
+    }
+    return data;
   } catch (error) {
     console.error('Error fetching plan:', error);
     // Fallback to direct Supabase query if API fails
@@ -87,7 +119,15 @@ export async function fetchUserOrders(userId: string): Promise<Order[]> {
       throw new Error('Failed to fetch user orders');
     }
 
-    return response.json();
+    const data = await response.json();
+
+    // Handle both formats: array or object with orders property
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data && Array.isArray(data.orders)) {
+      return data.orders;
+    }
+    return [];
   } catch (error) {
     console.error('Error fetching user orders:', error);
     // Fallback to direct Supabase query if API fails
@@ -132,7 +172,13 @@ export async function fetchOrderById(orderId: string): Promise<Order | null> {
       throw new Error('Failed to fetch order');
     }
 
-    return response.json();
+    const data = await response.json();
+
+    // Handle both formats: order object or object with order property
+    if (data && data.order) {
+      return data.order;
+    }
+    return data;
   } catch (error) {
     console.error('Error fetching order:', error);
     // Fallback to direct Supabase query if API fails

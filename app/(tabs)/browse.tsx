@@ -7,6 +7,8 @@ import { fetchPlans } from '../../lib/api';
 import { Plan } from '../../types';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
+import { useLocation } from '../../hooks/useLocation';
+import { sortPlansByLocation } from '../../lib/plan-sorting';
 
 export default function Browse() {
   const router = useRouter();
@@ -14,10 +16,21 @@ export default function Browse() {
   const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
   const { convertMultiplePrices, symbol, loading: currencyLoading } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
+  const { location, loading: locationLoading } = useLocation();
 
   const { data: plans, isLoading, error } = useQuery({
     queryKey: ['plans'],
-    queryFn: fetchPlans,
+    queryFn: async () => {
+      try {
+        const result = await fetchPlans();
+        console.log('📦 Plans fetched:', result);
+        console.log('📦 Is array?', Array.isArray(result));
+        return result;
+      } catch (err) {
+        console.error('❌ Error fetching plans:', err);
+        throw err;
+      }
+    },
     staleTime: 300000, // Cache plans for 5 minutes
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -45,10 +58,19 @@ export default function Browse() {
     setPlansWithPrices(updatedPlans);
   }
 
-  const filteredPlans = (plansWithPrices.length > 0 ? plansWithPrices : plans || []).filter((plan) =>
+  // Ensure we always have an array to filter
+  const plansToDisplay = plansWithPrices.length > 0 ? plansWithPrices : (Array.isArray(plans) ? plans : []);
+
+  // Filter by search query
+  const searchFilteredPlans = plansToDisplay.filter((plan) =>
     plan.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     plan.region_code.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Sort by location relevance (only if not searching)
+  const filteredPlans = searchQuery.trim() === ''
+    ? sortPlansByLocation(searchFilteredPlans, location)
+    : searchFilteredPlans;
 
   function renderPlanCard(plan: Plan) {
     const extractRegion = (name: string) => {
@@ -129,9 +151,19 @@ export default function Browse() {
         <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 32 : 40), lineHeight: getFontSize(isSmallDevice ? 36 : 44), marginBottom: moderateScale(8)}}>
           BROWSE{'\n'}PLANS
         </Text>
-        <Text className="font-bold" style={{color: '#1A1A1A', opacity: 0.8, fontSize: getFontSize(14), marginBottom: moderateScale(24)}}>
-          Find the perfect eSIM for your destination
-        </Text>
+        <View className="flex-row items-center" style={{marginBottom: moderateScale(8)}}>
+          <Text className="font-bold" style={{color: '#1A1A1A', opacity: 0.8, fontSize: getFontSize(14)}}>
+            Find the perfect eSIM for your destination
+          </Text>
+        </View>
+        {location && !locationLoading && (
+          <View className="flex-row items-center" style={{marginBottom: moderateScale(16)}}>
+            <Ionicons name="location" size={scale(14)} color="#1A1A1A" />
+            <Text className="font-bold" style={{color: '#1A1A1A', opacity: 0.7, fontSize: getFontSize(12), marginLeft: scale(4)}}>
+              Showing plans for {location.country_name}
+            </Text>
+          </View>
+        )}
 
         <View className="bg-white rounded-2xl flex-row items-center" style={{borderWidth: 2, borderColor: '#E5E5E5', paddingHorizontal: scale(20), paddingVertical: moderateScale(16)}}>
           <Ionicons name="search" size={scale(22)} color="#2EFECC" />
