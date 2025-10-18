@@ -13,7 +13,6 @@ export default function RegionPlans() {
   const { region } = useLocalSearchParams<{ region: string }>();
   const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
   const [showCountries, setShowCountries] = useState(false);
-  const [regionInfo, setRegionInfo] = useState<RegionInfo | null>(null);
   const { convertMultiplePrices, symbol, loading: currencyLoading } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
@@ -21,6 +20,7 @@ export default function RegionPlans() {
     queryKey: ['plans'],
     queryFn: fetchPlans,
     staleTime: 300000,
+    gcTime: 600000, // 10 minutes
   });
 
   // Helper functions - memoized to avoid recreation
@@ -46,18 +46,17 @@ export default function RegionPlans() {
     });
   }, [allPlans, region, extractRegion]);
 
-  // Fetch region info to get countries
-  useEffect(() => {
-    async function loadRegionInfo() {
-      if (regionPlans && regionPlans.length > 0) {
-        // Get the region_code from the first plan
-        const regionCode = regionPlans[0].region_code;
-        const info = await fetchRegionInfo(regionCode);
-        setRegionInfo(info);
-      }
-    }
-    loadRegionInfo();
-  }, [regionPlans]);
+  // Fetch region info using React Query for better caching
+  const firstRegionCode = regionPlans && regionPlans.length > 0 ? regionPlans[0].region_code : null;
+
+  const { data: regionInfo } = useQuery({
+    queryKey: ['region', firstRegionCode],
+    queryFn: () => fetchRegionInfo(firstRegionCode!),
+    enabled: !!firstRegionCode,
+    staleTime: 1800000, // 30 minutes
+    gcTime: 3600000, // 1 hour
+    retry: 2,
+  });
 
   // Convert prices - memoized
   const convertPricesForPlans = React.useCallback(async () => {

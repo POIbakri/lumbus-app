@@ -37,9 +37,12 @@ export default function Browse() {
         throw err;
       }
     },
-    staleTime: 300000,
+    staleTime: 300000, // 5 minutes - data stays fresh
+    gcTime: 600000, // 10 minutes - cache time
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    retry: 3, // Retry failed requests 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 
   // Group plans by region/country and sort by user location

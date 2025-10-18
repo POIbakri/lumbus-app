@@ -16,7 +16,6 @@ export default function PlanDetail() {
   const [loading, setLoading] = useState(false);
   const [displayPrice, setDisplayPrice] = useState<string>('');
   const [showCountries, setShowCountries] = useState(false);
-  const [regionInfo, setRegionInfo] = useState<RegionInfo | null>(null);
   const { convertMultiplePrices, symbol, loading: currencyLoading, currency } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
@@ -24,18 +23,20 @@ export default function PlanDetail() {
     queryKey: ['plan', id],
     queryFn: () => fetchPlanById(id!),
     enabled: !!id,
+    staleTime: 300000, // 5 minutes
+    gcTime: 600000, // 10 minutes
+    retry: 2,
   });
 
-  // Fetch region info when plan is loaded
-  useEffect(() => {
-    async function loadRegionInfo() {
-      if (plan?.region_code) {
-        const info = await fetchRegionInfo(plan.region_code);
-        setRegionInfo(info);
-      }
-    }
-    loadRegionInfo();
-  }, [plan]);
+  // Fetch region info using React Query for better caching
+  const { data: regionInfo } = useQuery({
+    queryKey: ['region', plan?.region_code],
+    queryFn: () => fetchRegionInfo(plan!.region_code),
+    enabled: !!plan?.region_code,
+    staleTime: 1800000, // 30 minutes
+    gcTime: 3600000, // 1 hour
+    retry: 2,
+  });
 
   // Convert price when plan or currency info changes - memoized
   const convertPlanPrice = React.useCallback(async () => {

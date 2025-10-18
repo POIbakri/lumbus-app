@@ -325,37 +325,76 @@ export interface RegionInfo {
   subLocationList: RegionCountry[];
 }
 
-// In-memory cache for region data
-const regionCache = new Map<string, RegionInfo>();
+// In-memory cache for region data with TTL
+const regionCache = new Map<string, { data: RegionInfo; timestamp: number }>();
+const REGION_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+// Track in-flight requests to prevent duplicate calls
+const regionRequestMap = new Map<string, Promise<RegionInfo | null>>();
 
 export async function fetchRegionInfo(regionCode: string): Promise<RegionInfo | null> {
   try {
     // Check cache first
-    if (regionCache.has(regionCode)) {
+    const cached = regionCache.get(regionCode);
+    if (cached && (Date.now() - cached.timestamp < REGION_CACHE_TTL)) {
       console.log('💾 Using cached region info for:', regionCode);
-      return regionCache.get(regionCode)!;
+      return cached.data;
     }
 
+    // Check if there's already an in-flight request for this region
+    if (regionRequestMap.has(regionCode)) {
+      console.log('🔄 Reusing in-flight request for:', regionCode);
+      return regionRequestMap.get(regionCode)!;
+    }
+
+    // Create new request
     console.log('🌍 Fetching region info for:', regionCode);
-    const response = await fetch(`https://getlumbus.com/api/regions/${regionCode}`);
+    const requestPromise = (async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.log('⚠️ Region not found:', regionCode);
-        return null;
+        const response = await fetch(`https://getlumbus.com/api/regions/${regionCode}`, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.log('⚠️ Region not found:', regionCode);
+            return null;
+          }
+          throw new Error(`Failed to fetch region info: ${response.status}`);
+        }
+
+        const data: RegionInfo = await response.json();
+        console.log('✅ Region info:', data);
+
+        // Cache the result with timestamp
+        regionCache.set(regionCode, {
+          data,
+          timestamp: Date.now(),
+        });
+
+        return data;
+      } finally {
+        // Remove from in-flight requests
+        regionRequestMap.delete(regionCode);
       }
-      throw new Error('Failed to fetch region info');
-    }
+    })();
 
-    const data: RegionInfo = await response.json();
-    console.log('✅ Region info:', data);
+    // Store in-flight request
+    regionRequestMap.set(regionCode, requestPromise);
 
-    // Cache the result
-    regionCache.set(regionCode, data);
-
-    return data;
+    return await requestPromise;
   } catch (error) {
     console.error('❌ Error fetching region info:', error);
+    // Remove from in-flight requests on error
+    regionRequestMap.delete(regionCode);
     return null;
   }
 }
