@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useStripe } from '@stripe/stripe-react-native';
 import { fetchPlanById, createCheckout, fetchRegionInfo, RegionInfo } from '../../lib/api';
@@ -37,20 +37,20 @@ export default function PlanDetail() {
     loadRegionInfo();
   }, [plan]);
 
-  // Convert price when plan or currency info changes
-  useEffect(() => {
-    if (plan && !currencyLoading) {
-      convertPlanPrice();
-    }
-  }, [plan, currencyLoading]);
-
-  async function convertPlanPrice() {
+  // Convert price when plan or currency info changes - memoized
+  const convertPlanPrice = React.useCallback(async () => {
     if (!plan) return;
 
     const prices = [plan.retail_price || plan.price];
     const converted = await convertMultiplePrices(prices);
     setDisplayPrice(converted[0].formatted);
-  }
+  }, [plan, convertMultiplePrices]);
+
+  useEffect(() => {
+    if (plan && !currencyLoading) {
+      convertPlanPrice();
+    }
+  }, [plan, currencyLoading, convertPlanPrice]);
 
   // Remove quotes from plan name
   const cleanName = (name: string) => {

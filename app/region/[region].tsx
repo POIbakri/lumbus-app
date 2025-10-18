@@ -23,16 +23,16 @@ export default function RegionPlans() {
     staleTime: 300000,
   });
 
-  // Helper functions
-  function cleanName(name: string) {
+  // Helper functions - memoized to avoid recreation
+  const cleanName = React.useCallback((name: string) => {
     return name.replace(/['"]+/g, '').trim();
-  }
+  }, []);
 
-  function extractRegion(name: string) {
-    const cleaned = cleanName(name);
+  const extractRegion = React.useCallback((name: string) => {
+    const cleaned = name.replace(/['"]+/g, '').trim();
     const match = cleaned.match(/^([^0-9]+?)\s+\d+/);
     return match ? match[1].trim() : cleaned.split(' ')[0];
-  }
+  }, []);
 
   // Filter plans by region
   const regionPlans = React.useMemo(() => {
@@ -44,7 +44,7 @@ export default function RegionPlans() {
              plan.region_code.toLowerCase().includes(region?.toLowerCase() || '') ||
              plan.name.toLowerCase().includes(region?.toLowerCase() || '');
     });
-  }, [allPlans, region]);
+  }, [allPlans, region, extractRegion]);
 
   // Fetch region info to get countries
   useEffect(() => {
@@ -59,14 +59,8 @@ export default function RegionPlans() {
     loadRegionInfo();
   }, [regionPlans]);
 
-  // Convert prices
-  useEffect(() => {
-    if (regionPlans && regionPlans.length > 0 && !currencyLoading) {
-      convertPricesForPlans();
-    }
-  }, [regionPlans, currencyLoading]);
-
-  async function convertPricesForPlans() {
+  // Convert prices - memoized
+  const convertPricesForPlans = React.useCallback(async () => {
     if (!regionPlans || regionPlans.length === 0) return;
 
     const prices = regionPlans.map(p => p.retail_price || p.price);
@@ -79,7 +73,13 @@ export default function RegionPlans() {
     }));
 
     setPlansWithPrices(updatedPlans);
-  }
+  }, [regionPlans, convertMultiplePrices]);
+
+  useEffect(() => {
+    if (regionPlans && regionPlans.length > 0 && !currencyLoading) {
+      convertPricesForPlans();
+    }
+  }, [regionPlans, currencyLoading, convertPricesForPlans]);
 
   const plansToDisplay = plansWithPrices.length > 0 ? plansWithPrices : regionPlans;
 

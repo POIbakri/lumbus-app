@@ -93,12 +93,6 @@ export default function Browse() {
   }, [plans, location]);
 
   // Convert prices for region groups - memoized
-  useEffect(() => {
-    if (regionGroups.length > 0 && !currencyLoading) {
-      convertRegionPrices();
-    }
-  }, [regionGroups.length, currencyLoading]); // Only re-run when length changes
-
   const convertRegionPrices = React.useCallback(async () => {
     if (regionGroups.length === 0) return;
 
@@ -112,6 +106,12 @@ export default function Browse() {
 
     setRegionsWithPrices(updatedRegions);
   }, [regionGroups, convertMultiplePrices]);
+
+  useEffect(() => {
+    if (regionGroups.length > 0 && !currencyLoading) {
+      convertRegionPrices();
+    }
+  }, [regionGroups.length, currencyLoading, convertRegionPrices]);
 
   // Use regions with converted prices if available - memoized
   const displayRegions = React.useMemo(() =>
