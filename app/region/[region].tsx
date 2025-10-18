@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchPlans } from '../../lib/api';
+import { fetchPlans, fetchRegionInfo, RegionInfo } from '../../lib/api';
 import { Plan } from '../../types';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
@@ -12,6 +12,8 @@ export default function RegionPlans() {
   const router = useRouter();
   const { region } = useLocalSearchParams<{ region: string }>();
   const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
+  const [showCountries, setShowCountries] = useState(false);
+  const [regionInfo, setRegionInfo] = useState<RegionInfo | null>(null);
   const { convertMultiplePrices, symbol, loading: currencyLoading } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
@@ -44,6 +46,19 @@ export default function RegionPlans() {
     });
   }, [allPlans, region]);
 
+  // Fetch region info to get countries
+  useEffect(() => {
+    async function loadRegionInfo() {
+      if (regionPlans && regionPlans.length > 0) {
+        // Get the region_code from the first plan
+        const regionCode = regionPlans[0].region_code;
+        const info = await fetchRegionInfo(regionCode);
+        setRegionInfo(info);
+      }
+    }
+    loadRegionInfo();
+  }, [regionPlans]);
+
   // Convert prices
   useEffect(() => {
     if (regionPlans && regionPlans.length > 0 && !currencyLoading) {
@@ -67,22 +82,6 @@ export default function RegionPlans() {
   }
 
   const plansToDisplay = plansWithPrices.length > 0 ? plansWithPrices : regionPlans;
-
-  // Get all unique countries from plans in this region
-  const allCountries = React.useMemo(() => {
-    if (!plansToDisplay || plansToDisplay.length === 0) {
-      return [];
-    }
-
-    const countriesSet = new Set<string>();
-    plansToDisplay.forEach(plan => {
-      if (plan.coverage && Array.isArray(plan.coverage)) {
-        plan.coverage.forEach(country => countriesSet.add(country));
-      }
-    });
-
-    return Array.from(countriesSet).sort();
-  }, [plansToDisplay]);
 
   function renderPlanCard(plan: Plan) {
     return (
@@ -175,38 +174,68 @@ export default function RegionPlans() {
           {plansToDisplay.length} {plansToDisplay.length === 1 ? 'plan' : 'plans'} available
         </Text>
 
-        {/* Countries covered */}
-        {allCountries.length > 0 && (
-          <View style={{marginTop: moderateScale(8)}}>
-            <View className="flex-row items-center mb-2">
-              <Ionicons name="flag" size={scale(16)} color="#1A1A1A" />
-              <Text className="font-black uppercase ml-2" style={{color: '#1A1A1A', fontSize: getFontSize(12)}}>
-                COUNTRIES COVERED
-              </Text>
-            </View>
-            <View className="flex-row flex-wrap gap-2">
-              {allCountries.slice(0, 8).map((country, idx) => (
-                <View
-                  key={idx}
-                  className="px-3 py-1 rounded-full"
-                  style={{backgroundColor: 'rgba(0,0,0,0.1)'}}
-                >
-                  <Text className="font-bold text-xs" style={{color: '#1A1A1A'}}>
-                    {country}
-                  </Text>
-                </View>
-              ))}
-              {allCountries.length > 8 && (
-                <View
-                  className="px-3 py-1 rounded-full"
-                  style={{backgroundColor: 'rgba(0,0,0,0.15)'}}
-                >
-                  <Text className="font-black text-xs" style={{color: '#1A1A1A'}}>
-                    +{allCountries.length - 8} more
-                  </Text>
-                </View>
-              )}
-            </View>
+        {/* Countries dropdown */}
+        {regionInfo?.isMultiCountry && regionInfo.subLocationList.length > 0 && (
+          <View style={{marginTop: moderateScale(16)}}>
+            <TouchableOpacity
+              onPress={() => setShowCountries(!showCountries)}
+              activeOpacity={0.7}
+              style={{
+                backgroundColor: '#FDFD74',
+                borderRadius: 12,
+                paddingVertical: moderateScale(12),
+                paddingHorizontal: scale(16),
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View className="flex-row items-center flex-1">
+                <Ionicons name="flag" size={scale(18)} color="#1A1A1A" />
+                <Text className="font-black uppercase ml-2" style={{color: '#1A1A1A', fontSize: getFontSize(13)}}>
+                  {regionInfo.subLocationList.length} COUNTRIES INCLUDED
+                </Text>
+              </View>
+              <Ionicons
+                name={showCountries ? "chevron-up" : "chevron-down"}
+                size={scale(20)}
+                color="#1A1A1A"
+              />
+            </TouchableOpacity>
+
+            {showCountries && (
+              <View style={{
+                marginTop: moderateScale(8),
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                borderRadius: 12,
+                padding: scale(12),
+                maxHeight: 200,
+              }}>
+                <FlatList
+                  data={regionInfo.subLocationList}
+                  keyExtractor={(item) => item.code}
+                  numColumns={2}
+                  columnWrapperStyle={{gap: 8, marginBottom: 8}}
+                  renderItem={({ item }) => (
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 8,
+                        paddingVertical: moderateScale(8),
+                        paddingHorizontal: scale(12),
+                        borderWidth: 1,
+                        borderColor: '#E5E5E5',
+                      }}
+                    >
+                      <Text className="font-bold text-xs" style={{color: '#1A1A1A'}}>
+                        {item.name}
+                      </Text>
+                    </View>
+                  )}
+                />
+              </View>
+            )}
           </View>
         )}
       </View>

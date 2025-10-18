@@ -310,3 +310,52 @@ export function subscribeToOrderUpdates(
     )
     .subscribe();
 }
+
+// Region API
+export interface RegionCountry {
+  code: string;
+  name: string;
+}
+
+export interface RegionInfo {
+  code: string;
+  name: string;
+  type: number;
+  isMultiCountry: boolean;
+  subLocationList: RegionCountry[];
+}
+
+// In-memory cache for region data
+const regionCache = new Map<string, RegionInfo>();
+
+export async function fetchRegionInfo(regionCode: string): Promise<RegionInfo | null> {
+  try {
+    // Check cache first
+    if (regionCache.has(regionCode)) {
+      console.log('💾 Using cached region info for:', regionCode);
+      return regionCache.get(regionCode)!;
+    }
+
+    console.log('🌍 Fetching region info for:', regionCode);
+    const response = await fetch(`https://getlumbus.com/api/regions/${regionCode}`);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log('⚠️ Region not found:', regionCode);
+        return null;
+      }
+      throw new Error('Failed to fetch region info');
+    }
+
+    const data: RegionInfo = await response.json();
+    console.log('✅ Region info:', data);
+
+    // Cache the result
+    regionCache.set(regionCode, data);
+
+    return data;
+  } catch (error) {
+    console.error('❌ Error fetching region info:', error);
+    return null;
+  }
+}

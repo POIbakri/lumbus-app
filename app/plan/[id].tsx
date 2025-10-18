@@ -1,10 +1,10 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useStripe } from '@stripe/stripe-react-native';
-import { fetchPlanById, createCheckout } from '../../lib/api';
+import { fetchPlanById, createCheckout, fetchRegionInfo, RegionInfo } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
@@ -15,6 +15,8 @@ export default function PlanDetail() {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [loading, setLoading] = useState(false);
   const [displayPrice, setDisplayPrice] = useState<string>('');
+  const [showCountries, setShowCountries] = useState(false);
+  const [regionInfo, setRegionInfo] = useState<RegionInfo | null>(null);
   const { convertMultiplePrices, symbol, loading: currencyLoading, currency } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
@@ -23,6 +25,17 @@ export default function PlanDetail() {
     queryFn: () => fetchPlanById(id!),
     enabled: !!id,
   });
+
+  // Fetch region info when plan is loaded
+  useEffect(() => {
+    async function loadRegionInfo() {
+      if (plan?.region_code) {
+        const info = await fetchRegionInfo(plan.region_code);
+        setRegionInfo(info);
+      }
+    }
+    loadRegionInfo();
+  }, [plan]);
 
   // Convert price when plan or currency info changes
   useEffect(() => {
@@ -180,6 +193,71 @@ export default function PlanDetail() {
               </View>
             </View>
           </View>
+
+          {/* Countries Included Dropdown */}
+          {regionInfo?.isMultiCountry && regionInfo.subLocationList.length > 0 && (
+            <View style={{marginBottom: moderateScale(24)}}>
+              <TouchableOpacity
+                onPress={() => setShowCountries(!showCountries)}
+                activeOpacity={0.7}
+                style={{
+                  backgroundColor: '#FDFD74',
+                  borderRadius: 16,
+                  paddingVertical: moderateScale(16),
+                  paddingHorizontal: scale(20),
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderWidth: 2,
+                  borderColor: '#E5E5E5',
+                }}
+              >
+                <View className="flex-row items-center flex-1">
+                  <Ionicons name="flag" size={scale(22)} color="#1A1A1A" />
+                  <Text className="font-black uppercase ml-3" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
+                    {regionInfo.subLocationList.length} COUNTRIES INCLUDED
+                  </Text>
+                </View>
+                <Ionicons
+                  name={showCountries ? "chevron-up" : "chevron-down"}
+                  size={scale(24)}
+                  color="#1A1A1A"
+                />
+              </TouchableOpacity>
+
+              {showCountries && (
+                <View style={{
+                  marginTop: moderateScale(12),
+                  backgroundColor: '#F5F5F5',
+                  borderRadius: 16,
+                  padding: scale(16),
+                  borderWidth: 2,
+                  borderColor: '#E5E5E5',
+                }}>
+                  <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
+                    {regionInfo.subLocationList.map((country) => (
+                      <View
+                        key={country.code}
+                        style={{
+                          backgroundColor: '#FFFFFF',
+                          borderRadius: 8,
+                          paddingVertical: moderateScale(8),
+                          paddingHorizontal: scale(12),
+                          borderWidth: 1,
+                          borderColor: '#E5E5E5',
+                          minWidth: '47%',
+                        }}
+                      >
+                        <Text className="font-bold text-xs" style={{color: '#1A1A1A'}}>
+                          {country.name}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* What's Included Section */}
           <View style={{marginBottom: moderateScale(24)}}>
