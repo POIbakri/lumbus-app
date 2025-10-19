@@ -56,8 +56,8 @@ export default function Index() {
 
     // Navigate after animations
     const navigationTimer = setTimeout(() => {
-      router.replace('/onboarding');
-    }, 2000);
+      checkAuth();
+    }, 1500);
 
     return () => {
       clearTimeout(navigationTimer);
@@ -71,9 +71,11 @@ export default function Index() {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
+      // User is authenticated, skip onboarding
       router.replace('/(tabs)/browse');
     } else {
-      router.replace('/(auth)/login');
+      // User is not authenticated, show onboarding
+      router.replace('/onboarding');
     }
   }
 

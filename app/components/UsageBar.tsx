@@ -11,29 +11,34 @@ interface UsageBarProps {
 export default function UsageBar({ dataUsed, dataTotal, percentageUsed }: UsageBarProps) {
   const { scale, moderateScale } = useResponsive();
 
+  // Ensure all values are numbers
+  const safeDataUsed = Number(dataUsed) || 0;
+  const safeDataTotal = Number(dataTotal) || 0;
+  const safePercentageUsed = Number(percentageUsed) || 0;
+
   // Determine color based on usage percentage
   const getProgressColor = () => {
-    if (percentageUsed >= 90) return '#EF4444'; // Red - critical
-    if (percentageUsed >= 70) return '#FDFD74'; // Yellow - warning
+    if (safePercentageUsed >= 90) return '#EF4444'; // Red - critical
+    if (safePercentageUsed >= 70) return '#FDFD74'; // Yellow - warning
     return '#2EFECC'; // Turquoise - good
   };
 
   const getUsageIcon = () => {
-    if (percentageUsed >= 90) return 'alert-circle';
-    if (percentageUsed >= 70) return 'warning';
+    if (safePercentageUsed >= 90) return 'alert-circle';
+    if (safePercentageUsed >= 70) return 'warning';
     return 'checkmark-circle';
   };
 
   const getUsageLabel = () => {
-    if (percentageUsed >= 100) return 'Depleted';
-    if (percentageUsed >= 90) return 'Critical';
-    if (percentageUsed >= 70) return 'Low';
-    if (percentageUsed >= 50) return 'Half Used';
+    if (safePercentageUsed >= 100) return 'Depleted';
+    if (safePercentageUsed >= 90) return 'Critical';
+    if (safePercentageUsed >= 70) return 'Low';
+    if (safePercentageUsed >= 50) return 'Half Used';
     return 'Active';
   };
 
   const progressColor = getProgressColor();
-  const dataRemaining = dataTotal - dataUsed;
+  const dataRemaining = Math.max(0, safeDataTotal - safeDataUsed);
 
   return (
     <View style={{marginTop: moderateScale(12)}}>
@@ -55,7 +60,7 @@ export default function UsageBar({ dataUsed, dataTotal, percentageUsed }: UsageB
         <View
           className="rounded-full"
           style={{
-            width: `${Math.min(percentageUsed, 100)}%`,
+            width: `${Math.min(safePercentageUsed, 100)}%`,
             height: '100%',
             backgroundColor: progressColor,
           }}
@@ -65,10 +70,10 @@ export default function UsageBar({ dataUsed, dataTotal, percentageUsed }: UsageB
       {/* Data Stats */}
       <View className="flex-row items-center justify-between" style={{marginTop: moderateScale(6)}}>
         <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(10)}}>
-          {dataUsed.toFixed(2)} GB used
+          {safeDataUsed.toFixed(2)} GB used
         </Text>
         <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(10)}}>
-          {percentageUsed.toFixed(0)}% used
+          {safePercentageUsed.toFixed(0)}% used
         </Text>
       </View>
     </View>

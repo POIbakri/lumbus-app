@@ -1,8 +1,9 @@
-import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Linking, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useState, useEffect } from 'react';
+import ReferAndEarn from '../components/ReferAndEarn';
 
 export default function Account() {
   const router = useRouter();
@@ -82,7 +83,8 @@ export default function Account() {
         </Text>
       </View>
 
-      <View className="p-4">
+      <ScrollView className="flex-1">
+        <View className="p-4">
         {/* Profile Card */}
         <View className="bg-white rounded-2xl p-6 mb-6" style={{shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.08, shadowRadius: 8, borderWidth: 2, borderColor: '#E5E5E5'}}>
           <View className="flex-row items-center">
@@ -99,6 +101,9 @@ export default function Account() {
             </View>
           </View>
         </View>
+
+        {/* Refer & Earn Section */}
+        <ReferAndEarn />
 
         {/* Menu Items */}
         <View className="bg-white rounded-2xl overflow-hidden mb-6" style={{shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.08, shadowRadius: 8, borderWidth: 2, borderColor: '#E5E5E5'}}>
@@ -174,7 +179,8 @@ export default function Account() {
             </Text>
           </View>
         </View>
-      </View>
+        </View>
+      </ScrollView>
     </View>
   );
 }

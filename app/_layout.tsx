@@ -16,7 +16,18 @@ import {
 import { supabase } from '../lib/supabase';
 import "../global.css";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 300000, // 5 minutes default
+      gcTime: 600000, // 10 minutes default cache time
+      refetchOnMount: false, // Use cached data by default
+      refetchOnWindowFocus: false, // Don't refetch when app regains focus
+      refetchOnReconnect: true, // Refetch when internet reconnects
+      retry: 2, // Retry failed requests twice
+    },
+  },
+});
 
 export default function RootLayout() {
   const router = useRouter();
@@ -79,6 +90,7 @@ export default function RootLayout() {
             <Stack.Screen name="plan" options={{ headerShown: false }} />
             <Stack.Screen name="region" options={{ headerShown: false }} />
             <Stack.Screen name="install" options={{ headerShown: false }} />
+            <Stack.Screen name="esim-details" options={{ headerShown: false }} />
           </Stack>
         </StripeProvider>
       </QueryClientProvider>

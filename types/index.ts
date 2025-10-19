@@ -16,7 +16,7 @@ export interface Order {
   id: string;
   user_id: string;
   plan_id: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'active' | 'depleted' | 'provisioning' | 'paid';
   qr_url: string | null;
   smdp: string | null;
   activation_code: string | null;
@@ -25,6 +25,9 @@ export interface Order {
   activate_before: string | null;
   created_at: string;
   plan?: Plan;
+  data_usage_bytes?: number;
+  data_remaining_bytes?: number | null;
+  last_usage_update?: string | null;
 }
 
 export interface User {

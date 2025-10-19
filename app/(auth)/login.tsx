@@ -35,11 +35,6 @@ export default function Login() {
     router.replace('/(tabs)/browse');
   }
 
-  // Hardcoded quick login for testing
-  async function quickLogin() {
-    setLoading(true);
-    router.replace('/(tabs)/browse');
-  }
 
   return (
     <KeyboardAvoidingView
@@ -139,18 +134,6 @@ export default function Login() {
                 </Text>
               </View>
             </View>
-
-            {/* Quick Test Login Button */}
-            <TouchableOpacity
-              className="rounded-2xl"
-              style={{backgroundColor: '#F7E2FB', borderWidth: 2, borderColor: '#E5E5E5', marginTop: moderateScale(24), paddingVertical: moderateScale(16)}}
-              onPress={quickLogin}
-              activeOpacity={0.8}
-            >
-              <Text className="text-center font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(13)}}>
-                🚀 Quick Test Login (Skip Auth)
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>

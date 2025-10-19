@@ -122,12 +122,14 @@ export async function fetchUserOrders(userId: string): Promise<Order[]> {
     const data = await response.json();
 
     // Handle both formats: array or object with orders property
+    let orders: Order[] = [];
     if (Array.isArray(data)) {
-      return data;
+      orders = data;
     } else if (data && Array.isArray(data.orders)) {
-      return data.orders;
+      orders = data.orders;
     }
-    return [];
+
+    return orders;
   } catch (error) {
     console.error('Error fetching user orders:', error);
     // Fallback to direct Supabase query if API fails
@@ -141,7 +143,8 @@ export async function fetchUserOrders(userId: string): Promise<Order[]> {
           region_code,
           data_gb,
           validity_days,
-          price
+          retail_price,
+          currency
         )
       `)
       .eq('user_id', userId)
@@ -160,54 +163,43 @@ export async function fetchUserOrders(userId: string): Promise<Order[]> {
 }
 
 export async function fetchOrderById(orderId: string): Promise<Order | null> {
-  try {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/orders/${orderId}`, {
-      method: 'GET',
-      headers,
-    });
+  // The API endpoint for individual orders returns incomplete data
+  // (missing data_usage_bytes, data_remaining_bytes, activate_before, iccid, apn)
+  // So we use Supabase directly to get the full order data
 
-    if (!response.ok) {
-      if (response.status === 404) return null;
-      throw new Error('Failed to fetch order');
-    }
+  const { data, error: supabaseError } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      plans (
+        id,
+        name,
+        region_code,
+        data_gb,
+        validity_days,
+        retail_price,
+        currency
+      )
+    `)
+    .eq('id', orderId)
+    .single();
 
-    const data = await response.json();
-
-    // Handle both formats: order object or object with order property
-    if (data && data.order) {
-      return data.order;
-    }
-    return data;
-  } catch (error) {
-    console.error('Error fetching order:', error);
-    // Fallback to direct Supabase query if API fails
-    const { data, error: supabaseError } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        plans (
-          id,
-          name,
-          region_code,
-          data_gb,
-          validity_days,
-          price
-        )
-      `)
-      .eq('id', orderId)
-      .single();
-
-    if (supabaseError) throw supabaseError;
-
-    if (!data) return null;
-
-    // Transform the data to handle array/object plan format
-    return {
-      ...data,
-      plan: Array.isArray(data.plans) ? data.plans[0] : data.plans,
-    };
+  if (supabaseError) {
+    console.error('❌ Supabase error fetching order:', supabaseError);
+    throw supabaseError;
   }
+
+  if (!data) {
+    return null;
+  }
+
+  // Transform the data to handle array/object plan format
+  const order = {
+    ...data,
+    plan: Array.isArray(data.plans) ? data.plans[0] : data.plans,
+  };
+
+  return order;
 }
 
 // Checkout API
@@ -333,6 +325,34 @@ export function subscribeToOrderUpdates(
       }
     )
     .subscribe();
+}
+
+// Referral API
+export interface ReferralData {
+  user_id: string;
+  ref_code: string;
+  referred_by_code: string | null;
+  referral_link: string;
+  stats: {
+    total_clicks: number;
+    total_signups: number;
+    pending_rewards: number;
+    earned_rewards: number;
+  };
+}
+
+export async function fetchReferralInfo(): Promise<ReferralData> {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/referrals/me`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch referral info');
+  }
+
+  return response.json();
 }
 
 // Region API

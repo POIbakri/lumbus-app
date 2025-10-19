@@ -10,12 +10,7 @@ export default function TabsLayout() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // TEMPORARILY DISABLED FOR TESTING - Skip auth check
-    setIsAuthenticated(true);
-    setIsLoading(false);
-
-    // Uncomment below to re-enable auth check
-    // checkAuth();
+    checkAuth();
   }, []);
 
   async function checkAuth() {

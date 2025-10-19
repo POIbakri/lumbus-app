@@ -25,18 +25,9 @@ export default function Browse() {
   const { location, loading: locationLoading } = useLocation();
   const { convertMultiplePrices, symbol, loading: currencyLoading } = useCurrency();
 
-  const { data: plans, isLoading, error } = useQuery({
+  const { data: plans, isLoading, isFetching, error } = useQuery({
     queryKey: ['plans'],
-    queryFn: async () => {
-      try {
-        const result = await fetchPlans();
-        console.log('📦 Plans fetched:', result);
-        return result;
-      } catch (err) {
-        console.error('❌ Error fetching plans:', err);
-        throw err;
-      }
-    },
+    queryFn: fetchPlans,
     staleTime: 300000, // 5 minutes - data stays fresh
     gcTime: 600000, // 10 minutes - cache time
     refetchOnMount: false,
@@ -187,7 +178,8 @@ export default function Browse() {
     );
   }, [getRegionColor, symbol, router]);
 
-  if (isLoading || currencyLoading) {
+  // Only show full loading on initial load, not when refetching cached data
+  if ((isLoading && !plans) || currencyLoading) {
     return (
       <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
         <ActivityIndicator size="large" color="#2EFECC" />
