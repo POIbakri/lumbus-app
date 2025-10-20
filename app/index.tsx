@@ -101,20 +101,13 @@ export default function Index() {
         {/* Main Logo */}
         <View style={styles.logoContainer}>
           <Image
-            source={require('../assets/logo.jpg')}
+            source={require('../assets/logotrans.png')}
             style={{
               width: logoWidth,
               height: logoHeight,
               resizeMode: 'contain',
             }}
           />
-        </View>
-
-        {/* Tagline */}
-        <View style={styles.taglineBadge}>
-          <Text style={styles.taglineText}>
-            🌍 Global eSIM Solutions
-          </Text>
         </View>
 
         {/* Loading indicator */}
@@ -187,27 +180,12 @@ const styles = StyleSheet.create({
     opacity: 0.35,
   },
   logoContainer: {
-    marginBottom: 24,
+    marginBottom: 48,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-  },
-  taglineBadge: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: '#E5E5E5',
-  },
-  taglineText: {
-    color: '#1A1A1A',
-    fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
   },
   loadingContainer: {
     marginTop: 48,

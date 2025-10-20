@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
@@ -50,11 +50,14 @@ export default function Login() {
         <View className="flex-1 justify-center relative" style={{paddingVertical: moderateScale(40)}}>
           {/* Logo Badge */}
           <View className="items-center" style={{marginBottom: moderateScale(32)}}>
-            <View className="border-4 rounded-full" style={{backgroundColor: 'rgba(46, 254, 204, 0.1)', borderColor: '#2EFECC', paddingHorizontal: scale(32), paddingVertical: scale(12)}}>
-              <Text className="font-black tracking-widest uppercase" style={{color: '#2EFECC', fontSize: getFontSize(12)}}>
-                ⚡ LUMBUS
-              </Text>
-            </View>
+            <Image
+              source={require('../../assets/iconlogotrans.png')}
+              style={{
+                width: scale(80),
+                height: scale(80),
+                resizeMode: 'contain',
+              }}
+            />
           </View>
 
           {/* Title */}
@@ -123,16 +126,6 @@ export default function Login() {
               <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
                 <Text className="font-black" style={{color: '#2EFECC', fontSize: getFontSize(14)}}>SIGN UP</Text>
               </TouchableOpacity>
-            </View>
-
-            {/* Trust Badge */}
-            <View className="items-center" style={{marginTop: moderateScale(32)}}>
-              <View className="flex-row items-center gap-2 rounded-full" style={{backgroundColor: '#E0FEF7', paddingHorizontal: scale(16), paddingVertical: moderateScale(8)}}>
-                <Text style={{fontSize: getFontSize(16)}}>🔒</Text>
-                <Text className="font-bold uppercase" style={{color: '#666666', fontSize: getFontSize(11)}}>
-                  Secure & Encrypted
-                </Text>
-              </View>
             </View>
           </View>
         </View>

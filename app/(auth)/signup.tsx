@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 
@@ -65,11 +65,14 @@ export default function Signup() {
         <View className="flex-1 justify-center px-6 relative">
           {/* Logo Badge */}
           <View className="items-center mb-8">
-            <View className="border-4 rounded-full px-8 py-3" style={{backgroundColor: 'rgba(46, 254, 204, 0.1)', borderColor: '#2EFECC'}}>
-              <Text className="font-black text-xs tracking-widest uppercase" style={{color: '#2EFECC'}}>
-                ⚡ LUMBUS
-              </Text>
-            </View>
+            <Image
+              source={require('../../assets/iconlogotrans.png')}
+              style={{
+                width: 80,
+                height: 80,
+                resizeMode: 'contain',
+              }}
+            />
           </View>
 
           {/* Title */}

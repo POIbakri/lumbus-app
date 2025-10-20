@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Dimensions, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions, StyleSheet, Animated, Image } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +22,8 @@ interface OnboardingScreen {
     backgroundColor: string;
     number: string;
   };
-  emoji: string;
+  emoji?: string;
+  useLogo?: boolean;
   title: string;
   description: string;
   features: Array<{ icon: string; text: string }>;
@@ -36,7 +37,7 @@ const screens: OnboardingScreen[] = [
       backgroundColor: COLORS.yellow, // No badge displayed, just for reference
       number: '0',
     },
-    emoji: '🌍',
+    useLogo: true,
     title: 'WELCOME TO LUMBUS',
     description: 'Stay connected anywhere in the world with instant eSIM activation. No physical SIM cards, no hassle.',
     features: [
@@ -155,8 +156,20 @@ export default function Onboarding() {
               key={index}
               style={styles.screenContainer}
             >
-              {/* Emoji - larger for first screen */}
-              <Text style={[styles.emoji, screen.stepNumber === 0 && styles.emojiLarge]}>{screen.emoji}</Text>
+              {/* Logo or Emoji - larger for first screen */}
+              {screen.useLogo ? (
+                <Image
+                  source={require('../assets/logotrans.png')}
+                  style={{
+                    width: 200,
+                    height: 160,
+                    resizeMode: 'contain',
+                    marginBottom: 32,
+                  }}
+                />
+              ) : (
+                <Text style={[styles.emoji, screen.stepNumber === 0 && styles.emojiLarge]}>{screen.emoji}</Text>
+              )}
 
               {/* Title */}
               <Text style={styles.title}>{screen.title}</Text>

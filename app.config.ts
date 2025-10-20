@@ -6,12 +6,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'lumbus-mobile',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/iconlogo.jpg',
+  icon: './assets/iconlogotrans.png',
   userInterfaceStyle: 'light',
   newArchEnabled: true,
   scheme: 'lumbus',
   splash: {
-    image: './assets/logo.jpg',
+    image: './assets/logotrans.png',
     resizeMode: 'contain',
     backgroundColor: '#ffffff',
   },
@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: './assets/iconlogo.jpg',
+      foregroundImage: './assets/iconlogotrans.png',
       backgroundColor: '#ffffff',
     },
     package: 'com.lumbus.app',
