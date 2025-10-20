@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchUserOrders, fetchUsageData, fetchOrderById, UsageData } from '../../lib/api';
+import { fetchUserOrders, fetchOrderById } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { Order } from '../../types';
 import { Circle, Svg } from 'react-native-svg';
@@ -15,7 +15,6 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [usageData, setUsageData] = useState<Map<string, UsageData>>(new Map());
   const [activeTab, setActiveTab] = useState<TabType>('active');
 
   // Get user ID on mount
