@@ -72,8 +72,8 @@ export default function Dashboard() {
   }, []);
 
   const isExpired = useCallback((order: Order) => {
-    // Check if status is already depleted
-    if (order.status === 'depleted') return true;
+    // Check if status is already depleted or expired
+    if (order.status === 'depleted' || order.status === 'expired') return true;
 
     // Check if data is completely depleted (0 bytes remaining)
     if (order.data_remaining_bytes !== null && order.data_remaining_bytes !== undefined) {
@@ -295,8 +295,8 @@ export default function Dashboard() {
     if (!orders) return [];
 
     return orders.filter(order => {
-      // Show active, depleted, and provisioning eSIMs (skip pending, failed, paid)
-      const validStatuses = ['active', 'depleted', 'provisioning'];
+      // Show active, depleted, expired, and provisioning eSIMs (skip pending, failed, paid)
+      const validStatuses = ['active', 'depleted', 'expired', 'provisioning'];
       if (!validStatuses.includes(order.status)) {
         return false;
       }
@@ -306,7 +306,7 @@ export default function Dashboard() {
         return activeTab === 'active';
       }
 
-      // Check if order is expired (includes depleted status and 0 data remaining)
+      // Check if order is expired (includes depleted/expired status and 0 data remaining)
       const expired = isExpired(order);
 
       return activeTab === 'active' ? !expired : expired;

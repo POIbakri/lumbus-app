@@ -1,15 +1,20 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
-import { View, Text, Animated, StyleSheet } from 'react-native';
+import { View, Text, Animated, StyleSheet, Image, useWindowDimensions } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 export default function Index() {
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const pulseAnim1 = useRef(new Animated.Value(0.3)).current;
   const pulseAnim2 = useRef(new Animated.Value(0.3)).current;
   const pulseAnim3 = useRef(new Animated.Value(0.3)).current;
+
+  // Responsive sizing
+  const logoWidth = Math.min(width * 0.6, 300);
+  const logoHeight = logoWidth * 0.8; // Maintain aspect ratio
 
   useEffect(() => {
     // Start animations
@@ -93,11 +98,16 @@ export default function Index() {
           alignItems: 'center',
         }}
       >
-        {/* Main Logo Badge */}
-        <View style={styles.logoBadge}>
-          <Text style={styles.logoText}>
-            ⚡ LUMBUS
-          </Text>
+        {/* Main Logo */}
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../assets/logo.jpg')}
+            style={{
+              width: logoWidth,
+              height: logoHeight,
+              resizeMode: 'contain',
+            }}
+          />
         </View>
 
         {/* Tagline */}
@@ -176,26 +186,13 @@ const styles = StyleSheet.create({
     borderRadius: 140,
     opacity: 0.35,
   },
-  logoBadge: {
-    backgroundColor: '#2EFECC',
-    borderWidth: 3,
-    borderColor: '#1A1A1A',
-    borderRadius: 999,
-    paddingHorizontal: 48,
-    paddingVertical: 24,
+  logoContainer: {
     marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-  },
-  logoText: {
-    color: '#1A1A1A',
-    fontWeight: '900',
-    fontSize: 32,
-    letterSpacing: 4,
-    textTransform: 'uppercase',
   },
   taglineBadge: {
     backgroundColor: '#FFFFFF',

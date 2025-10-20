@@ -6,12 +6,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'lumbus-mobile',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/icon.png',
+  icon: './assets/iconlogo.jpg',
   userInterfaceStyle: 'light',
   newArchEnabled: true,
   scheme: 'lumbus',
   splash: {
-    image: './assets/splash-icon.png',
+    image: './assets/logo.jpg',
     resizeMode: 'contain',
     backgroundColor: '#ffffff',
   },
@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: './assets/adaptive-icon.png',
+      foregroundImage: './assets/iconlogo.jpg',
       backgroundColor: '#ffffff',
     },
     package: 'com.lumbus.app',
@@ -49,7 +49,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
   },
   web: {
-    favicon: './assets/favicon.png',
+    favicon: './assets/iconlogofavicon/favicon.ico',
   },
   plugins: [
     'expo-router',
@@ -62,7 +62,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-notifications',
       {
-        icon: './assets/notification-icon.png',
+        icon: './assets/iconlogofavicon/android-chrome-192x192.png',
         color: '#2EFECC',
         sounds: ['./assets/notification-sound.wav'],
         mode: 'production',
