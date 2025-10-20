@@ -84,8 +84,6 @@ export default function PlanDetail() {
         return;
       }
 
-      console.log('💳 Starting checkout for plan:', plan.id);
-
       // Create checkout session - optimized single API call
       const { clientSecret, orderId } = await createCheckout({
         planId: plan.id,
@@ -96,8 +94,6 @@ export default function PlanDetail() {
       if (!clientSecret || !orderId) {
         throw new Error('Invalid checkout response from server');
       }
-
-      console.log('✅ Checkout session created, initializing payment sheet...');
 
       // Initialize payment sheet
       const { error: initError } = await initPaymentSheet({
@@ -121,8 +117,6 @@ export default function PlanDetail() {
         return;
       }
 
-      console.log('📱 Presenting payment sheet...');
-
       // Present payment sheet
       const { error: paymentError } = await presentPaymentSheet();
 
@@ -130,19 +124,18 @@ export default function PlanDetail() {
         setLoading(false);
         // User cancelled - no error alert needed
         if (paymentError.code === 'Canceled') {
-          console.log('ℹ️ User cancelled payment');
+          // User cancelled - do nothing
         } else {
-          console.error('❌ Payment error:', paymentError);
+          console.error('Payment error:', paymentError);
           Alert.alert('Payment Error', paymentError.message);
         }
         return;
       }
 
       // Payment successful
-      console.log('✅ Payment successful! Navigating to install screen...');
       router.replace(`/install/${orderId}`);
     } catch (error: any) {
-      console.error('❌ Checkout error:', error);
+      console.error('Checkout error:', error);
       setLoading(false);
       Alert.alert(
         'Checkout Error',

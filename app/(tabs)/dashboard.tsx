@@ -1,9 +1,9 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchUserOrders, fetchUsageData, UsageData } from '../../lib/api';
+import { fetchUserOrders, fetchUsageData, fetchOrderById, UsageData } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { Order } from '../../types';
 import { Circle, Svg } from 'react-native-svg';
@@ -12,6 +12,7 @@ type TabType = 'active' | 'expired';
 
 export default function Dashboard() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [usageData, setUsageData] = useState<Map<string, UsageData>>(new Map());
@@ -33,76 +34,67 @@ export default function Dashboard() {
     queryKey: ['orders', userId],
     queryFn: () => fetchUserOrders(userId!),
     enabled: !!userId,
-    staleTime: 300000, // 5 minutes - data stays fresh
-    gcTime: 600000, // 10 minutes - cache time
+    staleTime: 600000, // 10 minutes - orders don't change frequently
+    gcTime: 1800000, // 30 minutes - keep in cache longer
     refetchOnMount: false, // Don't refetch on mount, use cache
     refetchOnWindowFocus: false, // Don't refetch when app comes to foreground
     retry: 2,
   });
 
-  // Fetch usage data for all orders
+  // Prefetch order details for visible orders (improves navigation speed)
   useEffect(() => {
     if (orders && orders.length > 0) {
-      fetchAllUsageData();
+      // Prefetch first 5 visible orders
+      orders.slice(0, 5).forEach(order => {
+        queryClient.prefetchQuery({
+          queryKey: ['order', order.id],
+          queryFn: () => fetchOrderById(order.id),
+          staleTime: 600000,
+        });
+      });
     }
-  }, [orders]);
-
-  async function fetchAllUsageData() {
-    if (!orders) return;
-
-    const newUsageData = new Map<String, UsageData>();
-
-    await Promise.all(
-      orders
-        .filter(order => order.status === 'active' || order.status === 'depleted' || order.status === 'provisioning')
-        .map(async (order) => {
-          try {
-            const usage = await fetchUsageData(order.id);
-            if (usage) {
-              newUsageData.set(order.id, usage);
-            }
-          } catch (error) {
-            console.error(`Error fetching usage for order ${order.id}:`, error);
-          }
-        })
-    );
-
-    setUsageData(newUsageData);
-  }
+  }, [orders, queryClient]);
 
   async function onRefresh() {
     setRefreshing(true);
     await refetch();
-    await fetchAllUsageData();
     setRefreshing(false);
   }
 
-  function getExpiryDate(order: Order) {
+  // Memoize helper functions to prevent recreation on every render
+  const getExpiryDate = useCallback((order: Order) => {
     // Only use activate_before for expiry calculation
     // Don't calculate from created_at + validity_days because eSIMs
     // aren't activated until installed by the user
     if (order.activate_before) {
       return new Date(order.activate_before);
     }
-
     return null;
-  }
+  }, []);
 
-  function isExpired(order: Order) {
-    // For eSIMs, trust the backend status
-    // Only check date-based expiry if there's an explicit activate_before date
+  const isExpired = useCallback((order: Order) => {
+    // Check if status is already depleted
+    if (order.status === 'depleted') return true;
+
+    // Check if data is completely depleted (0 bytes remaining)
+    if (order.data_remaining_bytes !== null && order.data_remaining_bytes !== undefined) {
+      if (order.data_remaining_bytes === 0) return true;
+    }
+
+    // Check date-based expiry for activate_before date
     const expiryDate = getExpiryDate(order);
-    if (!expiryDate) return false;
-    return new Date() > expiryDate;
-  }
+    if (expiryDate && new Date() > expiryDate) return true;
 
-  function extractRegion(name: string) {
+    return false;
+  }, [getExpiryDate]);
+
+  const extractRegion = useCallback((name: string) => {
     const cleaned = name.replace(/['"]+/g, '').trim();
     const match = cleaned.match(/^([^0-9]+?)\s+\d+/);
     return match ? match[1].trim() : cleaned.split(' ')[0];
-  }
+  }, []);
 
-  function getCountryFlag(region: string) {
+  const getCountryFlag = useCallback((region: string) => {
     const flagMap: { [key: string]: string } = {
       'Saudi Arabia': '🇸🇦',
       'United States': '🇺🇸',
@@ -125,9 +117,10 @@ export default function Dashboard() {
       'Brazil': '🇧🇷',
     };
     return flagMap[region] || '🌍';
-  }
+  }, []);
 
-  function CircularProgress({ percentage, size = 80, strokeWidth = 6, flag }: { percentage: number; size?: number; strokeWidth?: number; flag: string }) {
+  // Memoize CircularProgress component to prevent re-renders
+  const CircularProgress = memo(({ percentage, size = 80, strokeWidth = 6, flag }: { percentage: number; size?: number; strokeWidth?: number; flag: string }) => {
     const radius = (size - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
     const progress = 100 - percentage; // Invert to show remaining
@@ -165,12 +158,24 @@ export default function Dashboard() {
         </View>
       </View>
     );
-  }
+  });
 
-  function renderOrderCard(order: Order) {
+  // Memoize renderOrderCard to prevent recalculations
+  const renderOrderCard = useCallback((order: Order) => {
     const planName = order.plan?.name || 'Unknown Plan';
     const region = extractRegion(planName);
-    const totalDataGB = order.plan?.data_gb || 0;
+
+    // Parse actual data amount from plan name if it contains MB (e.g., "100MB", "500MB")
+    // Otherwise use data_gb from database
+    let totalDataGB = order.plan?.data_gb || 0;
+    const mbMatch = planName.match(/(\d+)\s*MB/i);
+    if (mbMatch) {
+      // Plan specifies MB directly (e.g., "100MB", "500MB")
+      // Use this as source of truth - convert to GB
+      const mbValue = parseInt(mbMatch[1]);
+      totalDataGB = mbValue / 1024; // Convert to GB for consistency (100MB = 0.09765625 GB)
+    }
+
     const isProvisioning = order.status === 'provisioning';
     const isDepleted = order.status === 'depleted';
 
@@ -183,7 +188,15 @@ export default function Dashboard() {
     const dataUsedGB = dataUsedBytes / (1024 * 1024 * 1024);
     const dataRemainingGB = Math.max(0, dataRemainingBytes / (1024 * 1024 * 1024));
     const dataRemainingMB = Math.max(0, dataRemainingBytes / (1024 * 1024));
-    const percentageUsed = totalDataGB > 0 ? (dataUsedGB / totalDataGB) * 100 : 0;
+
+    // Calculate actual total from backend data
+    const actualTotalBytes = dataUsedBytes + dataRemainingBytes;
+    const actualTotalGB = actualTotalBytes / (1024 * 1024 * 1024);
+    const actualTotalMB = actualTotalBytes / (1024 * 1024);
+
+    // Use actual backend total for percentage calculation to avoid binary/decimal GB mismatch
+    // Backend might allocate 100 MB while plan shows 0.1 GB = 102.4 MB
+    const percentageUsed = actualTotalBytes > 0 ? (dataUsedBytes / actualTotalBytes) * 100 : 0;
 
     const expiryDate = getExpiryDate(order);
     const flag = getCountryFlag(region);
@@ -212,6 +225,9 @@ export default function Dashboard() {
       }
     };
 
+    // Check if this order is expired
+    const isOrderExpired = isExpired(order);
+
     return (
       <TouchableOpacity
         key={order.id}
@@ -222,7 +238,7 @@ export default function Dashboard() {
           shadowOpacity: 0.08,
           shadowRadius: 12,
           borderWidth: 2,
-          borderColor: isProvisioning ? '#FDFD74' : '#E5E5E5',
+          borderColor: isProvisioning ? '#FDFD74' : isOrderExpired ? '#EF4444' : '#E5E5E5',
         }}
         onPress={handlePress}
         activeOpacity={0.8}
@@ -244,7 +260,7 @@ export default function Dashboard() {
             </Text>
             {isProvisioning ? (
               <Text className="text-xl font-bold mb-1" style={{ color: '#1A1A1A' }}>
-                {totalDataGB} GB plan
+                {mbMatch ? `${mbMatch[1]} MB plan` : `${totalDataGB} GB plan`}
               </Text>
             ) : (
               <Text className="text-xl font-bold mb-1" style={{ color: '#1A1A1A' }}>
@@ -273,28 +289,39 @@ export default function Dashboard() {
         </View>
       </TouchableOpacity>
     );
-  }
+  }, [router, extractRegion, getExpiryDate, getCountryFlag, isExpired]);
 
-  // Filter orders based on active tab
-  const filteredOrders = orders?.filter(order => {
-    // Show active, depleted, and provisioning eSIMs (skip pending, failed, paid)
-    const validStatuses = ['active', 'depleted', 'provisioning'];
-    if (!validStatuses.includes(order.status)) {
-      return false;
-    }
+  // Memoize filtered orders to prevent recalculation
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
 
-    // Check if order is expired or depleted
-    const isDateExpired = isExpired(order);
-    const isDepleted = order.status === 'depleted';
-    const expired = isDateExpired || isDepleted;
+    return orders.filter(order => {
+      // Show active, depleted, and provisioning eSIMs (skip pending, failed, paid)
+      const validStatuses = ['active', 'depleted', 'provisioning'];
+      if (!validStatuses.includes(order.status)) {
+        return false;
+      }
 
-    // Provisioning eSIMs are always active (ready to activate)
-    if (order.status === 'provisioning') {
-      return activeTab === 'active';
-    }
+      // Provisioning eSIMs are always active (ready to activate)
+      if (order.status === 'provisioning') {
+        return activeTab === 'active';
+      }
 
-    return activeTab === 'active' ? !expired : expired;
-  }) || [];
+      // Check if order is expired (includes depleted status and 0 data remaining)
+      const expired = isExpired(order);
+
+      return activeTab === 'active' ? !expired : expired;
+    });
+  }, [orders, activeTab, isExpired]);
+
+  // Get active eSIMs with ICCID (eligible for top-up) - memoized
+  const activeEsimsWithIccid = useMemo(() => {
+    if (!orders) return [];
+    return orders.filter(order => {
+      const expired = isExpired(order);
+      return (order.status === 'active' && !expired && order.iccid);
+    });
+  }, [orders, isExpired]);
 
   // Only show full loading on initial load, not when refetching cached data
   if (isLoading && !orders) {
@@ -303,6 +330,21 @@ export default function Dashboard() {
         <ActivityIndicator size="large" color="#2EFECC" />
       </View>
     );
+  }
+
+  // Handle "Add more data" button click
+  function handleAddMoreData() {
+    if (activeEsimsWithIccid.length === 0) {
+      // No active eSIMs with ICCID - go to browse
+      router.push('/(tabs)/browse');
+    } else if (activeEsimsWithIccid.length === 1) {
+      // Single active eSIM - go directly to top-up
+      router.push(`/topup/${activeEsimsWithIccid[0].id}`);
+    } else {
+      // Multiple active eSIMs - show options via ActionSheet or alert
+      // For now, go to browse - user can also top up from eSIM details
+      router.push('/(tabs)/browse');
+    }
   }
 
   return (
@@ -362,6 +404,7 @@ export default function Dashboard() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           padding: 16,
+          paddingBottom: 100, // Space for fixed bottom button
         }}
         refreshControl={
           <RefreshControl
@@ -370,6 +413,12 @@ export default function Dashboard() {
             tintColor="#2EFECC"
           />
         }
+        // Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        initialNumToRender={5}
+        updateCellsBatchingPeriod={50}
         ListEmptyComponent={
           <View className="items-center justify-center py-12">
             <View className="rounded-full p-6 mb-6" style={{ backgroundColor: '#F5F5F5' }}>
@@ -383,27 +432,45 @@ export default function Dashboard() {
                 ? 'Browse our plans to get started with your first eSIM'
                 : 'You have no expired eSIMs'}
             </Text>
-            {activeTab === 'active' && (
-              <TouchableOpacity
-                className="px-8 py-4 rounded-2xl"
-                style={{
-                  backgroundColor: '#2EFECC',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 8,
-                }}
-                onPress={() => router.push('/(tabs)/browse')}
-                activeOpacity={0.8}
-              >
-                <Text className="font-black text-base uppercase tracking-wide" style={{ color: '#1A1A1A' }}>
-                  Browse Plans →
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
         }
       />
+
+      {/* Fixed Bottom Button - Add more data */}
+      {activeTab === 'active' && (
+        <View style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#FFFFFF',
+          paddingHorizontal: 24,
+          paddingTop: 16,
+          paddingBottom: 32,
+          borderTopWidth: 1,
+          borderTopColor: '#F5F5F5',
+        }}>
+          <TouchableOpacity
+            className="rounded-full"
+            style={{
+              backgroundColor: '#FFFFFF',
+              paddingVertical: 18,
+              borderWidth: 2,
+              borderColor: '#1A1A1A',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+            }}
+            onPress={handleAddMoreData}
+            activeOpacity={0.8}
+          >
+            <Text className="font-black text-lg text-center" style={{ color: '#1A1A1A' }}>
+              Add more data
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

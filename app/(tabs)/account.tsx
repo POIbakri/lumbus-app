@@ -2,25 +2,25 @@ import { View, Text, TouchableOpacity, Alert, Linking, ScrollView } from 'react-
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ReferAndEarn from '../components/ReferAndEarn';
 
 export default function Account() {
   const router = useRouter();
   const [email, setEmail] = useState<string>('');
 
-  useEffect(() => {
-    getUserEmail();
-  }, []);
-
-  async function getUserEmail() {
+  const getUserEmail = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setEmail(user.email || '');
     }
-  }
+  }, []);
 
-  async function handleSignOut() {
+  useEffect(() => {
+    getUserEmail();
+  }, [getUserEmail]);
+
+  const handleSignOut = useCallback(async () => {
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
@@ -39,9 +39,9 @@ export default function Account() {
         },
       ]
     );
-  }
+  }, [router]);
 
-  async function openHelpSupport() {
+  const openHelpSupport = useCallback(async () => {
     const url = 'https://getlumbus.com/support';
     const canOpen = await Linking.canOpenURL(url);
     if (canOpen) {
@@ -49,9 +49,9 @@ export default function Account() {
     } else {
       Alert.alert('Error', 'Unable to open support page');
     }
-  }
+  }, []);
 
-  async function openTermsOfService() {
+  const openTermsOfService = useCallback(async () => {
     const url = 'https://getlumbus.com/terms';
     const canOpen = await Linking.canOpenURL(url);
     if (canOpen) {
@@ -59,9 +59,9 @@ export default function Account() {
     } else {
       Alert.alert('Error', 'Unable to open terms page');
     }
-  }
+  }, []);
 
-  async function openPrivacyPolicy() {
+  const openPrivacyPolicy = useCallback(async () => {
     const url = 'https://getlumbus.com/privacy';
     const canOpen = await Linking.canOpenURL(url);
     if (canOpen) {
@@ -69,7 +69,7 @@ export default function Account() {
     } else {
       Alert.alert('Error', 'Unable to open privacy policy');
     }
-  }
+  }, []);
 
   return (
     <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>

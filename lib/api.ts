@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Plan, Order, CheckoutParams, PaymentIntentResponse } from '../types';
+import { Plan, Order, CheckoutParams, PaymentIntentResponse, TopUpCheckoutParams, TopUpCheckoutResponse } from '../types';
 import { config } from './config';
 
 const API_URL = config.apiUrl;
@@ -23,38 +23,31 @@ async function getAuthHeaders(): Promise<HeadersInit> {
 export async function fetchPlans(): Promise<Plan[]> {
   try {
     const headers = await getAuthHeaders();
-    console.log('🌐 Fetching plans from:', `${API_URL}/plans`);
 
     const response = await fetch(`${API_URL}/plans`, {
       method: 'GET',
       headers,
     });
 
-    console.log('📡 Response status:', response.status);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ API error:', response.status, errorText);
+      console.error('API error:', response.status, errorText);
       throw new Error(`Failed to fetch plans: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('✅ Plans from API:', data);
-    console.log('✅ Is array?', Array.isArray(data));
 
     // Handle both formats: array or object with plans property
     if (Array.isArray(data)) {
       return data;
     } else if (data && Array.isArray(data.plans)) {
-      console.log('📦 Extracting plans from response.plans');
       return data.plans;
     } else {
-      console.error('❌ Unexpected response format:', data);
+      console.error('Unexpected response format:', data);
       throw new Error('Invalid response format from API');
     }
   } catch (error) {
-    console.error('❌ Error fetching plans from API:', error);
-    console.log('🔄 Falling back to Supabase...');
+    console.error('Error fetching plans from API:', error);
 
     // Fallback to direct Supabase query if API fails
     const { data, error: supabaseError } = await supabase
@@ -63,11 +56,10 @@ export async function fetchPlans(): Promise<Plan[]> {
       .order('price', { ascending: true });
 
     if (supabaseError) {
-      console.error('❌ Supabase error:', supabaseError);
+      console.error('Supabase error:', supabaseError);
       throw supabaseError;
     }
 
-    console.log('✅ Plans from Supabase fallback:', data);
     return data || [];
   }
 }
@@ -185,7 +177,7 @@ export async function fetchOrderById(orderId: string): Promise<Order | null> {
     .single();
 
   if (supabaseError) {
-    console.error('❌ Supabase error fetching order:', supabaseError);
+    console.error('Supabase error fetching order:', supabaseError);
     throw supabaseError;
   }
 
@@ -205,7 +197,6 @@ export async function fetchOrderById(orderId: string): Promise<Order | null> {
 // Checkout API
 export async function createCheckout(params: CheckoutParams): Promise<PaymentIntentResponse> {
   try {
-    console.log('💳 Creating checkout:', params);
     const headers = await getAuthHeaders();
 
     // Add timeout for checkout request (30 seconds)
@@ -224,12 +215,11 @@ export async function createCheckout(params: CheckoutParams): Promise<PaymentInt
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       const errorMessage = errorData?.message || errorData?.error || `Checkout failed with status ${response.status}`;
-      console.error('❌ Checkout error:', errorMessage);
+      console.error('Checkout error:', errorMessage);
       throw new Error(errorMessage);
     }
 
     const data = await response.json();
-    console.log('✅ Checkout created:', { orderId: data.orderId });
     return data;
   } catch (error) {
     if (error instanceof Error) {
@@ -381,18 +371,15 @@ export async function fetchRegionInfo(regionCode: string): Promise<RegionInfo | 
     // Check cache first
     const cached = regionCache.get(regionCode);
     if (cached && (Date.now() - cached.timestamp < REGION_CACHE_TTL)) {
-      console.log('💾 Using cached region info for:', regionCode);
       return cached.data;
     }
 
     // Check if there's already an in-flight request for this region
     if (regionRequestMap.has(regionCode)) {
-      console.log('🔄 Reusing in-flight request for:', regionCode);
       return regionRequestMap.get(regionCode)!;
     }
 
     // Create new request
-    console.log('🌍 Fetching region info for:', regionCode);
     const requestPromise = (async () => {
       try {
         const controller = new AbortController();
@@ -409,14 +396,12 @@ export async function fetchRegionInfo(regionCode: string): Promise<RegionInfo | 
 
         if (!response.ok) {
           if (response.status === 404) {
-            console.log('⚠️ Region not found:', regionCode);
             return null;
           }
           throw new Error(`Failed to fetch region info: ${response.status}`);
         }
 
         const data: RegionInfo = await response.json();
-        console.log('✅ Region info:', data);
 
         // Cache the result with timestamp
         regionCache.set(regionCode, {
@@ -436,9 +421,51 @@ export async function fetchRegionInfo(regionCode: string): Promise<RegionInfo | 
 
     return await requestPromise;
   } catch (error) {
-    console.error('❌ Error fetching region info:', error);
+    console.error('Error fetching region info:', error);
     // Remove from in-flight requests on error
     regionRequestMap.delete(regionCode);
     return null;
+  }
+}
+
+// Top-Up API
+export async function createTopUpCheckout(params: TopUpCheckoutParams): Promise<TopUpCheckoutResponse> {
+  try {
+    const headers = await getAuthHeaders();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const response = await fetch(`${API_URL}/checkout/session`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.error || errorData?.details || `Failed with status ${response.status}`;
+      console.error('Top-up checkout error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+
+    if (!data.url) {
+      throw new Error('Invalid checkout response - missing URL');
+    }
+
+    return data;
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again.');
+      }
+      throw error;
+    }
+    throw new Error('Failed to create top-up checkout');
   }
 }

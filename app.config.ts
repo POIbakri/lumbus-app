@@ -18,6 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.lumbus.app',
+    associatedDomains: ['applinks:getlumbus.com'],
     infoPlist: {
       NSCameraUsageDescription: 'This app requires camera access to scan QR codes for eSIM installation.',
     },
@@ -32,6 +33,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     predictiveBackGestureEnabled: false,
     permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
     googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [
+          {
+            scheme: 'https',
+            host: 'getlumbus.com',
+            pathPrefix: '/dashboard',
+          },
+        ],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
   },
   web: {
     favicon: './assets/favicon.png',

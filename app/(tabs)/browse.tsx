@@ -1,5 +1,5 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Dimensions } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,8 +28,8 @@ export default function Browse() {
   const { data: plans, isLoading, isFetching, error } = useQuery({
     queryKey: ['plans'],
     queryFn: fetchPlans,
-    staleTime: 300000, // 5 minutes - data stays fresh
-    gcTime: 600000, // 10 minutes - cache time
+    staleTime: 600000, // 10 minutes - plans don't change frequently
+    gcTime: 1800000, // 30 minutes - keep in cache longer
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     retry: 3, // Retry failed requests 3 times
@@ -37,7 +37,7 @@ export default function Browse() {
   });
 
   // Group plans by region/country and sort by user location
-  const regionGroups: RegionGroup[] = React.useMemo(() => {
+  const regionGroups: RegionGroup[] = useMemo(() => {
     if (!plans || !Array.isArray(plans)) return [];
 
     const groupMap = new Map<string, RegionGroup>();
@@ -87,7 +87,7 @@ export default function Browse() {
   }, [plans, location]);
 
   // Convert prices for region groups - memoized
-  const convertRegionPrices = React.useCallback(async () => {
+  const convertRegionPrices = useCallback(async () => {
     if (regionGroups.length === 0) return;
 
     const prices = regionGroups.map(g => g.minPrice);
@@ -108,13 +108,13 @@ export default function Browse() {
   }, [regionGroups.length, currencyLoading, convertRegionPrices]);
 
   // Use regions with converted prices if available - memoized
-  const displayRegions = React.useMemo(() =>
+  const displayRegions = useMemo(() =>
     regionsWithPrices.length > 0 ? regionsWithPrices : regionGroups,
     [regionsWithPrices, regionGroups]
   );
 
   // Filter regions by search query - memoized
-  const filteredRegions = React.useMemo(() =>
+  const filteredRegions = useMemo(() =>
     displayRegions.filter(group =>
       group.region.toLowerCase().includes(searchQuery.toLowerCase()) ||
       group.regionCode.toLowerCase().includes(searchQuery.toLowerCase())
@@ -123,12 +123,12 @@ export default function Browse() {
   );
 
   // Determine background color based on index - memoized
-  const getRegionColor = React.useCallback((index: number) => {
+  const getRegionColor = useCallback((index: number) => {
     const colors = ['#2EFECC', '#87EFFF', '#F7E2FB', '#FDFD74', '#E0FEF7'];
     return colors[index % colors.length];
   }, []);
 
-  const renderRegionCard = React.useCallback(({ item: group, index }: { item: RegionGroup; index: number }) => {
+  const renderRegionCard = useCallback(({ item: group, index }: { item: RegionGroup; index: number }) => {
     return (
       <TouchableOpacity
         key={group.region}

@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
+import * as Linking from 'expo-linking';
+import { Alert } from 'react-native';
 import { config } from '../lib/config';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import {
@@ -52,7 +54,7 @@ export default function RootLayout() {
 
     // Handle notifications received while app is in foreground
     notificationListener.current = addNotificationReceivedListener((notification) => {
-      console.log('Notification received:', notification);
+      // Notification received - handled silently
     });
 
     // Handle notification taps
@@ -68,6 +70,43 @@ export default function RootLayout() {
       }
     });
 
+    // Handle deep links for payment success
+    const handleDeepLink = (event: { url: string }) => {
+      const { path, queryParams } = Linking.parse(event.url);
+
+      // Handle top-up success redirect
+      if (path === 'dashboard' && queryParams?.topup === 'success') {
+        const orderId = queryParams.order as string;
+
+        Alert.alert(
+          'Top-Up Successful!',
+          'Data has been added to your eSIM',
+          [
+            {
+              text: 'View eSIM',
+              onPress: () => {
+                if (orderId) {
+                  router.push(`/esim-details/${orderId}`);
+                } else {
+                  router.push('/(tabs)/dashboard');
+                }
+              },
+            },
+          ]
+        );
+      }
+    };
+
+    // Listen for deep links while app is running
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check if app was opened from a deep link
+    Linking.getInitialURL().then(url => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
+
     return () => {
       if (notificationListener.current) {
         notificationListener.current.remove();
@@ -75,6 +114,7 @@ export default function RootLayout() {
       if (responseListener.current) {
         responseListener.current.remove();
       }
+      subscription.remove();
     };
   }, []);
 
@@ -91,6 +131,7 @@ export default function RootLayout() {
             <Stack.Screen name="region" options={{ headerShown: false }} />
             <Stack.Screen name="install" options={{ headerShown: false }} />
             <Stack.Screen name="esim-details" options={{ headerShown: false }} />
+            <Stack.Screen name="topup" options={{ headerShown: false }} />
           </Stack>
         </StripeProvider>
       </QueryClientProvider>

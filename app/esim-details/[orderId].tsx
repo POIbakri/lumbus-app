@@ -47,7 +47,7 @@ export default function EsimDetails() {
         setUsageData(usage);
       }
     } catch (error) {
-      console.error('Error fetching usage:', error);
+      // Silently fail - usage data is optional
     }
   }
 
@@ -101,7 +101,17 @@ export default function EsimDetails() {
 
   const planName = order.plan?.name || 'Unknown Plan';
   const region = extractRegion(planName);
-  const totalDataGB = order.plan?.data_gb || 0;
+
+  // Parse actual data amount from plan name if it contains MB (e.g., "100MB", "500MB")
+  // Otherwise use data_gb from database
+  let totalDataGB = order.plan?.data_gb || 0;
+  const mbMatch = planName.match(/(\d+)\s*MB/i);
+  if (mbMatch) {
+    // Plan specifies MB directly (e.g., "100MB", "500MB")
+    // Use this as source of truth - convert to GB using decimal (1000 MB = 1 GB for display)
+    const mbValue = parseInt(mbMatch[1]);
+    totalDataGB = mbValue / 1024; // Convert to GB for consistency (100MB = 0.09765625 GB)
+  }
 
   // Use data from order object directly
   const dataUsedBytes = order.data_usage_bytes || 0;
@@ -112,7 +122,15 @@ export default function EsimDetails() {
   const dataUsedGB = dataUsedBytes / (1024 * 1024 * 1024);
   const dataRemainingGB = Math.max(0, dataRemainingBytes / (1024 * 1024 * 1024));
   const dataRemainingMB = Math.max(0, dataRemainingBytes / (1024 * 1024));
-  const percentageUsed = totalDataGB > 0 ? (dataUsedGB / totalDataGB) * 100 : 0;
+
+  // Calculate actual total from backend data
+  const actualTotalBytes = dataUsedBytes + dataRemainingBytes;
+  const actualTotalGB = actualTotalBytes / (1024 * 1024 * 1024);
+  const actualTotalMB = actualTotalBytes / (1024 * 1024);
+
+  // Use actual backend total for percentage calculation to avoid binary/decimal GB mismatch
+  // Backend might allocate 100 MB while plan shows 0.1 GB = 102.4 MB
+  const percentageUsed = actualTotalBytes > 0 ? (dataUsedBytes / actualTotalBytes) * 100 : 0;
 
   const expiryDate = getExpiryDate();
   const expired = isExpired();
@@ -142,7 +160,7 @@ export default function EsimDetails() {
             {region}
           </Text>
           <Text className="font-bold" style={{color: '#1A1A1A', opacity: 0.8, fontSize: getFontSize(16)}}>
-            {totalDataGB} GB • {order.plan?.validity_days || 0} days
+            {mbMatch ? `${mbMatch[1]} MB` : `${totalDataGB} GB`} • {order.plan?.validity_days || 0} days
           </Text>
         </View>
 
@@ -175,12 +193,12 @@ export default function EsimDetails() {
               {formatDataRemaining()} remaining
             </Text>
             <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14), marginBottom: moderateScale(16)}}>
-              {dataUsedGB.toFixed(2)} GB of {totalDataGB} GB used
+              {dataUsedGB.toFixed(2)} GB of {actualTotalGB.toFixed(2)} GB used
             </Text>
 
             <UsageBar
               dataUsed={dataUsedGB}
-              dataTotal={totalDataGB}
+              dataTotal={actualTotalGB}
               percentageUsed={percentageUsed}
             />
           </>
@@ -251,6 +269,28 @@ export default function EsimDetails() {
             </Text>
           </View>
         </View>
+
+        {/* Top Up Button */}
+        {!expired && order.iccid && (
+          <TouchableOpacity
+            className="rounded-2xl"
+            style={{backgroundColor: '#FDFD74', borderWidth: 2, borderColor: '#E5E5E5', padding: moderateScale(20), marginBottom: moderateScale(24), shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.08, shadowRadius: 8}}
+            onPress={() => router.push(`/topup/${order.id}`)}
+            activeOpacity={0.8}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(18), marginBottom: moderateScale(4)}}>
+                  Need more data?
+                </Text>
+                <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14)}}>
+                  Top up your eSIM instantly
+                </Text>
+              </View>
+              <Ionicons name="add-circle" size={scale(32)} color="#1A1A1A" />
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Important Notes */}
         {!expired && (

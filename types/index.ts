@@ -8,6 +8,7 @@ export interface Plan {
   retail_price: number;
   coverage: string[];
   created_at: string;
+  supplier_sku?: string; // eSIM Access package code
   displayPrice?: string; // Formatted price in user's currency
   convertedPrice?: number; // Price in user's currency
 }
@@ -45,4 +46,33 @@ export interface CheckoutParams {
 export interface PaymentIntentResponse {
   clientSecret: string;
   orderId: string;
+}
+
+export interface TopUpPackage {
+  packageCode: string;
+  slug: string;
+  name: string;
+  description: string;
+  dataGb?: number; // May be undefined, needs parsing from name
+  validityDays?: number; // May be undefined, needs parsing from name
+  price: number; // In cents, divide by 100
+  currency: string;
+  regionCode: string;
+  isTopUpCompatible: boolean;
+  // Parsed fields
+  parsedDataGb?: number;
+  parsedValidityDays?: number;
+  displayPrice?: string;
+  convertedPrice?: number;
+}
+
+export interface TopUpCheckoutParams {
+  planId: string;
+  isTopUp: boolean;
+  existingOrderId: string;
+  iccid: string;
+}
+
+export interface TopUpCheckoutResponse {
+  url: string;
 }
