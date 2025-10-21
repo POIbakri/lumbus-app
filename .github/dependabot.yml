@@ -1,0 +1,37 @@
+# Dependabot configuration for automated dependency updates
+# Checks for security vulnerabilities and outdated packages weekly
+
+version: 2
+updates:
+  # Enable npm dependency updates
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    # Limit concurrent PRs to avoid overwhelming the repo
+    open-pull-requests-limit: 5
+    # Group minor/patch updates together to reduce PR noise
+    groups:
+      # Group all non-security updates together
+      dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Add labels for easy filtering
+    labels:
+      - "dependencies"
+      - "automated"
+    # Assign reviewers (update with your GitHub username if needed)
+    # reviewers:
+    #   - "your-github-username"
+    # Commit message prefix
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    # Rebase strategy for cleaner history
+    rebase-strategy: "auto"
