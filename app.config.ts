@@ -74,7 +74,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         icon: './assets/iconlogofavicon/android-chrome-192x192.png',
         color: '#2EFECC',
-        sounds: ['./assets/notification-sound.wav'],
         mode: 'production',
       },
     ],

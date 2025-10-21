@@ -6,6 +6,7 @@ export interface Plan {
   validity_days: number;
   price: number;
   retail_price: number;
+  currency?: string; // Currency code (USD, EUR, etc.)
   coverage: string[];
   created_at: string;
   supplier_sku?: string; // eSIM Access package code
