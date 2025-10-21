@@ -9,17 +9,21 @@ import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/us
 import { useLocation } from '../../hooks/useLocation';
 import { useCurrency } from '../../hooks/useCurrency';
 
+type BrowseTab = 'country' | 'region';
+
 interface RegionGroup {
   region: string;
   planCount: number;
   minPrice: number;
   convertedMinPrice?: number;
   regionCode: string;
+  isMultiCountry: boolean;
 }
 
 export default function Browse() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<BrowseTab>('country');
   const [regionsWithPrices, setRegionsWithPrices] = useState<RegionGroup[]>([]);
   const { scale, moderateScale, isSmallDevice } = useResponsive();
   const { location, loading: locationLoading } = useLocation();
@@ -51,6 +55,21 @@ export default function Browse() {
       };
 
       const region = extractRegion(plan.name);
+      const regionCode = plan.region_code;
+
+      // Determine if this is a multi-country region
+      // Multi-country regions typically have codes like "EU", "ASIA", "LATAM" or word-based codes
+      const isMultiCountry = regionCode.length > 2 ||
+                            regionCode.toLowerCase() === 'eu' ||
+                            regionCode.toLowerCase() === 'asia' ||
+                            regionCode.toLowerCase() === 'latam' ||
+                            regionCode.toLowerCase() === 'global' ||
+                            region.toLowerCase().includes('europe') ||
+                            region.toLowerCase().includes('asia') ||
+                            region.toLowerCase().includes('america') ||
+                            region.toLowerCase().includes('world') ||
+                            region.toLowerCase().includes('global');
+
       const existing = groupMap.get(region);
 
       if (existing) {
@@ -61,7 +80,8 @@ export default function Browse() {
           region,
           planCount: 1,
           minPrice: plan.retail_price || plan.price,
-          regionCode: plan.region_code,
+          regionCode,
+          isMultiCountry,
         });
       }
     });
@@ -113,14 +133,27 @@ export default function Browse() {
     [regionsWithPrices, regionGroups]
   );
 
-  // Filter regions by search query - memoized
-  const filteredRegions = useMemo(() =>
-    displayRegions.filter(group =>
-      group.region.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      group.regionCode.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-    [displayRegions, searchQuery]
-  );
+  // Filter regions by search query and active tab - memoized
+  const filteredRegions = useMemo(() => {
+    let filtered = displayRegions;
+
+    // Filter by tab
+    if (activeTab === 'country') {
+      filtered = filtered.filter(group => !group.isMultiCountry);
+    } else {
+      filtered = filtered.filter(group => group.isMultiCountry);
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(group =>
+        group.region.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        group.regionCode.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [displayRegions, searchQuery, activeTab]);
 
   // Determine background color based on index - memoized
   const getRegionColor = useCallback((index: number) => {
@@ -129,6 +162,8 @@ export default function Browse() {
   }, []);
 
   const renderRegionCard = useCallback(({ item: group, index }: { item: RegionGroup; index: number }) => {
+    const icon = group.isMultiCountry ? '🌍' : '📍';
+
     return (
       <TouchableOpacity
         key={group.region}
@@ -152,7 +187,7 @@ export default function Browse() {
             </Text>
             <View className="flex-row items-center">
               <Text className="text-base font-bold uppercase tracking-wide" style={{color: '#1A1A1A', opacity: 0.7}}>
-                🌍 {group.regionCode}
+                {icon} {group.regionCode}
               </Text>
             </View>
           </View>
@@ -212,12 +247,56 @@ export default function Browse() {
           Choose your destination
         </Text>
 
+        {/* Tab Switcher */}
+        <View className="flex-row rounded-2xl p-1 mb-4" style={{backgroundColor: '#1A1A1A'}}>
+          <TouchableOpacity
+            className="flex-1 py-3 rounded-xl items-center"
+            style={{
+              backgroundColor: activeTab === 'country' ? '#FDFD74' : 'transparent',
+              borderWidth: 2,
+              borderColor: activeTab === 'country' ? '#1A1A1A' : 'transparent',
+            }}
+            onPress={() => setActiveTab('country')}
+            activeOpacity={0.7}
+          >
+            <Text
+              className="font-black uppercase tracking-wide"
+              style={{
+                color: activeTab === 'country' ? '#1A1A1A' : '#FDFD74',
+                fontSize: getFontSize(14),
+              }}
+            >
+              📍 COUNTRIES
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-1 py-3 rounded-xl items-center"
+            style={{
+              backgroundColor: activeTab === 'region' ? '#FDFD74' : 'transparent',
+              borderWidth: 2,
+              borderColor: activeTab === 'region' ? '#1A1A1A' : 'transparent',
+            }}
+            onPress={() => setActiveTab('region')}
+            activeOpacity={0.7}
+          >
+            <Text
+              className="font-black uppercase tracking-wide"
+              style={{
+                color: activeTab === 'region' ? '#1A1A1A' : '#FDFD74',
+                fontSize: getFontSize(14),
+              }}
+            >
+              🌍 REGIONS
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <View className="bg-white rounded-2xl flex-row items-center" style={{borderWidth: 2, borderColor: '#E5E5E5', paddingHorizontal: scale(20), paddingVertical: moderateScale(14)}}>
           <Ionicons name="search" size={scale(22)} color="#2EFECC" />
           <TextInput
             className="flex-1 font-bold"
             style={{color: '#1A1A1A', marginLeft: scale(12), fontSize: getFontSize(15)}}
-            placeholder="Search by country or region..."
+            placeholder={activeTab === 'country' ? 'Search countries...' : 'Search regions...'}
             placeholderTextColor="#666666"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -248,13 +327,13 @@ export default function Browse() {
         ListEmptyComponent={
           <View className="items-center justify-center py-12">
             <View className="rounded-full p-6 mb-4" style={{backgroundColor: '#F5F5F5'}}>
-              <Ionicons name="search" size={64} color="#666666" />
+              <Text style={{fontSize: 64}}>{activeTab === 'country' ? '📍' : '🌍'}</Text>
             </View>
             <Text className="text-xl font-black uppercase" style={{color: '#1A1A1A'}}>
-              No regions found
+              {searchQuery ? `No ${activeTab === 'country' ? 'countries' : 'regions'} found` : `No ${activeTab === 'country' ? 'countries' : 'regions'} available`}
             </Text>
             <Text className="font-bold mt-2" style={{color: '#666666'}}>
-              Try a different search term
+              {searchQuery ? 'Try a different search term' : `Switch to ${activeTab === 'country' ? 'Regions' : 'Countries'} tab`}
             </Text>
           </View>
         }
