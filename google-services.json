@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "948073363531",
+    "project_id": "lumbus-8d118",
+    "storage_bucket": "lumbus-8d118.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:948073363531:android:7d0067b0a39d31871df5ce",
+        "android_client_info": {
+          "package_name": "com.lumbus.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUZLXupHjei_NaOlM6NyzpmhOist_-0Tc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

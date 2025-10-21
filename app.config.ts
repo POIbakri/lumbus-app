@@ -3,7 +3,8 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Lumbus',
-  slug: 'lumbus-mobile',
+  slug: 'lumbus',
+  owner: 'lumbus',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/iconlogotrans.png',
@@ -74,7 +75,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       origin: false,
     },
     eas: {
-      projectId: process.env.EAS_PROJECT_ID || 'local-dev',
+      projectId: 'b38159ea-bd8e-4aca-92dc-5aecadc110b9',
     },
     // Environment variables - these MUST be set in .env file
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,

@@ -41,8 +41,9 @@
     "tailwindcss": "~3.3.0"
   },
   "devDependencies": {
+    "@expo/metro-config": "~54.0.7",
     "@types/react": "~19.1.0",
-    "babel-preset-expo": "^54.0.4",
+    "babel-preset-expo": "~54.0.5",
     "typescript": "~5.9.2"
   },
   "private": true
