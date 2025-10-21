@@ -1,9 +1,11 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { useStripe } from '@stripe/stripe-react-native';
 import { fetchOrderById, fetchPlans, createTopUpCheckout } from '../../lib/api';
+import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { Plan } from '../../types';
@@ -11,10 +13,11 @@ import { Plan } from '../../types';
 export default function TopUpScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const router = useRouter();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
-  const { convertMultiplePrices, symbol, loading: currencyLoading } = useCurrency();
+  const { convertMultiplePrices, symbol, loading: currencyLoading, currency } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
   const { data: order, isLoading: orderLoading } = useQuery({
@@ -83,44 +86,90 @@ export default function TopUpScreen() {
       return;
     }
 
+    if (loading) return; // Prevent double-tap
+
     setLoading(true);
 
     try {
-      // Create checkout session with the selected plan
-      const { url } = await createTopUpCheckout({
+      // Get current user - should always exist due to auth guard
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Session Expired', 'Please log in again to continue.');
+        setLoading(false);
+        router.replace('/(auth)/login');
+        return;
+      }
+
+      // Create checkout session with the selected plan - using same endpoint as plan purchase
+      const { clientSecret, orderId: newOrderId } = await createTopUpCheckout({
         planId: selectedPlan.id,
         isTopUp: true,
         existingOrderId: orderId!,
         iccid: order.iccid,
+        email: user.email!,
+        currency, // Pass user's detected currency
       });
 
-      // Open Stripe Checkout in browser
-      const canOpen = await Linking.canOpenURL(url);
-      if (!canOpen) {
-        throw new Error('Cannot open payment page');
+      if (!clientSecret || !newOrderId) {
+        throw new Error('Invalid checkout response from server');
       }
 
-      await Linking.openURL(url);
+      // Initialize payment sheet
+      const { error: initError } = await initPaymentSheet({
+        merchantDisplayName: 'Lumbus',
+        paymentIntentClientSecret: clientSecret,
+        defaultBillingDetails: {
+          email: user.email!,
+        },
+        returnURL: 'lumbus://payment-complete',
+        appearance: {
+          colors: {
+            primary: '#2EFECC',
+          },
+        },
+      });
 
-      // Show info that user needs to complete payment in browser
+      if (initError) {
+        console.error('❌ Payment sheet initialization error:', initError);
+        Alert.alert('Payment Setup Error', initError.message);
+        setLoading(false);
+        return;
+      }
+
+      // Present payment sheet
+      const { error: paymentError } = await presentPaymentSheet();
+
+      if (paymentError) {
+        setLoading(false);
+        // User cancelled - no error alert needed
+        if (paymentError.code === 'Canceled') {
+          // User cancelled - do nothing
+        } else {
+          console.error('Payment error:', paymentError);
+          Alert.alert('Payment Error', paymentError.message);
+        }
+        return;
+      }
+
+      // Payment successful - redirect to eSIM details
       Alert.alert(
-        'Complete Payment',
-        'Complete your payment in the browser, then return to the app. Your data will be added automatically.',
+        'Top-Up Successful!',
+        'Data has been added to your eSIM.',
         [
           {
-            text: 'OK',
-            onPress: () => router.back(),
+            text: 'View eSIM',
+            onPress: () => router.replace(`/esim-details/${orderId}`),
           },
         ]
       );
     } catch (error: any) {
+      console.error('Top-up error:', error);
+      setLoading(false);
       Alert.alert(
         'Top-Up Error',
         error.message || 'Failed to process top-up. Please try again.',
         [{ text: 'OK' }]
       );
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -281,18 +330,14 @@ export default function TopUpScreen() {
       <View style={{backgroundColor: '#FFFFFF', borderTopWidth: 2, borderColor: '#E5E5E5', paddingHorizontal: getHorizontalPadding(), paddingVertical: moderateScale(20)}}>
         <TouchableOpacity
           className="rounded-2xl"
-          style={{backgroundColor: selectedPlan ? '#2EFECC' : '#E5E5E5', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8, paddingVertical: moderateScale(20)}}
+          style={{backgroundColor: loading ? '#87EFFF' : (selectedPlan ? '#2EFECC' : '#E5E5E5'), shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8, paddingVertical: moderateScale(20)}}
           onPress={handlePurchase}
           disabled={!selectedPlan || loading}
           activeOpacity={0.8}
         >
-          {loading ? (
-            <ActivityIndicator size="small" color="#1A1A1A" />
-          ) : (
-            <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {selectedPlan ? `Buy now for ${selectedPlan.displayPrice || `${symbol}${(selectedPlan.retail_price || selectedPlan.price).toFixed(2)}`} →` : 'Select a plan'}
-            </Text>
-          )}
+          <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
+            {loading ? 'Processing...' : (selectedPlan ? `Buy now for ${selectedPlan.displayPrice || `${symbol}${(selectedPlan.retail_price || selectedPlan.price).toFixed(2)}`} →` : 'Select a plan')}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

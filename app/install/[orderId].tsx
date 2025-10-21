@@ -36,13 +36,23 @@ export default function InstallEsim() {
     Alert.alert('Copied', `${label} copied to clipboard`);
   }
 
+  // Helper function to check if iOS version is 17.4 or higher
+  function isIOS17_4OrHigher(): boolean {
+    if (Platform.OS !== 'ios') return false;
+
+    const version = Platform.Version as string;
+    const parts = version.split('.');
+    const major = parseInt(parts[0], 10);
+    const minor = parts[1] ? parseInt(parts[1], 10) : 0;
+
+    return major > 17 || (major === 17 && minor >= 4);
+  }
+
   async function handleDirectInstall(lpaString: string) {
     try {
       // iOS: Try iOS 17.4+ deep link first, fallback to manual
       if (Platform.OS === 'ios') {
-        const iosVersion = parseInt(Platform.Version as string, 10);
-
-        if (iosVersion >= 17) {
+        if (isIOS17_4OrHigher()) {
           const deepLinkUrl = `https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=${encodeURIComponent(lpaString)}`;
 
           try {
@@ -50,8 +60,8 @@ export default function InstallEsim() {
             if (canOpen) {
               await Linking.openURL(deepLinkUrl);
               Alert.alert(
-                '🎉 Installing eSIM',
-                'Follow the on-screen prompts to complete your eSIM installation.',
+                'Installing eSIM',
+                'Your device settings will open. Follow the on-screen prompts to complete your eSIM installation.',
                 [{ text: 'OK' }]
               );
               return;
@@ -64,8 +74,8 @@ export default function InstallEsim() {
         // Fallback: Copy to clipboard and guide to Settings
         await Clipboard.setStringAsync(lpaString);
         Alert.alert(
-          '✓ Code Copied!',
-          'The activation code has been copied to your clipboard.\n\nNext steps:\n\n1. Tap "Open Settings" below\n2. Tap "Cellular" or "Mobile Data"\n3. Tap "Add eSIM" or "Add Cellular Plan"\n4. Choose "Enter Details Manually"\n5. Paste the code (long press and tap Paste)\n6. Follow the on-screen instructions',
+          'Code Copied!',
+          'The activation code has been copied to your clipboard.\n\nNext steps:\n\n1. Tap "Open Settings" below\n2. Tap "Cellular"\n3. Tap "Add eSIM" or "Add Cellular Plan"\n4. Tap "Use QR Code"\n5. Tap "Enter Details Manually" at the bottom\n6. Long press in the Activation Code field and tap "Paste"\n7. Tap "Next" to install',
           [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -85,8 +95,8 @@ export default function InstallEsim() {
       else if (Platform.OS === 'android') {
         await Clipboard.setStringAsync(lpaString);
         Alert.alert(
-          '✓ Code Copied!',
-          'The activation code has been copied to your clipboard.\n\nNext steps:\n\n1. Tap "Open Settings" below\n2. Go to "Network & Internet" or "Connections"\n3. Tap "Mobile Network" or "SIM card manager"\n4. Tap "Download a SIM" or "Add eSIM"\n5. Choose "Enter activation code manually"\n6. Paste the code (long press and tap Paste)\n7. Follow the on-screen instructions',
+          'Code Copied!',
+          'The activation code has been copied to your clipboard.\n\nNext steps:\n\n1. Tap "Open Settings" below\n2. Search for "SIM" in Settings search bar\n3. Look for "Add eSIM", "Download SIM", or "SIM Manager"\n4. Select "Enter activation code" or "Enter manually"\n5. Long press in the code field and tap "Paste"\n6. Tap "Download" or "Add"\n\nNote: Steps may vary by device manufacturer.',
           [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -164,6 +174,35 @@ export default function InstallEsim() {
   const region = extractRegion(planName);
   const lpaString = `LPA:1$${order.smdp}$${order.activation_code}`;
 
+  // Determine button description based on platform and iOS version
+  const getInstallButtonDescription = () => {
+    if (Platform.OS === 'ios' && isIOS17_4OrHigher()) {
+      return 'Tap the button below to open the eSIM installer directly on your device.';
+    } else if (Platform.OS === 'ios') {
+      return 'Tap the button below to copy your activation code and open Settings for manual installation.';
+    } else {
+      return 'Tap the button below to copy your activation code and open Settings for manual installation.';
+    }
+  };
+
+  // Platform-specific QR code instructions
+  const getQRInstructions = () => {
+    if (Platform.OS === 'ios') {
+      return 'Go to Settings → Cellular → Add eSIM, then scan this code with another device';
+    } else {
+      return 'Go to Settings → Search "SIM" → Add eSIM, then scan this code with another device';
+    }
+  };
+
+  // Platform-specific Step 2 instructions
+  const getStep2Instructions = () => {
+    if (Platform.OS === 'ios') {
+      return 'After installation, go to Settings → Cellular → [Your eSIM Name] and enable "Turn On This Line" and "Data Roaming".';
+    } else {
+      return 'After installation, go to Settings and make sure your new eSIM is enabled with "Mobile Data" and "Data Roaming" turned on.';
+    }
+  };
+
   return (
     <ScrollView className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
       {/* Header */}
@@ -193,7 +232,7 @@ export default function InstallEsim() {
             </Text>
           </View>
           <Text className="font-bold mb-4" style={{color: '#666666', fontSize: 14, lineHeight: 20}}>
-            Tap the button below to install your eSIM. The activation code will be copied and you'll be guided to Settings.
+            {getInstallButtonDescription()}
           </Text>
 
           <TouchableOpacity
@@ -235,8 +274,8 @@ export default function InstallEsim() {
             />
           </View>
 
-          <Text className="font-bold text-center" style={{color: '#666666', fontSize: 12}}>
-            Go to Settings → Cellular/Mobile Data → Add eSIM and scan this code
+          <Text className="font-bold text-center" style={{color: '#666666', fontSize: 12, lineHeight: 18}}>
+            {getQRInstructions()}
           </Text>
         </View>
 
@@ -251,7 +290,7 @@ export default function InstallEsim() {
             </Text>
           </View>
           <Text className="font-bold" style={{color: '#666666', fontSize: 14, lineHeight: 20}}>
-            After installation, go to Settings and make sure "Turn on This Line" and "Data Roaming" are enabled for your new eSIM.
+            {getStep2Instructions()}
           </Text>
         </View>
 
@@ -278,7 +317,7 @@ export default function InstallEsim() {
           activeOpacity={0.8}
         >
           <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: 13}}>
-            Advanced: Manual Details
+            Advanced: Manual Entry Details
           </Text>
           <Ionicons
             name={showManual ? 'chevron-up' : 'chevron-down'}
@@ -290,6 +329,10 @@ export default function InstallEsim() {
         {/* Manual Installation Details */}
         {showManual && (
           <View className="rounded-3xl mb-6" style={{backgroundColor: '#F5F5F5', padding: 20}}>
+            <Text className="font-bold mb-4" style={{color: '#666666', fontSize: 13, lineHeight: 18}}>
+              Use these details if you need to manually enter your eSIM information. Tap any field to copy it to your clipboard.
+            </Text>
+
             <View style={{marginBottom: 16}}>
               <Text className="font-black uppercase tracking-wide mb-2" style={{color: '#666666', fontSize: 11}}>
                 SM-DP+ Address

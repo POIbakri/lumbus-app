@@ -71,8 +71,11 @@ export interface TopUpCheckoutParams {
   isTopUp: boolean;
   existingOrderId: string;
   iccid: string;
+  currency?: string;
+  email?: string;
 }
 
 export interface TopUpCheckoutResponse {
-  url: string;
+  clientSecret: string;
+  orderId: string;
 }

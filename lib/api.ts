@@ -436,7 +436,8 @@ export async function createTopUpCheckout(params: TopUpCheckoutParams): Promise<
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch(`${API_URL}/checkout/session`, {
+    // Use the same /checkout endpoint as plan purchases for Payment Sheet
+    const response = await fetch(`${API_URL}/checkout`, {
       method: 'POST',
       headers,
       body: JSON.stringify(params),
@@ -447,15 +448,15 @@ export async function createTopUpCheckout(params: TopUpCheckoutParams): Promise<
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      const errorMessage = errorData?.error || errorData?.details || `Failed with status ${response.status}`;
+      const errorMessage = errorData?.message || errorData?.error || `Failed with status ${response.status}`;
       console.error('Top-up checkout error:', errorMessage);
       throw new Error(errorMessage);
     }
 
     const data = await response.json();
 
-    if (!data.url) {
-      throw new Error('Invalid checkout response - missing URL');
+    if (!data.clientSecret || !data.orderId) {
+      throw new Error('Invalid checkout response - missing clientSecret or orderId');
     }
 
     return data;
