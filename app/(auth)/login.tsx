@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
+import { isValidEmail } from '../../lib/validation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -11,13 +12,51 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (!lockoutUntil) {
+      setLockoutSeconds(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      if (now >= lockoutUntil) {
+        setLockoutUntil(null);
+        setLockoutSeconds(0);
+      } else {
+        const remaining = Math.ceil((lockoutUntil.getTime() - now.getTime()) / 1000);
+        setLockoutSeconds(remaining);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lockoutUntil]);
+
   async function handleLogin() {
+    // Check if locked out
+    if (lockoutUntil && new Date() < lockoutUntil) {
+      Alert.alert('Too Many Attempts', `Please wait ${lockoutSeconds} seconds before trying again.`);
+      return;
+    }
+
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+
+    if (loading) return; // Prevent double-tap
 
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -28,10 +67,29 @@ export default function Login() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      // Increment failed attempts
+      const newFailedAttempts = failedAttempts + 1;
+      setFailedAttempts(newFailedAttempts);
+
+      // Exponential lockout: 5s, 10s, 30s, 60s, 120s
+      if (newFailedAttempts >= 3) {
+        const lockoutDuration = Math.min(5 * Math.pow(2, newFailedAttempts - 3), 120);
+        const lockoutTime = new Date(Date.now() + lockoutDuration * 1000);
+        setLockoutUntil(lockoutTime);
+        setLockoutSeconds(lockoutDuration);
+        Alert.alert(
+          'Too Many Failed Attempts',
+          `Please wait ${lockoutDuration} seconds before trying again.`
+        );
+      } else {
+        Alert.alert('Error', error.message);
+      }
       return;
     }
 
+    // Reset on success
+    setFailedAttempts(0);
+    setLockoutUntil(null);
     router.replace('/(tabs)/browse');
   }
 
@@ -108,13 +166,13 @@ export default function Login() {
             {/* Sign In Button */}
             <TouchableOpacity
               className="rounded-2xl"
-              style={{backgroundColor: '#2EFECC', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8, marginTop: moderateScale(32), paddingVertical: moderateScale(20)}}
+              style={{backgroundColor: lockoutSeconds > 0 ? '#E5E5E5' : '#2EFECC', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8, marginTop: moderateScale(32), paddingVertical: moderateScale(20)}}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={loading || lockoutSeconds > 0}
               activeOpacity={0.8}
             >
               <Text className="text-center font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-                {loading ? 'SIGNING IN...' : 'SIGN IN →'}
+                {loading ? 'SIGNING IN...' : lockoutSeconds > 0 ? `WAIT ${lockoutSeconds}S` : 'SIGN IN →'}
               </Text>
             </TouchableOpacity>
 

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
 import { fetchOrderById, subscribeToOrderUpdates } from '../../lib/api';
+import { logger } from '../../lib/logger';
 
 export default function InstallEsim() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
@@ -67,7 +68,7 @@ export default function InstallEsim() {
               return;
             }
           } catch (deepLinkError) {
-            console.log('Deep link failed, falling back to manual install:', deepLinkError);
+            logger.log('Deep link failed, falling back to manual install:', deepLinkError);
           }
         }
 

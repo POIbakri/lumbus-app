@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
+import { logger } from './logger';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -25,7 +26,7 @@ export enum NotificationType {
 // Register for push notifications
 export async function registerForPushNotifications(): Promise<string | null> {
   if (!Device.isDevice) {
-    console.log('Must use physical device for push notifications');
+    logger.log('Must use physical device for push notifications');
     return null;
   }
 
@@ -40,7 +41,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (finalStatus !== 'granted') {
-    console.log('Failed to get push notification permissions');
+    logger.log('Failed to get push notification permissions');
     return null;
   }
 
@@ -52,8 +53,8 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     // Skip if no valid project ID (likely using Expo Go for development)
     if (!projectId || projectId === 'local-dev') {
-      console.log('⚠️ No valid Expo project ID. Push notifications disabled in development.');
-      console.log('💡 Use a development build for full push notification support.');
+      logger.log('⚠️ No valid Expo project ID. Push notifications disabled in development.');
+      logger.log('💡 Use a development build for full push notification support.');
       return null;
     }
 
@@ -90,8 +91,8 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     return token.data;
   } catch (error: any) {
-    console.error('Failed to get push token:', error.message);
-    console.log('💡 Push notifications require a development build, not Expo Go.');
+    logger.error('Failed to get push token:', error.message);
+    logger.log('💡 Push notifications require a development build, not Expo Go.');
     return null;
   }
 }
@@ -111,10 +112,10 @@ export async function savePushToken(userId: string, token: string) {
       });
 
     if (error) {
-      console.error('Error saving push token:', error);
+      logger.error('Error saving push token:', error);
     }
   } catch (error) {
-    console.error('Error saving push token:', error);
+    logger.error('Error saving push token:', error);
   }
 }
 

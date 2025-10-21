@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { detectCurrency, convertPrices, formatPrice as formatPriceUtil, type CurrencyInfo, type Currency } from '../lib/currency';
+import { logger } from '../lib/logger';
 
 interface ConvertedPrice {
   usd: number;
@@ -28,7 +29,7 @@ export function useCurrency() {
         const data = await detectCurrency();
         setCurrencyInfo(data);
       } catch (err) {
-        console.error('Currency detection error:', err);
+        logger.error('Currency detection error:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
         // Fallback to USD
         setCurrencyInfo({
@@ -67,7 +68,7 @@ export function useCurrency() {
     const cacheTime = cacheTimestamps.get(cacheKey);
 
     if (cached && cacheTime && (Date.now() - cacheTime < CACHE_DURATION)) {
-      console.log('💰 Using cached price conversion');
+      logger.log('💰 Using cached price conversion');
       return cached;
     }
 

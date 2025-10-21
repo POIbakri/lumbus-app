@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import { validatePassword, isValidEmail } from '../../lib/validation';
 
 export default function Signup() {
   const router = useRouter();
@@ -9,10 +10,46 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (!lockoutUntil) {
+      setLockoutSeconds(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      if (now >= lockoutUntil) {
+        setLockoutUntil(null);
+        setLockoutSeconds(0);
+      } else {
+        const remaining = Math.ceil((lockoutUntil.getTime() - now.getTime()) / 1000);
+        setLockoutSeconds(remaining);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lockoutUntil]);
 
   async function handleSignup() {
+    // Check if locked out
+    if (lockoutUntil && new Date() < lockoutUntil) {
+      Alert.alert('Too Many Attempts', `Please wait ${lockoutSeconds} seconds before trying again.`);
+      return;
+    }
+
     if (!email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
     }
 
@@ -21,10 +58,14 @@ export default function Signup() {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    // Enhanced password validation
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      Alert.alert('Weak Password', passwordValidation.error || 'Please choose a stronger password');
       return;
     }
+
+    if (loading) return; // Prevent double-tap
 
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
@@ -35,9 +76,29 @@ export default function Signup() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      // Increment failed attempts
+      const newFailedAttempts = failedAttempts + 1;
+      setFailedAttempts(newFailedAttempts);
+
+      // Exponential lockout: 5s, 10s, 30s, 60s, 120s
+      if (newFailedAttempts >= 3) {
+        const lockoutDuration = Math.min(5 * Math.pow(2, newFailedAttempts - 3), 120);
+        const lockoutTime = new Date(Date.now() + lockoutDuration * 1000);
+        setLockoutUntil(lockoutTime);
+        setLockoutSeconds(lockoutDuration);
+        Alert.alert(
+          'Too Many Failed Attempts',
+          `Please wait ${lockoutDuration} seconds before trying again.`
+        );
+      } else {
+        Alert.alert('Error', error.message);
+      }
       return;
     }
+
+    // Reset on success
+    setFailedAttempts(0);
+    setLockoutUntil(null);
 
     Alert.alert(
       'Success',
@@ -139,13 +200,13 @@ export default function Signup() {
             {/* Create Account Button */}
             <TouchableOpacity
               className="mt-8 rounded-2xl py-5"
-              style={{backgroundColor: '#2EFECC', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8}}
+              style={{backgroundColor: lockoutSeconds > 0 ? '#E5E5E5' : '#2EFECC', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8}}
               onPress={handleSignup}
-              disabled={loading}
+              disabled={loading || lockoutSeconds > 0}
               activeOpacity={0.8}
             >
               <Text className="text-center text-lg font-black uppercase tracking-wide" style={{color: '#1A1A1A'}}>
-                {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT →'}
+                {loading ? 'CREATING ACCOUNT...' : lockoutSeconds > 0 ? `WAIT ${lockoutSeconds}S` : 'CREATE ACCOUNT →'}
               </Text>
             </TouchableOpacity>
 

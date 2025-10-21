@@ -16,6 +16,8 @@ import {
   NotificationType,
 } from '../lib/notifications';
 import { supabase } from '../lib/supabase';
+import { isValidUUID } from '../lib/validation';
+import { logger } from '../lib/logger';
 import "../global.css";
 
 const queryClient = new QueryClient({
@@ -72,28 +74,43 @@ export default function RootLayout() {
 
     // Handle deep links for payment success
     const handleDeepLink = (event: { url: string }) => {
-      const { path, queryParams } = Linking.parse(event.url);
+      try {
+        const { path, queryParams } = Linking.parse(event.url);
 
-      // Handle top-up success redirect
-      if (path === 'dashboard' && queryParams?.topup === 'success') {
-        const orderId = queryParams.order as string;
+        // Whitelist allowed paths for security
+        const allowedPaths = ['dashboard', 'payment-complete'];
+        if (!path || !allowedPaths.includes(path)) {
+          logger.warn('Invalid deep link path attempted:', path);
+          return;
+        }
 
-        Alert.alert(
-          'Top-Up Successful!',
-          'Data has been added to your eSIM',
-          [
-            {
-              text: 'View eSIM',
-              onPress: () => {
-                if (orderId) {
+        // Handle top-up success redirect
+        if (path === 'dashboard' && queryParams?.topup === 'success') {
+          const orderId = queryParams.order as string;
+
+          // Validate orderId format (must be valid UUID)
+          if (!orderId || !isValidUUID(orderId)) {
+            logger.error('Invalid order ID in deep link:', orderId);
+            Alert.alert('Error', 'Invalid link. Please try again.');
+            return;
+          }
+
+          Alert.alert(
+            'Top-Up Successful!',
+            'Data has been added to your eSIM',
+            [
+              {
+                text: 'View eSIM',
+                onPress: () => {
                   router.push(`/esim-details/${orderId}`);
-                } else {
-                  router.push('/(tabs)/dashboard');
-                }
+                },
               },
-            },
-          ]
-        );
+            ]
+          );
+        }
+      } catch (error) {
+        logger.error('Error handling deep link:', error);
+        Alert.alert('Error', 'Unable to process link. Please try again.');
       }
     };
 

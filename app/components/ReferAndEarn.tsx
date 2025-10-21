@@ -13,6 +13,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchReferralInfo, ReferralData } from '../../lib/api';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
+import { logger } from '../../lib/logger';
 
 export default function ReferAndEarn() {
   const [referralData, setReferralData] = useState<ReferralData | null>(null);
@@ -29,7 +30,7 @@ export default function ReferAndEarn() {
       const data = await fetchReferralInfo();
       setReferralData(data);
     } catch (error) {
-      console.error('Error loading referral data:', error);
+      logger.error('Error loading referral data:', error);
       Alert.alert('Error', 'Failed to load referral information');
     } finally {
       setLoading(false);
@@ -55,7 +56,7 @@ export default function ReferAndEarn() {
       });
 
       if (result.action === Share.sharedAction) {
-        console.log('Shared successfully');
+        logger.log('Shared successfully');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to share referral link');
@@ -76,7 +77,7 @@ export default function ReferAndEarn() {
           Alert.alert('WhatsApp not installed');
         }
       })
-      .catch((err) => console.error('Error opening WhatsApp:', err));
+      .catch((err) => logger.error('Error opening WhatsApp:', err));
   };
 
   const shareViaInstagram = () => {
@@ -98,7 +99,7 @@ export default function ReferAndEarn() {
     const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     Linking.openURL(url).catch((err) =>
-      console.error('Error opening email:', err)
+      logger.error('Error opening email:', err)
     );
   };
 

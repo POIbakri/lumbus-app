@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { config } from '../lib/config';
+import { logger } from '../lib/logger';
 
 export interface UserLocation {
   country_code: string;
@@ -26,7 +27,7 @@ export function useLocation() {
 
   async function detectLocation() {
     try {
-      console.log('📍 Detecting location...');
+      logger.log('📍 Detecting location...');
       // Use currency/detect endpoint which also returns country info
       const response = await fetch(`${config.apiUrl}/currency/detect`, {
         method: 'GET',
@@ -40,7 +41,7 @@ export function useLocation() {
       }
 
       const data = await response.json();
-      console.log('📍 Location detected:', data);
+      logger.log('📍 Location detected:', data);
 
       // Map country code to continent (basic mapping)
       const continentMap: Record<string, string> = {
@@ -62,7 +63,7 @@ export function useLocation() {
         city: '',
       });
     } catch (error) {
-      console.log('📍 Using default location (US)');
+      logger.log('📍 Using default location (US)');
       // Fallback to US
       setLocation({
         country_code: 'US',

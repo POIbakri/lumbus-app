@@ -4,6 +4,7 @@
  */
 
 import { config } from './config';
+import { logger } from './logger';
 
 // Stripe-supported currencies and their symbols
 export const SUPPORTED_CURRENCIES = {
@@ -59,7 +60,7 @@ export async function detectCurrency(): Promise<CurrencyInfo> {
     });
 
     if (!response.ok) {
-      console.log('⚠️ Currency detection not available, defaulting to USD');
+      logger.log('⚠️ Currency detection not available, defaulting to USD');
       throw new Error('Failed to detect currency');
     }
 
@@ -74,7 +75,7 @@ export async function detectCurrency(): Promise<CurrencyInfo> {
 
     return data;
   } catch (error) {
-    console.log('💵 Using USD (currency detection unavailable)');
+    logger.log('💵 Using USD (currency detection unavailable)');
 
     // Fallback to USD
     return {
@@ -116,12 +117,12 @@ export async function convertPrices(
     });
 
     if (!response.ok) {
-      console.log('⚠️ Currency conversion failed, using USD fallback');
+      logger.log('⚠️ Currency conversion failed, using USD fallback');
       throw new Error(`Failed to convert prices: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('💱 Currency conversion successful:', data.currency);
+    logger.log('💱 Currency conversion successful:', data.currency);
 
     // Backend returns: { currency, symbol, name, prices: [...] }
     if (data.prices && Array.isArray(data.prices)) {
@@ -130,7 +131,7 @@ export async function convertPrices(
 
     throw new Error('Invalid response format');
   } catch (error) {
-    console.log('💵 Using USD prices (currency conversion unavailable)');
+    logger.log('💵 Using USD prices (currency conversion unavailable)');
 
     // Fallback to USD
     return usdPrices.map((usd) => ({

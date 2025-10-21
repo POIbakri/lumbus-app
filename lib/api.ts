@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { Plan, Order, CheckoutParams, PaymentIntentResponse, TopUpCheckoutParams, TopUpCheckoutResponse } from '../types';
 import { config } from './config';
+import { logger } from './logger';
 
 const API_URL = config.apiUrl;
 
@@ -19,19 +20,44 @@ async function getAuthHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+// Helper function to fetch with timeout
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeout: number = 15000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection.');
+    }
+    throw error;
+  }
+}
+
 // Plans API
 export async function fetchPlans(): Promise<Plan[]> {
   try {
     const headers = await getAuthHeaders();
 
-    const response = await fetch(`${API_URL}/plans`, {
+    const response = await fetchWithTimeout(`${API_URL}/plans`, {
       method: 'GET',
       headers,
-    });
+    }, 15000);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('API error:', response.status, errorText);
+      logger.error('API error:', response.status, errorText);
       throw new Error(`Failed to fetch plans: ${response.status}`);
     }
 
@@ -43,11 +69,11 @@ export async function fetchPlans(): Promise<Plan[]> {
     } else if (data && Array.isArray(data.plans)) {
       return data.plans;
     } else {
-      console.error('Unexpected response format:', data);
+      logger.error('Unexpected response format:', data);
       throw new Error('Invalid response format from API');
     }
   } catch (error) {
-    console.error('Error fetching plans from API:', error);
+    logger.error('Error fetching plans from API:', error);
 
     // Fallback to direct Supabase query if API fails
     const { data, error: supabaseError } = await supabase
@@ -56,7 +82,7 @@ export async function fetchPlans(): Promise<Plan[]> {
       .order('price', { ascending: true });
 
     if (supabaseError) {
-      console.error('Supabase error:', supabaseError);
+      logger.error('Supabase error:', supabaseError);
       throw supabaseError;
     }
 
@@ -67,10 +93,10 @@ export async function fetchPlans(): Promise<Plan[]> {
 export async function fetchPlanById(id: string): Promise<Plan | null> {
   try {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/plans/${id}`, {
+    const response = await fetchWithTimeout(`${API_URL}/plans/${id}`, {
       method: 'GET',
       headers,
-    });
+    }, 15000);
 
     if (!response.ok) {
       if (response.status === 404) return null;
@@ -85,7 +111,7 @@ export async function fetchPlanById(id: string): Promise<Plan | null> {
     }
     return data;
   } catch (error) {
-    console.error('Error fetching plan:', error);
+    logger.error('Error fetching plan:', error);
     // Fallback to direct Supabase query if API fails
     const { data, error: supabaseError } = await supabase
       .from('plans')
@@ -102,10 +128,10 @@ export async function fetchPlanById(id: string): Promise<Plan | null> {
 export async function fetchUserOrders(userId: string): Promise<Order[]> {
   try {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/user/orders`, {
+    const response = await fetchWithTimeout(`${API_URL}/user/orders`, {
       method: 'GET',
       headers,
-    });
+    }, 15000);
 
     if (!response.ok) {
       throw new Error('Failed to fetch user orders');
@@ -123,7 +149,7 @@ export async function fetchUserOrders(userId: string): Promise<Order[]> {
 
     return orders;
   } catch (error) {
-    console.error('Error fetching user orders:', error);
+    logger.error('Error fetching user orders:', error);
     // Fallback to direct Supabase query if API fails
     const { data, error: supabaseError } = await supabase
       .from('orders')
@@ -177,7 +203,7 @@ export async function fetchOrderById(orderId: string): Promise<Order | null> {
     .single();
 
   if (supabaseError) {
-    console.error('Supabase error fetching order:', supabaseError);
+    logger.error('Supabase error fetching order:', supabaseError);
     throw supabaseError;
   }
 
@@ -215,7 +241,7 @@ export async function createCheckout(params: CheckoutParams): Promise<PaymentInt
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       const errorMessage = errorData?.message || errorData?.error || `Checkout failed with status ${response.status}`;
-      console.error('Checkout error:', errorMessage);
+      logger.error('Checkout error:', errorMessage);
       throw new Error(errorMessage);
     }
 
@@ -246,10 +272,10 @@ export async function fetchUsageData(orderId: string): Promise<UsageData | null>
   try {
     // Fetch usage data from backend API (corrected endpoint to match API docs)
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/orders/${orderId}/usage`, {
+    const response = await fetchWithTimeout(`${API_URL}/orders/${orderId}/usage`, {
       method: 'GET',
       headers,
-    });
+    }, 15000);
 
     if (!response.ok) {
       // If usage endpoint doesn't exist yet, return null
@@ -261,7 +287,7 @@ export async function fetchUsageData(orderId: string): Promise<UsageData | null>
 
     return response.json();
   } catch (error) {
-    console.error('Error fetching usage data:', error);
+    logger.error('Error fetching usage data:', error);
     return null;
   }
 }
@@ -333,10 +359,10 @@ export interface ReferralData {
 
 export async function fetchReferralInfo(): Promise<ReferralData> {
   const headers = await getAuthHeaders();
-  const response = await fetch(`${API_URL}/referrals/me`, {
+  const response = await fetchWithTimeout(`${API_URL}/referrals/me`, {
     method: 'GET',
     headers,
-  });
+  }, 15000);
 
   if (!response.ok) {
     throw new Error('Failed to fetch referral info');
@@ -421,7 +447,7 @@ export async function fetchRegionInfo(regionCode: string): Promise<RegionInfo | 
 
     return await requestPromise;
   } catch (error) {
-    console.error('Error fetching region info:', error);
+    logger.error('Error fetching region info:', error);
     // Remove from in-flight requests on error
     regionRequestMap.delete(regionCode);
     return null;
@@ -449,7 +475,7 @@ export async function createTopUpCheckout(params: TopUpCheckoutParams): Promise<
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       const errorMessage = errorData?.message || errorData?.error || `Failed with status ${response.status}`;
-      console.error('Top-up checkout error:', errorMessage);
+      logger.error('Top-up checkout error:', errorMessage);
       throw new Error(errorMessage);
     }
 

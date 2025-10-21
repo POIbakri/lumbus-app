@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { Plan } from '../../types';
+import { logger } from '../../lib/logger';
 
 export default function TopUpScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
@@ -130,7 +131,7 @@ export default function TopUpScreen() {
       });
 
       if (initError) {
-        console.error('❌ Payment sheet initialization error:', initError);
+        logger.error('❌ Payment sheet initialization error:', initError);
         Alert.alert('Payment Setup Error', initError.message);
         setLoading(false);
         return;
@@ -145,7 +146,7 @@ export default function TopUpScreen() {
         if (paymentError.code === 'Canceled') {
           // User cancelled - do nothing
         } else {
-          console.error('Payment error:', paymentError);
+          logger.error('Payment error:', paymentError);
           Alert.alert('Payment Error', paymentError.message);
         }
         return;
@@ -163,7 +164,7 @@ export default function TopUpScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('Top-up error:', error);
+      logger.error('Top-up error:', error);
       setLoading(false);
       Alert.alert(
         'Top-Up Error',
