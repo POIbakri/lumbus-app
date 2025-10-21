@@ -35,8 +35,8 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const router = useRouter();
-  const notificationListener = useRef<any>();
-  const responseListener = useRef<any>();
+  const notificationListener = useRef<Notifications.EventSubscription | null>(null);
+  const responseListener = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
     // Register for push notifications
