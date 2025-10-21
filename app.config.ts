@@ -33,7 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
-    googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
+    googleServicesFile: './google-services.json',
     intentFilters: [
       {
         action: 'VIEW',
