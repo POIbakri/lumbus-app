@@ -1,5 +1,7 @@
 # iOS Push Notifications Setup Guide
 
+**⚠️ IMPORTANT: This file does not contain any sensitive information or secrets.**
+
 ## Prerequisites
 - Apple Developer Account ($99/year)
 - Required for push notifications, TestFlight, and App Store submission
