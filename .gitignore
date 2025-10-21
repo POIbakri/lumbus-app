@@ -37,6 +37,7 @@ yarn-error.*
 # Sensitive files - never commit
 google-services.json
 setup-eas-secrets.sh
+google-play-service-account.json
 
 # typescript
 *.tsbuildinfo

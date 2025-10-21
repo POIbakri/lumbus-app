@@ -2,7 +2,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Lumbus',
+  name: 'Lumbus - eSIM Data Plans',
   slug: 'lumbus',
   owner: 'lumbus',
   version: '1.0.0',
@@ -11,6 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'light',
   newArchEnabled: true,
   scheme: 'lumbus',
+  description: 'Get instant eSIM data plans for travel. Stay connected worldwide with affordable mobile data. No physical SIM card needed - activate eSIM in minutes.',
   splash: {
     image: './assets/logotrans.png',
     resizeMode: 'contain',
@@ -20,9 +21,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true,
     bundleIdentifier: 'com.lumbus.app',
     associatedDomains: ['applinks:getlumbus.com'],
+    config: {
+      usesNonExemptEncryption: false,
+    },
     infoPlist: {
       NSCameraUsageDescription: 'This app requires camera access to scan QR codes for eSIM installation.',
+      ITSAppUsesNonExemptEncryption: false,
     },
+    buildNumber: '1',
   },
   android: {
     adaptiveIcon: {
@@ -30,10 +36,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: '#ffffff',
     },
     package: 'com.lumbus.app',
+    versionCode: 1,
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
     googleServicesFile: './google-services.json',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.lumbus.app',
     intentFilters: [
       {
         action: 'VIEW',
@@ -54,6 +62,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
+    'expo-font',
     [
       '@stripe/stripe-react-native',
       {

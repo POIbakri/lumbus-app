@@ -1,0 +1,82 @@
+{
+  "expo": {
+    "name": "Lumbus - eSIM Data Plans",
+    "description": "Get instant eSIM data plans for travel. Stay connected worldwide with affordable mobile data. No physical SIM card needed - activate eSIM in minutes.",
+    "slug": "lumbus",
+    "primaryCategory": "TRAVEL",
+    "secondaryCategory": "UTILITIES"
+  },
+  "apple": {
+    "name": "Lumbus - eSIM Data Plans",
+    "subtitle": "Travel eSIM & Mobile Data",
+    "description": "Stay connected anywhere in the world with Lumbus eSIM. Get instant access to affordable mobile data plans in 190+ countries without changing your physical SIM card.\n\nWHY CHOOSE LUMBUS?\n• Instant Activation - Get connected in minutes\n• Global Coverage - 190+ countries and regions\n• Affordable Plans - Competitive pricing for travelers\n• No Physical SIM - 100% digital eSIM technology\n• Easy Management - Track your data usage in real-time\n• Multiple Plans - Keep multiple eSIMs for different regions\n• Secure Payment - Pay safely with Stripe integration\n• 24/7 Support - Help when you need it\n\nHOW IT WORKS:\n1. Browse data plans for your destination\n2. Purchase and receive your eSIM instantly\n3. Scan the QR code to install\n4. Activate and start using mobile data\n\nPERFECT FOR:\n• International travelers\n• Digital nomads\n• Business travelers\n• Remote workers\n• Anyone who needs reliable mobile data abroad\n\nFEATURES:\n• Real-time data usage tracking\n• Push notifications for usage alerts\n• Easy top-up options\n• Multiple eSIM management\n• QR code installation\n• Detailed plan information\n• Transaction history\n• User-friendly interface\n\nNO MORE:\n• Expensive roaming charges\n• Hunting for local SIM cards\n• Language barriers at mobile shops\n• Airport queues\n• Physical SIM card swapping\n\nIMPORTANT:\n• Requires eSIM-compatible device\n• Check device compatibility before purchase\n• Active internet connection needed for initial setup\n\nDownload Lumbus today and travel with confidence knowing you'll always stay connected!",
+    "keywords": [
+      "esim",
+      "travel",
+      "data plan",
+      "roaming",
+      "international",
+      "mobile data",
+      "prepaid",
+      "sim card",
+      "travel sim",
+      "cellular",
+      "internet",
+      "connectivity",
+      "digital sim",
+      "virtual sim",
+      "data roaming",
+      "global data",
+      "travel data",
+      "mobile internet",
+      "portable wifi",
+      "data package",
+      "travel app",
+      "tourist sim",
+      "abroad",
+      "overseas",
+      "worldwide",
+      "global",
+      "nomad",
+      "business travel",
+      "vacation",
+      "holiday"
+    ],
+    "primaryCategory": "TRAVEL",
+    "secondaryCategory": "UTILITIES",
+    "privacyPolicyUrl": "https://getlumbus.com/privacy",
+    "termsOfServiceUrl": "https://getlumbus.com/terms",
+    "supportUrl": "https://getlumbus.com/support",
+    "marketingUrl": "https://getlumbus.com",
+    "copyright": "© 2025 Lumbus. All rights reserved."
+  },
+  "google": {
+    "name": "Lumbus - eSIM Data Plans",
+    "shortDescription": "Travel eSIM: Instant mobile data plans for 190+ countries. Stay connected worldwide without physical SIM cards.",
+    "fullDescription": "Stay connected anywhere in the world with Lumbus eSIM. Get instant access to affordable mobile data plans in 190+ countries without changing your physical SIM card.\n\n<b>WHY CHOOSE LUMBUS?</b>\n• <b>Instant Activation</b> - Get connected in minutes\n• <b>Global Coverage</b> - 190+ countries and regions\n• <b>Affordable Plans</b> - Competitive pricing for travelers\n• <b>No Physical SIM</b> - 100% digital eSIM technology\n• <b>Easy Management</b> - Track your data usage in real-time\n• <b>Multiple Plans</b> - Keep multiple eSIMs for different regions\n• <b>Secure Payment</b> - Pay safely with Stripe integration\n• <b>24/7 Support</b> - Help when you need it\n\n<b>HOW IT WORKS:</b>\n1️⃣ Browse data plans for your destination\n2️⃣ Purchase and receive your eSIM instantly\n3️⃣ Scan the QR code to install\n4️⃣ Activate and start using mobile data\n\n<b>PERFECT FOR:</b>\n✈️ International travelers\n🌍 Digital nomads\n💼 Business travelers\n💻 Remote workers\n🏖️ Anyone who needs reliable mobile data abroad\n\n<b>FEATURES:</b>\n• Real-time data usage tracking\n• Push notifications for usage alerts\n• Easy top-up options\n• Multiple eSIM management\n• QR code installation\n• Detailed plan information\n• Transaction history\n• User-friendly interface\n\n<b>NO MORE:</b>\n❌ Expensive roaming charges\n❌ Hunting for local SIM cards\n❌ Language barriers at mobile shops\n❌ Airport queues\n❌ Physical SIM card swapping\n\n<b>IMPORTANT:</b>\n• Requires eSIM-compatible device\n• Check device compatibility before purchase\n• Active internet connection needed for initial setup\n\n<b>GLOBAL COVERAGE:</b>\nEurope, Asia, Americas, Africa, Oceania, and more. Whether you're traveling to Paris, Tokyo, New York, Dubai, or Sydney - we've got you covered!\n\nDownload Lumbus today and travel with confidence knowing you'll always stay connected!\n\n<b>SUPPORT:</b>\nQuestions? Visit https://getlumbus.com/support or email us at support@getlumbus.com",
+    "category": "TRAVEL_AND_LOCAL",
+    "tags": [
+      "Travel",
+      "eSIM",
+      "Mobile Data",
+      "Roaming",
+      "International",
+      "Data Plan",
+      "Travel SIM",
+      "Digital SIM",
+      "Connectivity"
+    ],
+    "contactEmail": "support@getlumbus.com",
+    "contactPhone": "",
+    "contactWebsite": "https://getlumbus.com",
+    "privacyPolicyUrl": "https://getlumbus.com/privacy",
+    "contentRating": "Everyone",
+    "inAppPurchases": true
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "releaseNotes": {
+      "en-US": "🎉 Welcome to Lumbus!\n\n• Browse eSIM data plans for 190+ countries\n• Instant eSIM activation and installation\n• Real-time data usage tracking\n• Secure payment processing\n• Push notifications for usage alerts\n• Easy top-up options\n• Multi-eSIM management\n• QR code installation guide\n\nStart your journey with affordable global connectivity!"
+    }
+  }
+}
