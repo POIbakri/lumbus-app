@@ -42,6 +42,7 @@ export interface CheckoutParams {
   planId: string;
   email: string;
   currency?: string;
+  amount?: number; // Amount in the specified currency
 }
 
 export interface PaymentIntentResponse {
@@ -74,6 +75,7 @@ export interface TopUpCheckoutParams {
   iccid: string;
   currency?: string;
   email?: string;
+  amount?: number; // Amount in the specified currency
 }
 
 export interface TopUpCheckoutResponse {

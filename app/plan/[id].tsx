@@ -1,24 +1,34 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { useStripe } from '@stripe/stripe-react-native';
-import { fetchPlanById, createCheckout, fetchRegionInfo, RegionInfo } from '../../lib/api';
+import { fetchPlanById, fetchRegionInfo, RegionInfo } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { logger } from '../../lib/logger';
+import { PaymentService } from '../../lib/payments/PaymentService';
 
 export default function PlanDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [loading, setLoading] = useState(false);
   const [displayPrice, setDisplayPrice] = useState<string>('');
   const [showCountries, setShowCountries] = useState(false);
   const { convertMultiplePrices, symbol, loading: currencyLoading, currency } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
+
+  // Initialize payment service on mount
+  useEffect(() => {
+    PaymentService.initialize().catch(error => {
+      logger.error('Failed to initialize payment service:', error);
+    });
+
+    return () => {
+      PaymentService.cleanup();
+    };
+  }, []);
 
   const { data: plan, isLoading } = useQuery({
     queryKey: ['plan', id],
@@ -85,62 +95,40 @@ export default function PlanDetail() {
         return;
       }
 
-      // Create checkout session - optimized single API call
-      const { clientSecret, orderId } = await createCheckout({
+      // Purchase using platform-specific payment method
+      // iOS: Apple In-App Purchase (seamless, no disclosure needed)
+      // Android: Stripe (keeps 97%+ revenue)
+      const result = await PaymentService.purchase({
         planId: plan.id,
+        planName: plan.name,
+        price: plan.retail_price || plan.price,
+        currency,
         email: user.email!,
-        currency, // Pass user's detected currency
+        userId: user.id,
       });
 
-      if (!clientSecret || !orderId) {
-        throw new Error('Invalid checkout response from server');
-      }
+      setLoading(false);
 
-      // Initialize payment sheet
-      const { error: initError } = await initPaymentSheet({
-        merchantDisplayName: 'Lumbus',
-        paymentIntentClientSecret: clientSecret,
-        defaultBillingDetails: {
-          email: user.email!,
-        },
-        returnURL: 'lumbus://payment-complete',
-        appearance: {
-          colors: {
-            primary: '#2EFECC',
-          },
-        },
-      });
-
-      if (initError) {
-        logger.error('❌ Payment sheet initialization error:', initError);
-        Alert.alert('Payment Setup Error', initError.message);
-        setLoading(false);
-        return;
-      }
-
-      // Present payment sheet
-      const { error: paymentError } = await presentPaymentSheet();
-
-      if (paymentError) {
-        setLoading(false);
-        // User cancelled - no error alert needed
-        if (paymentError.code === 'Canceled') {
-          // User cancelled - do nothing
-        } else {
-          logger.error('Payment error:', paymentError);
-          Alert.alert('Payment Error', paymentError.message);
+      if (result.success && result.orderId) {
+        // Payment successful - navigate to install screen
+        logger.log('✅ Purchase successful, order ID:', result.orderId);
+        router.replace(`/install/${result.orderId}`);
+      } else if (result.error) {
+        // Only show alert if it's not a cancellation
+        if (result.error !== 'Purchase cancelled' && result.error !== 'Payment cancelled') {
+          Alert.alert(
+            'Purchase Failed',
+            result.error,
+            [{ text: 'OK' }]
+          );
         }
-        return;
       }
-
-      // Payment successful
-      router.replace(`/install/${orderId}`);
     } catch (error: any) {
       logger.error('Checkout error:', error);
       setLoading(false);
       Alert.alert(
-        'Checkout Error',
-        error.message || 'Failed to process payment. Please try again.',
+        'Purchase Error',
+        error.message || 'Failed to process purchase. Please try again.',
         [{ text: 'OK' }]
       );
     }
@@ -334,10 +322,20 @@ export default function PlanDetail() {
           disabled={loading}
           activeOpacity={0.8}
         >
-          <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-            {loading ? 'Processing...' : `Buy now for ${displayPrice || `${symbol}${plan.price}`} →`}
-          </Text>
+          <View className="flex-row items-center justify-center">
+            {Platform.OS === 'ios' && (
+              <Ionicons name="logo-apple" size={getFontSize(20)} color="#1A1A1A" style={{marginRight: scale(8)}} />
+            )}
+            <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
+              {loading ? 'Processing...' : `Buy now for ${displayPrice || `${symbol}${plan.price}`} →`}
+            </Text>
+          </View>
         </TouchableOpacity>
+
+        {/* Payment method indicator */}
+        <Text className="text-center font-bold" style={{color: '#999999', fontSize: getFontSize(12), marginTop: moderateScale(12)}}>
+          {Platform.OS === 'ios' ? 'Pay with Apple Pay or Card' : 'Pay with Google Pay or Card'}
+        </Text>
       </View>
     </View>
   );

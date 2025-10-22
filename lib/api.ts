@@ -454,6 +454,119 @@ export async function fetchRegionInfo(regionCode: string): Promise<RegionInfo | 
   }
 }
 
+// IAP Checkout API (for iOS In-App Purchases)
+export interface IAPCheckoutParams {
+  planId: string;
+  email: string;
+  currency: string;
+  amount?: number; // Amount in the specified currency (for record keeping)
+  isTopUp?: boolean;
+  existingOrderId?: string;
+  iccid?: string;
+}
+
+export interface IAPCheckoutResponse {
+  orderId: string;
+  productId: string; // Apple IAP product ID
+}
+
+export async function createIAPCheckout(params: IAPCheckoutParams): Promise<IAPCheckoutResponse> {
+  try {
+    const headers = await getAuthHeaders();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    // Call dedicated IAP checkout endpoint
+    const response = await fetch(`${API_URL}/checkout/iap`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.message || errorData?.error || `Failed with status ${response.status}`;
+      logger.error('IAP checkout error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+
+    if (!data.orderId || !data.productId) {
+      throw new Error('Invalid IAP checkout response - missing orderId or productId');
+    }
+
+    return data;
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again.');
+      }
+      throw error;
+    }
+    throw new Error('Failed to create IAP checkout');
+  }
+}
+
+// Apple IAP Receipt Validation
+export interface ValidateReceiptParams {
+  receipt: string; // base64 encoded receipt
+  orderId: string;
+}
+
+export interface ValidateReceiptResponse {
+  valid: boolean;
+  orderId: string;
+  transactionId?: string;
+  status?: string;
+  error?: string;
+}
+
+export async function validateAppleReceipt(params: ValidateReceiptParams): Promise<ValidateReceiptResponse> {
+  try {
+    const headers = await getAuthHeaders();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const response = await fetch(`${API_URL}/iap/validate-receipt`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.message || errorData?.error || `Failed with status ${response.status}`;
+      logger.error('Receipt validation error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+
+    if (!data.valid) {
+      throw new Error(data.error || 'Receipt validation failed');
+    }
+
+    return data;
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Receipt validation timed out. Please try again.');
+      }
+      throw error;
+    }
+    throw new Error('Failed to validate receipt');
+  }
+}
+
 // Top-Up API
 export async function createTopUpCheckout(params: TopUpCheckoutParams): Promise<TopUpCheckoutResponse> {
   try {

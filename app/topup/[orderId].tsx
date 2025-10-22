@@ -1,25 +1,35 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { useStripe } from '@stripe/stripe-react-native';
-import { fetchOrderById, fetchPlans, createTopUpCheckout } from '../../lib/api';
+import { fetchOrderById, fetchPlans } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { Plan } from '../../types';
 import { logger } from '../../lib/logger';
+import { PaymentService } from '../../lib/payments/PaymentService';
 
 export default function TopUpScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const router = useRouter();
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
   const { convertMultiplePrices, symbol, loading: currencyLoading, currency } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
+
+  // Initialize payment service on mount
+  useEffect(() => {
+    PaymentService.initialize().catch(error => {
+      logger.error('Failed to initialize payment service:', error);
+    });
+
+    return () => {
+      PaymentService.cleanup();
+    };
+  }, []);
 
   const { data: order, isLoading: orderLoading } = useQuery({
     queryKey: ['order', orderId],
@@ -101,68 +111,46 @@ export default function TopUpScreen() {
         return;
       }
 
-      // Create checkout session with the selected plan - using same endpoint as plan purchase
-      const { clientSecret, orderId: newOrderId } = await createTopUpCheckout({
+      // Purchase using platform-specific payment method
+      // iOS: Apple In-App Purchase (seamless)
+      // Android: Stripe (keeps 97%+ revenue)
+      const result = await PaymentService.purchase({
         planId: selectedPlan.id,
+        planName: selectedPlan.name,
+        price: selectedPlan.retail_price || selectedPlan.price,
+        currency,
+        email: user.email!,
+        userId: user.id,
         isTopUp: true,
         existingOrderId: orderId!,
         iccid: order.iccid,
-        email: user.email!,
-        currency, // Pass user's detected currency
       });
 
-      if (!clientSecret || !newOrderId) {
-        throw new Error('Invalid checkout response from server');
-      }
+      setLoading(false);
 
-      // Initialize payment sheet
-      const { error: initError } = await initPaymentSheet({
-        merchantDisplayName: 'Lumbus',
-        paymentIntentClientSecret: clientSecret,
-        defaultBillingDetails: {
-          email: user.email!,
-        },
-        returnURL: 'lumbus://payment-complete',
-        appearance: {
-          colors: {
-            primary: '#2EFECC',
-          },
-        },
-      });
-
-      if (initError) {
-        logger.error('❌ Payment sheet initialization error:', initError);
-        Alert.alert('Payment Setup Error', initError.message);
-        setLoading(false);
-        return;
-      }
-
-      // Present payment sheet
-      const { error: paymentError } = await presentPaymentSheet();
-
-      if (paymentError) {
-        setLoading(false);
-        // User cancelled - no error alert needed
-        if (paymentError.code === 'Canceled') {
-          // User cancelled - do nothing
-        } else {
-          logger.error('Payment error:', paymentError);
-          Alert.alert('Payment Error', paymentError.message);
+      if (result.success) {
+        // Top-up successful
+        logger.log('✅ Top-up successful');
+        Alert.alert(
+          'Top-Up Successful!',
+          'Data has been added to your eSIM.',
+          [
+            {
+              text: 'View eSIM',
+              onPress: () => router.replace(`/esim-details/${orderId}`),
+            },
+          ]
+        );
+      } else if (result.error) {
+        // Only show alert if it's not a cancellation
+        if (result.error !== 'Purchase cancelled' && result.error !== 'Payment cancelled') {
+          Alert.alert(
+            'Top-Up Failed',
+            result.error,
+            [{ text: 'OK' }]
+          );
         }
-        return;
       }
-
-      // Payment successful - redirect to eSIM details
-      Alert.alert(
-        'Top-Up Successful!',
-        'Data has been added to your eSIM.',
-        [
-          {
-            text: 'View eSIM',
-            onPress: () => router.replace(`/esim-details/${orderId}`),
-          },
-        ]
-      );
     } catch (error: any) {
       logger.error('Top-up error:', error);
       setLoading(false);
@@ -336,10 +324,22 @@ export default function TopUpScreen() {
           disabled={!selectedPlan || loading}
           activeOpacity={0.8}
         >
-          <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-            {loading ? 'Processing...' : (selectedPlan ? `Buy now for ${selectedPlan.displayPrice || `${symbol}${(selectedPlan.retail_price || selectedPlan.price).toFixed(2)}`} →` : 'Select a plan')}
-          </Text>
+          <View className="flex-row items-center justify-center">
+            {Platform.OS === 'ios' && selectedPlan && (
+              <Ionicons name="logo-apple" size={getFontSize(20)} color="#1A1A1A" style={{marginRight: scale(8)}} />
+            )}
+            <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
+              {loading ? 'Processing...' : (selectedPlan ? `Buy now for ${selectedPlan.displayPrice || `${symbol}${(selectedPlan.retail_price || selectedPlan.price).toFixed(2)}`} →` : 'Select a plan')}
+            </Text>
+          </View>
         </TouchableOpacity>
+
+        {/* Payment method indicator */}
+        {selectedPlan && (
+          <Text className="text-center font-bold" style={{color: '#999999', fontSize: getFontSize(12), marginTop: moderateScale(12)}}>
+            {Platform.OS === 'ios' ? 'Pay with Apple Pay or Card' : 'Pay with Google Pay or Card'}
+          </Text>
+        )}
       </View>
     </View>
   );
