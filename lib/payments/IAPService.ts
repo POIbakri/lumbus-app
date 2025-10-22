@@ -1,7 +1,7 @@
 import {
   initConnection,
   endConnection,
-  getProducts,
+  fetchProducts,
   requestPurchase,
   finishTransaction,
   purchaseUpdatedListener,
@@ -68,8 +68,9 @@ export class IAPService {
       async (purchase: Purchase) => {
         logger.log('✅ Purchase update received:', purchase);
 
-        const receipt = purchase.transactionReceipt;
-        if (receipt) {
+        // Get transaction ID (works for both iOS and Android)
+        const transactionId = purchase.transactionId;
+        if (transactionId) {
           try {
             // Get the orderId from our pending map
             const orderId = this.pendingOrderIds.get(purchase.productId);
@@ -82,7 +83,7 @@ export class IAPService {
             // Verify the receipt with backend
             logger.log('🔄 Verifying receipt with backend...');
             const validationResult = await validateAppleReceipt({
-              receipt: receipt,
+              receipt: transactionId,
               orderId: orderId,
             });
 
@@ -110,7 +111,7 @@ export class IAPService {
     // Listen for purchase errors
     this.purchaseErrorSubscription = purchaseErrorListener(
       (error: PurchaseError) => {
-        if (error.code === 'E_USER_CANCELLED') {
+        if (error.code && error.code.includes('USER_CANCELLED')) {
           logger.log('ℹ️ User cancelled purchase');
         } else {
           logger.error('❌ Purchase error:', error);
@@ -128,9 +129,12 @@ export class IAPService {
     }
 
     try {
-      const products = await getProducts({ skus: productIds });
+      const products = await fetchProducts({ skus: productIds });
+      if (!products || products.length === 0) {
+        throw new Error('No products returned from App Store');
+      }
       logger.log(`✅ Fetched ${products.length} products from App Store`);
-      return products;
+      return products as Product[];
     } catch (error) {
       logger.error('❌ Failed to fetch products:', error);
       throw new Error('Unable to load products from App Store.');
@@ -171,7 +175,14 @@ export class IAPService {
 
       // Step 2: Request purchase from Apple
       // This will show Apple's native payment sheet with Apple Pay / Card options
-      await requestPurchase({ sku: productId });
+      await requestPurchase({
+        type: 'in-app',
+        request: {
+          ios: {
+            sku: productId,
+          },
+        },
+      });
 
       // Note: The purchase completion is handled by purchaseUpdatedListener
       // We return immediately as the listener will handle verification
@@ -184,21 +195,21 @@ export class IAPService {
       logger.error('❌ IAP Purchase failed:', error);
 
       // Handle specific IAP errors
-      if (error.code === 'E_USER_CANCELLED') {
+      if (error.code && error.code.includes('USER_CANCELLED')) {
         return {
           success: false,
           error: 'Purchase cancelled',
         };
       }
 
-      if (error.code === 'E_ITEM_UNAVAILABLE') {
+      if (error.code && error.code.includes('ITEM_UNAVAILABLE')) {
         return {
           success: false,
           error: 'This item is currently unavailable. Please try again later.',
         };
       }
 
-      if (error.code === 'E_NETWORK_ERROR') {
+      if (error.code && error.code.includes('NETWORK')) {
         return {
           success: false,
           error: 'Network error. Please check your connection and try again.',

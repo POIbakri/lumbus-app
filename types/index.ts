@@ -43,6 +43,9 @@ export interface CheckoutParams {
   email: string;
   currency?: string;
   amount?: number; // Amount in the specified currency
+  isTopUp?: boolean;
+  existingOrderId?: string;
+  iccid?: string;
 }
 
 export interface PaymentIntentResponse {
