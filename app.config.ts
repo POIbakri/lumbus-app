@@ -96,12 +96,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           },
         },
       ],
-      [
-        'react-native-iap',
-        {
-          paymentProvider: 'Play Store',
-        },
-      ],
+      'react-native-iap',
     ],
     extra: {
       router: {
