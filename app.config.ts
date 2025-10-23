@@ -105,13 +105,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             `,
           },
           ios: {
-            extraPods: [
-              {
-                name: 'RCT-Folly',
-                podspecPath: './node_modules/react-native/ReactCommon/RCT-Folly.podspec',
-                modular_headers: true,
-              },
-            ],
+            buildReactNativeFromSource: true,
           },
         },
       ],
