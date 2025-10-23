@@ -93,12 +93,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             extraMavenRepos: [
               '$rootDir/../node_modules/react-native/android',
             ],
+            gradleConfiguration: `
+              android {
+                flavorDimensions "store"
+                productFlavors {
+                  play {
+                    dimension "store"
+                  }
+                }
+              }
+            `,
           },
           ios: {
             extraPods: [
               {
                 name: 'RCT-Folly',
-                path: '../node_modules/react-native/ReactCommon',
+                podspecPath: './node_modules/react-native/ReactCommon/RCT-Folly.podspec',
                 modular_headers: true,
               },
             ],
