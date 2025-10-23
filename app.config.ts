@@ -96,7 +96,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           },
         },
       ],
-      'react-native-iap',
+      [
+        'react-native-iap',
+        {
+          ios: {
+            'with-folly-no-coroutines': true,
+          },
+        },
+      ],
     ],
     extra: {
       router: {
