@@ -43,8 +43,9 @@ Utilities
 
 #### **Promotional Text** (170 characters - editable without new version)
 ```
-Get connected instantly in 150+ countries with Lumbus eSIM. No physical SIM cards, no roaming fees. Activate in under 5 minutes. Travel smart with Lumbus.
+Get connected instantly in 150+ countries with Lumbus eSIM. No physical SIM cards, no roaming fees. Activate in 5 minutes. Travel smart with Lumbus.
 ```
+**Character count:** 169 characters
 
 #### **Description** (4000 characters max)
 
@@ -53,32 +54,32 @@ STAY CONNECTED ANYWHERE WITH LUMBUS
 
 Lumbus is your instant travel companion for global connectivity. Get affordable, high-speed mobile data in over 150 countries without expensive roaming fees or physical SIM cards.
 
-🌍 GLOBAL COVERAGE
-• 150+ countries worldwide
-• Coverage in Europe, Asia, Americas, Africa, Middle East, and Oceania
-• Regional plans for multi-country trips (Europe 30, Asia 7, GCC 6, and more)
-• Single-country plans for specific destinations
+GLOBAL COVERAGE
+- 150+ countries worldwide
+- Coverage in Europe, Asia, Americas, Africa, Middle East, and Oceania
+- Regional plans for multi-country trips (Europe 30, Asia 7, GCC 6, and more)
+- Single-country plans for specific destinations
 
-⚡ INSTANT ACTIVATION
-• Receive your eSIM in seconds via email
-• One-tap installation on iOS 17.4+
-• QR code activation for older devices
-• Connect in under 5 minutes
+INSTANT ACTIVATION
+- Receive your eSIM in seconds via email
+- One-tap installation on iOS 17.4+
+- QR code activation for older devices
+- Connect in under 5 minutes
 
-💰 TRANSPARENT PRICING
-• No hidden fees or surprise charges
-• Pay once, use for the entire validity period
-• Competitive prices for all destinations
-• Multiple data plans from 1GB to 20GB
+TRANSPARENT PRICING
+- No hidden fees or surprise charges
+- Pay once, use for the entire validity period
+- Competitive prices for all destinations
+- Multiple data plans from 1GB to 20GB
 
-📱 SMART FEATURES
-• Real-time data usage tracking
-• Automatic currency conversion
-• Location-based plan recommendations
-• 24/7 customer support
-• Secure payment with Apple Pay & Google Pay
+SMART FEATURES
+- Real-time data usage tracking
+- Automatic currency conversion
+- Location-based plan recommendations
+- 24/7 customer support
+- Secure payment with Apple Pay & Google Pay
 
-✓ WHY CHOOSE LUMBUS?
+WHY CHOOSE LUMBUS?
 
 NO ROAMING FEES
 Save up to 90% compared to international roaming charges from your home carrier.
@@ -98,31 +99,31 @@ Connect to premium local networks in each country for fast, reliable 4G/5G cover
 MULTIPLE ESIMS
 Install multiple eSIMs on your device and switch between them easily.
 
-🎯 PERFECT FOR:
-• International travelers
-• Digital nomads
-• Business travelers
-• Vacation travelers
-• Students studying abroad
-• Anyone who needs reliable global data
+PERFECT FOR:
+- International travelers
+- Digital nomads
+- Business travelers
+- Vacation travelers
+- Students studying abroad
+- Anyone who needs reliable global data
 
-📋 SUPPORTED DEVICES:
+SUPPORTED DEVICES:
 iPhone XS / XS Max / XR and newer
 iPad Pro 11-inch (2018 and newer)
 iPad Pro 12.9-inch (3rd generation and newer)
 iPad Air (3rd generation and newer)
 iPad mini (5th generation and newer)
 
-🔒 SECURE & PRIVATE
-• Encrypted payment processing via Stripe
-• No personal data sharing
-• Secure authentication via email
-• GDPR compliant
+SECURE AND PRIVATE
+- Encrypted payment processing via Stripe
+- No personal data sharing
+- Secure authentication via email
+- GDPR compliant
 
-💳 PAYMENT OPTIONS
-• Apple Pay
-• Google Pay
-• Credit & debit cards (Visa, Mastercard, Amex)
+PAYMENT OPTIONS
+- Apple Pay
+- Google Pay
+- Credit and debit cards (Visa, Mastercard, Amex)
 
 Download Lumbus today and experience hassle-free global connectivity!
 
@@ -139,8 +140,9 @@ Stay connected. Travel confidently. Choose Lumbus.
 
 #### **Keywords** (100 characters max, comma-separated)
 ```
-eSIM,travel,roaming,data,international,mobile,sim card,connectivity,abroad,countries
+eSIM,travel,roaming,data,international,mobile,sim,connectivity,abroad,global,plans
 ```
+**Character count:** 82 characters
 
 **Keyword Strategy:**
 - eSIM (high priority)
@@ -158,16 +160,19 @@ eSIM,travel,roaming,data,international,mobile,sim card,connectivity,abroad,count
 ```
 https://getlumbus.com/support
 ```
+**⚠️ IMPORTANT:** This URL must be live and accessible before submission!
 
 #### **Marketing URL** (Optional)
 ```
 https://getlumbus.com
 ```
+**⚠️ IMPORTANT:** This URL must be live and accessible before submission!
 
 #### **Privacy Policy URL** (Required)
 ```
 https://getlumbus.com/privacy
 ```
+**⚠️ CRITICAL:** This URL is REQUIRED and must be live before submission! App Store Connect will verify it.
 
 ---
 
@@ -177,31 +182,31 @@ https://getlumbus.com/privacy
 ```
 Welcome to Lumbus - Your Global eSIM Solution!
 
-🚀 NEW FEATURES:
-• Browse eSIM plans for 150+ countries
-• Instant eSIM delivery via email
-• One-tap eSIM installation (iOS 17.4+)
-• Real-time data usage tracking
-• Secure payment with Apple Pay
-• Multi-currency support
-• Location-based recommendations
-• 24/7 customer support
+NEW FEATURES:
+- Browse eSIM plans for 150+ countries
+- Instant eSIM delivery via email
+- One-tap eSIM installation (iOS 17.4+)
+- Real-time data usage tracking
+- Secure payment with Apple Pay
+- Multi-currency support
+- Location-based recommendations
+- 24/7 customer support
 
-Start your journey with Lumbus today! 🌍
+Start your journey with Lumbus today!
 ```
 
 #### **Future Updates Template** (for subsequent versions)
 ```
 Version X.X.X - What's New
 
-✨ NEW:
-• [New feature description]
+NEW:
+- [New feature description]
 
-🔧 IMPROVEMENTS:
-• [Enhancement description]
+IMPROVEMENTS:
+- [Enhancement description]
 
-🐛 BUG FIXES:
-• [Bug fix description]
+BUG FIXES:
+- [Bug fix description]
 
 Thank you for using Lumbus!
 ```
@@ -515,58 +520,58 @@ Lumbus is your instant travel companion for global connectivity. Get affordable,
 Lumbus provides eSIM coverage in 150+ countries across Europe, Asia, Americas, Africa, Middle East, and Oceania. Whether you're traveling to a single destination or multiple countries, we have the perfect plan for you.
 
 REGIONAL PLANS:
-• Europe 30 - Coverage across 30 European countries
-• Asia 7 - Japan, South Korea, Singapore, Thailand, Malaysia, Indonesia, Philippines
-• GCC 6 - Saudi Arabia, UAE, Kuwait, Oman, Qatar, Bahrain
-• Balkans 5+ - Multi-country coverage in Eastern Europe
-• Australia & New Zealand - Combined coverage
-• And many more regional options
+- Europe 30 - Coverage across 30 European countries
+- Asia 7 - Japan, South Korea, Singapore, Thailand, Malaysia, Indonesia, Philippines
+- GCC 6 - Saudi Arabia, UAE, Kuwait, Oman, Qatar, Bahrain
+- Balkans 5+ - Multi-country coverage in Eastern Europe
+- Australia & New Zealand - Combined coverage
+- And many more regional options
 
 SINGLE COUNTRY PLANS:
-• Individual plans for major destinations
-• Optimized pricing for specific countries
-• High-speed local network connections
+- Individual plans for major destinations
+- Optimized pricing for specific countries
+- High-speed local network connections
 
 ⚡ INSTANT ACTIVATION
 No waiting for shipping or store visits. Get your eSIM delivered instantly:
-• Receive eSIM via email in seconds
-• One-tap installation on compatible devices
-• QR code activation available
-• Connect in under 5 minutes
-• Keep your existing number active
+- Receive eSIM via email in seconds
+- One-tap installation on compatible devices
+- QR code activation available
+- Connect in under 5 minutes
+- Keep your existing number active
 
 💰 TRANSPARENT PRICING
 What you see is what you pay:
-• No hidden fees or surprise charges
-• Pay once for the entire validity period
-• No daily fees or renewal charges
-• Competitive rates for all destinations
-• Multiple data packages available (1GB to 20GB)
+- No hidden fees or surprise charges
+- Pay once for the entire validity period
+- No daily fees or renewal charges
+- Competitive rates for all destinations
+- Multiple data packages available (1GB to 20GB)
 
 📱 SMART FEATURES
 
 REAL-TIME TRACKING:
-• Monitor your data usage in real-time
-• Visual usage indicators
-• Get notifications before data runs out
-• Track multiple eSIMs from one dashboard
+- Monitor your data usage in real-time
+- Visual usage indicators
+- Get notifications before data runs out
+- Track multiple eSIMs from one dashboard
 
 INTELLIGENT RECOMMENDATIONS:
-• Automatic currency conversion to your local currency
-• Location-based plan suggestions
-• Best plan recommendations based on your travel
+- Automatic currency conversion to your local currency
+- Location-based plan suggestions
+- Best plan recommendations based on your travel
 
 EASY MANAGEMENT:
-• View all your eSIMs in one place
-• Installation guides for all devices
-• Reorder frequently used plans
-• Access purchase history
+- View all your eSIMs in one place
+- Installation guides for all devices
+- Reorder frequently used plans
+- Access purchase history
 
 SECURE PAYMENTS:
-• Google Pay supported
-• Credit & debit cards accepted
-• Encrypted payment processing via Stripe
-• No payment information stored
+- Google Pay supported
+- Credit & debit cards accepted
+- Encrypted payment processing via Stripe
+- No payment information stored
 
 ✓ WHY CHOOSE LUMBUS?
 
@@ -578,9 +583,9 @@ No physical SIM cards means no waiting. Get your eSIM delivered to your email in
 
 FLEXIBLE PLANS:
 Choose exactly what you need:
-• Data: 1GB, 3GB, 5GB, 10GB, or 20GB options
-• Duration: 7, 14, or 30-day validity
-• Regional or single-country coverage
+- Data: 1GB, 3GB, 5GB, 10GB, or 20GB options
+- Duration: 7, 14, or 30-day validity
+- Regional or single-country coverage
 
 SIMPLE ACTIVATION:
 Just three easy steps:
@@ -595,25 +600,25 @@ MULTI-ESIM SUPPORT:
 Install multiple eSIMs on your device and switch between them effortlessly. Perfect for frequent travelers.
 
 🎯 PERFECT FOR:
-• International travelers on vacation
-• Digital nomads working remotely
-• Business travelers attending meetings abroad
-• Students studying in foreign countries
-• Anyone needing temporary global connectivity
-• Cruise passengers visiting multiple ports
-• Road trippers crossing borders
+- International travelers on vacation
+- Digital nomads working remotely
+- Business travelers attending meetings abroad
+- Students studying in foreign countries
+- Anyone needing temporary global connectivity
+- Cruise passengers visiting multiple ports
+- Road trippers crossing borders
 
 📋 COMPATIBLE DEVICES:
 
 ANDROID DEVICES WITH ESIM:
-• Google Pixel 3 and newer
-• Samsung Galaxy S20 and newer
-• Samsung Galaxy Fold, Z Fold, Z Flip series
-• Samsung Note 20 and newer
-• Motorola Razr (2019 and newer)
-• OPPO Find X3 Pro and newer
-• Huawei P40 and newer (excluding US models)
-• And many more eSIM-capable Android devices
+- Google Pixel 3 and newer
+- Samsung Galaxy S20 and newer
+- Samsung Galaxy Fold, Z Fold, Z Flip series
+- Samsung Note 20 and newer
+- Motorola Razr (2019 and newer)
+- OPPO Find X3 Pro and newer
+- Huawei P40 and newer (excluding US models)
+- And many more eSIM-capable Android devices
 
 HOW TO CHECK:
 Go to Settings → Connections/Network → SIM Card Manager
@@ -621,34 +626,34 @@ If you see "Add mobile plan" or "Add eSIM", your device supports eSIM.
 
 🔒 SECURITY & PRIVACY
 Your security is our priority:
-• End-to-end encrypted payment processing
-• Secure authentication via email
-• No personal data sharing with third parties
-• GDPR compliant
-• No tracking or selling of user data
-• Transparent privacy policy
+- End-to-end encrypted payment processing
+- Secure authentication via email
+- No personal data sharing with third parties
+- GDPR compliant
+- No tracking or selling of user data
+- Transparent privacy policy
 
 💳 ACCEPTED PAYMENT METHODS
-• Google Pay
-• Apple Pay
-• Visa, Mastercard, American Express
-• Debit cards with online payment enabled
+- Google Pay
+- Apple Pay
+- Visa, Mastercard, American Express
+- Debit cards with online payment enabled
 
 📞 24/7 CUSTOMER SUPPORT
 Our dedicated support team is always here to help:
-• Email support: support@getlumbus.com
-• Response time: Within 24 hours
-• Comprehensive FAQ section
-• Installation guides and tutorials
-• Troubleshooting assistance
+- Email support: support@getlumbus.com
+- Response time: Within 24 hours
+- Comprehensive FAQ section
+- Installation guides and tutorials
+- Troubleshooting assistance
 
 🌐 LEARN MORE
 Visit our website for detailed information:
-• Coverage maps
-• Pricing tables
-• Device compatibility checker
-• Installation guides
-• Frequently asked questions
+- Coverage maps
+- Pricing tables
+- Device compatibility checker
+- Installation guides
+- Frequently asked questions
 
 Website: getlumbus.com
 Privacy Policy: getlumbus.com/privacy
@@ -666,6 +671,8 @@ Instagram: @getlumbus
 Twitter: @getlumbus
 Facebook: /getlumbus
 ```
+
+**NOTE:** Google Play Store ALLOWS emojis in descriptions, so they have been kept for visual appeal.
 
 ---
 
@@ -844,6 +851,32 @@ Google Play supports A/B testing for up to 3 variants.
 
 ## 📋 PRE-SUBMISSION CHECKLIST
 
+### ⚠️ CRITICAL FIXES FOR APP STORE CONNECT ERRORS
+
+**If you see errors like "This field contains one or more invalid characters":**
+
+1. **REMOVE ALL EMOJIS** from iOS app description (🌍 ⚡ 💰 etc.)
+   - Emojis are NOT allowed in App Store Connect description fields
+   - Use plain text section headers instead (e.g., "GLOBAL COVERAGE" not "🌍 GLOBAL COVERAGE")
+
+2. **REPLACE BULLET CHARACTERS** (•) with standard dashes (-)
+   - App Store Connect only accepts standard ASCII characters
+
+3. **VERIFY CHARACTER LIMITS:**
+   - Promotional Text: MAX 170 characters (current: 169 ✓)
+   - Keywords: MAX 100 characters (current: 82 ✓)
+   - Description: MAX 4000 characters
+
+4. **VERIFY ALL URLs ARE LIVE:**
+   - Privacy Policy URL (REQUIRED)
+   - Support URL (REQUIRED)
+   - Marketing URL (Optional)
+   - Test each URL in a browser before saving
+
+**Note:** Google Play Store DOES allow emojis, so keep them for Android!
+
+---
+
 ### Technical Requirements
 
 #### **iOS:**
@@ -875,11 +908,13 @@ Google Play supports A/B testing for up to 3 variants.
 - [ ] App icon (all required sizes)
 - [ ] Screenshots (all required sizes)
 - [ ] Feature graphic (Android)
-- [ ] App description written and proofread
-- [ ] Keywords researched and optimized
-- [ ] Privacy policy published and URL accessible
-- [ ] Support website live and accessible
+- [ ] App description written and proofread (NO EMOJIS for iOS!)
+- [ ] Keywords researched and optimized (UNDER 100 characters!)
+- [ ] Privacy policy published and URL accessible (REQUIRED!)
+- [ ] Support website live and accessible (REQUIRED!)
+- [ ] Marketing website live (if URL provided)
 - [ ] Demo account created and tested
+- [ ] All URLs verified to return 200 OK status
 
 ### Legal Requirements
 
