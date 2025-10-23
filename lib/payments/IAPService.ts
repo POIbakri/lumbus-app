@@ -1,7 +1,7 @@
 import {
   initConnection,
   endConnection,
-  fetchProducts,
+  getProducts,
   requestPurchase,
   finishTransaction,
   purchaseUpdatedListener,
@@ -129,7 +129,7 @@ export class IAPService {
     }
 
     try {
-      const products = await fetchProducts({ skus: productIds });
+      const products = await getProducts({ skus: productIds });
       if (!products || products.length === 0) {
         throw new Error('No products returned from App Store');
       }
@@ -175,14 +175,7 @@ export class IAPService {
 
       // Step 2: Request purchase from Apple
       // This will show Apple's native payment sheet with Apple Pay / Card options
-      await requestPurchase({
-        type: 'in-app',
-        request: {
-          ios: {
-            sku: productId,
-          },
-        },
-      });
+      await requestPurchase({ sku: productId });
 
       // Note: The purchase completion is handled by purchaseUpdatedListener
       // We return immediately as the listener will handle verification

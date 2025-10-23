@@ -83,20 +83,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           mode: 'production',
         },
       ],
-      [
-        'expo-build-properties',
-        {
-          android: {
-            kotlinVersion: '2.1.20',
-            missingDimensionStrategy: {
-              store: 'play', // Fix Android product flavor ambiguity
-            },
-          },
-          ios: {
-            deploymentTarget: '15.1',
-          },
-        },
-      ],
     ],
     extra: {
       router: {
