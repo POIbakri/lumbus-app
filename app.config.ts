@@ -1,94 +1,101 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
+import * as fs from 'fs';
+import * as path from 'path';
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...config,
-  name: 'Lumbus - eSIM Data Plans',
-  slug: 'lumbus',
-  owner: 'lumbus',
-  version: '1.0.0',
-  orientation: 'portrait',
-  icon: './assets/iconlogotrans.png',
-  userInterfaceStyle: 'light',
-  newArchEnabled: true,
-  scheme: 'lumbus',
-  description: 'Get instant eSIM data plans for travel. Stay connected worldwide with affordable mobile data. No physical SIM card needed - activate eSIM in minutes.',
-  splash: {
-    image: './assets/logotrans.png',
-    resizeMode: 'contain',
-    backgroundColor: '#ffffff',
-  },
-  ios: {
-    supportsTablet: true,
-    bundleIdentifier: 'com.lumbus.app',
-    associatedDomains: ['applinks:getlumbus.com'],
-    config: {
-      usesNonExemptEncryption: false,
-    },
-    infoPlist: {
-      NSCameraUsageDescription: 'This app requires camera access to scan QR codes for eSIM installation.',
-      ITSAppUsesNonExemptEncryption: false,
-    },
-    buildNumber: '1',
-  },
-  android: {
-    adaptiveIcon: {
-      foregroundImage: './assets/iconlogotrans.png',
+export default ({ config }: ConfigContext): ExpoConfig => {
+  const googleServicesPath = path.join(__dirname, 'google-services.json');
+  const hasGoogleServices = fs.existsSync(googleServicesPath);
+
+  return {
+    ...config,
+    name: 'Lumbus - eSIM Data Plans',
+    slug: 'lumbus',
+    owner: 'lumbus',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/iconlogotrans.png',
+    userInterfaceStyle: 'light',
+    newArchEnabled: true,
+    scheme: 'lumbus',
+    description: 'Get instant eSIM data plans for travel. Stay connected worldwide with affordable mobile data. No physical SIM card needed - activate eSIM in minutes.',
+    splash: {
+      image: './assets/logotrans.png',
+      resizeMode: 'contain',
       backgroundColor: '#ffffff',
     },
-    package: 'com.lumbus.app',
-    versionCode: 1,
-    edgeToEdgeEnabled: true,
-    predictiveBackGestureEnabled: false,
-    permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
-    googleServicesFile: './google-services.json',
-    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.lumbus.app',
-    intentFilters: [
-      {
-        action: 'VIEW',
-        autoVerify: true,
-        data: [
-          {
-            scheme: 'https',
-            host: 'getlumbus.com',
-            pathPrefix: '/dashboard',
-          },
-        ],
-        category: ['BROWSABLE', 'DEFAULT'],
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: 'com.lumbus.app',
+      associatedDomains: ['applinks:getlumbus.com'],
+      config: {
+        usesNonExemptEncryption: false,
       },
-    ],
-  },
-  web: {
-    favicon: './assets/iconlogofavicon/favicon.ico',
-  },
-  plugins: [
-    'expo-router',
-    'expo-font',
-    [
-      '@stripe/stripe-react-native',
-      {
-        merchantIdentifier: 'merchant.com.lumbus.app',
+      infoPlist: {
+        NSCameraUsageDescription: 'This app requires camera access to scan QR codes for eSIM installation.',
+        ITSAppUsesNonExemptEncryption: false,
       },
-    ],
-    [
-      'expo-notifications',
-      {
-        icon: './assets/iconlogofavicon/android-chrome-192x192.png',
-        color: '#2EFECC',
-        mode: 'production',
-      },
-    ],
-  ],
-  extra: {
-    router: {
-      origin: false,
+      buildNumber: '1',
     },
-    eas: {
-      projectId: 'b38159ea-bd8e-4aca-92dc-5aecadc110b9',
+    android: {
+      adaptiveIcon: {
+        foregroundImage: './assets/iconlogotrans.png',
+        backgroundColor: '#ffffff',
+      },
+      package: 'com.lumbus.app',
+      versionCode: 1,
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
+      permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
+      ...(hasGoogleServices && { googleServicesFile: './google-services.json' }),
+      playStoreUrl: 'https://play.google.com/store/apps/details?id=com.lumbus.app',
+      intentFilters: [
+        {
+          action: 'VIEW',
+          autoVerify: true,
+          data: [
+            {
+              scheme: 'https',
+              host: 'getlumbus.com',
+              pathPrefix: '/dashboard',
+            },
+          ],
+          category: ['BROWSABLE', 'DEFAULT'],
+        },
+      ],
     },
-    // Environment variables - these MUST be set in .env file
-    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-    stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-    apiUrl: process.env.EXPO_PUBLIC_API_URL,
-  },
-});
+    web: {
+      favicon: './assets/iconlogofavicon/favicon.ico',
+    },
+    plugins: [
+      'expo-router',
+      'expo-font',
+      [
+        '@stripe/stripe-react-native',
+        {
+          merchantIdentifier: 'merchant.com.lumbus.app',
+        },
+      ],
+      [
+        'expo-notifications',
+        {
+          icon: './assets/iconlogofavicon/android-chrome-192x192.png',
+          color: '#2EFECC',
+          mode: 'production',
+        },
+      ],
+    ],
+    extra: {
+      router: {
+        origin: false,
+      },
+      eas: {
+        projectId: 'b38159ea-bd8e-4aca-92dc-5aecadc110b9',
+      },
+      // Environment variables - these MUST be set in .env file
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+      apiUrl: process.env.EXPO_PUBLIC_API_URL,
+    },
+  };
+};
