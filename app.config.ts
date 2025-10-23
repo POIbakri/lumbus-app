@@ -87,7 +87,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         'expo-build-properties',
         {
           android: {
-            extraPropertiesFile: './android/gradle.properties',
+            extraGradleProperties: {
+              REACT_NATIVE_IAP_STORE: 'play',
+            },
             extraMavenRepos: [
               '$rootDir/../node_modules/react-native/android',
             ],
@@ -96,7 +98,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             extraPods: [
               {
                 name: 'RCT-Folly',
-                podspec: '../node_modules/react-native/ReactCommon/RCT-Folly.podspec',
+                path: '../node_modules/react-native/ReactCommon',
                 modular_headers: true,
               },
             ],
