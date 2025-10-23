@@ -87,26 +87,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         'expo-build-properties',
         {
           android: {
-            extraGradleProperties: {
-              REACT_NATIVE_IAP_STORE: 'play',
-            },
             extraMavenRepos: [
               '$rootDir/../node_modules/react-native/android',
             ],
-            gradleConfiguration: `
-              android {
-                flavorDimensions "store"
-                productFlavors {
-                  play {
-                    dimension "store"
-                  }
-                }
-              }
-            `,
           },
           ios: {
             buildReactNativeFromSource: true,
           },
+        },
+      ],
+      [
+        'react-native-iap',
+        {
+          paymentProvider: 'Play Store',
         },
       ],
     ],
