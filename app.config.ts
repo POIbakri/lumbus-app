@@ -83,6 +83,26 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           mode: 'production',
         },
       ],
+      [
+        'expo-build-properties',
+        {
+          android: {
+            extraPropertiesFile: './android/gradle.properties',
+            extraMavenRepos: [
+              '$rootDir/../node_modules/react-native/android',
+            ],
+          },
+          ios: {
+            extraPods: [
+              {
+                name: 'RCT-Folly',
+                podspec: '../node_modules/react-native/ReactCommon/RCT-Folly.podspec',
+                modular_headers: true,
+              },
+            ],
+          },
+        },
+      ],
     ],
     extra: {
       router: {
