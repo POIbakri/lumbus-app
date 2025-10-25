@@ -56,25 +56,10 @@ if [ "$EAS_BUILD_PLATFORM" = "android" ]; then
 fi
 
 # ========================================
-# iOS: Fix RCT-Folly typedef redefinition error
+# iOS: No additional post-install steps needed
 # ========================================
+# iOS RCT-Folly fix is handled by the Expo config plugin in plugins/withRCTFollyFix.js
+# The plugin modifies the Podfile to include a post_install hook that patches RCT-Folly
 if [ "$EAS_BUILD_PLATFORM" = "ios" ]; then
-  echo "🔧 [EAS Hook] Applying RCT-Folly iOS typedef fix..."
-
-  # Path to the RCT-Folly Time.h file in the iOS Pods directory
-  FOLLY_TIME_H="ios/Pods/RCT-Folly/folly/portability/Time.h"
-
-  # Check if the file exists (it should after pod install)
-  if [ -f "$FOLLY_TIME_H" ]; then
-    echo "✅ [EAS Hook] Found RCT-Folly Time.h at $FOLLY_TIME_H"
-
-    # Fix the typedef redefinition by changing the iOS version check
-    # This changes __IPHONE_10_0 to __IPHONE_12_0 to avoid the clockid_t conflict
-    sed -i.bak 's/__IPHONE_10_0/__IPHONE_12_0/g' "$FOLLY_TIME_H"
-
-    echo "✅ [EAS Hook] RCT-Folly typedef fix applied successfully"
-  else
-    echo "⚠️  [EAS Hook] Warning: RCT-Folly Time.h not found at $FOLLY_TIME_H"
-    echo "This is expected if pods haven't been installed yet"
-  fi
+  echo "✅ [EAS Hook] iOS build - RCT-Folly fix will be applied by Expo config plugin"
 fi

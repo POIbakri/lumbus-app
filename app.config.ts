@@ -105,6 +105,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           },
         },
       ],
+      './plugins/withRCTFollyFix.js',
     ],
     extra: {
       router: {
