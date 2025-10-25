@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "audit": "npm audit --audit-level=moderate",
     "audit:fix": "npm audit fix",
-    "audit:production": "npm audit --audit-level=high --production"
+    "audit:production": "npm audit --audit-level=high --production",
+    "eas-build-post-install": "node scripts/eas-build-post-install.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
