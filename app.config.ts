@@ -92,8 +92,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             ],
           },
           ios: {
+            useFrameworks: 'static',
             buildReactNativeFromSource: true,
             deploymentTarget: '15.1',
+            extraPods: [
+              {
+                name: 'RCT-Folly',
+                configurations: ['Debug', 'Release'],
+              },
+            ],
           },
         },
       ],
@@ -105,7 +112,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           },
         },
       ],
-      './plugins/withRCTFollyFix.js',
     ],
     extra: {
       router: {

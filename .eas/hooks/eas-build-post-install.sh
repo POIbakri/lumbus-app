@@ -6,6 +6,19 @@
 set -e
 
 # ========================================
+# iOS: Clean CocoaPods cache and DerivedData
+# ========================================
+if [ "$EAS_BUILD_PLATFORM" = "ios" ]; then
+  echo "🧹 [EAS Hook] Cleaning iOS build artifacts..."
+
+  # Clean any existing Pods and lock files
+  rm -rf ios/Pods
+  rm -f ios/Podfile.lock
+
+  echo "✅ [EAS Hook] Cleaned iOS build environment"
+fi
+
+# ========================================
 # ANDROID: Fix react-native-iap product flavor ambiguity
 # ========================================
 if [ "$EAS_BUILD_PLATFORM" = "android" ]; then
