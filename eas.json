@@ -8,7 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON"
+        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON",
+        "EXPO_NO_CAPABILITY_SYNC": "1"
       },
       "ios": {
         "simulator": false
@@ -17,7 +18,8 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON"
+        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON",
+        "EXPO_NO_CAPABILITY_SYNC": "1"
       },
       "ios": {
         "simulator": false
@@ -26,7 +28,8 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON"
+        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON",
+        "EXPO_NO_CAPABILITY_SYNC": "1"
       },
       "ios": {
         "simulator": false
