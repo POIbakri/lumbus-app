@@ -93,6 +93,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           },
           ios: {
             buildReactNativeFromSource: true,
+            deploymentTarget: '14.0',
           },
         },
       ],
