@@ -95,12 +95,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             useFrameworks: 'static',
             buildReactNativeFromSource: true,
             deploymentTarget: '15.1',
-            extraPods: [
-              {
-                name: 'RCT-Folly',
-                configurations: ['Debug', 'Release'],
-              },
-            ],
           },
         },
       ],
