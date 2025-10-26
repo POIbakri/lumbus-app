@@ -39,6 +39,10 @@ google-services.json
 setup-eas-secrets.sh
 google-play-service-account.json
 
+# Apple Sign In secrets
+scripts/apple-client-secret.txt
+scripts/AuthKey_*.p8
+
 # typescript
 *.tsbuildinfo
 
