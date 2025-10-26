@@ -8,7 +8,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: 'Lumbus - eSIM Data Plans',
+    name: 'Lumbus',
     slug: 'lumbus',
     owner: 'lumbus',
     version: '1.0.0',
@@ -123,6 +123,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
       stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
       apiUrl: process.env.EXPO_PUBLIC_API_URL,
+      projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
     },
   };
 };
