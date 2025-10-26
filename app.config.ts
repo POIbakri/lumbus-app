@@ -106,6 +106,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           },
         },
       ],
+      // Ensure our Folly patch runs in Pod install via post_install hook
+      './plugins/withRCTFollyFix',
     ],
     extra: {
       router: {

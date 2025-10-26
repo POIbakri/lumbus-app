@@ -19,9 +19,10 @@ if [ "$EAS_BUILD_PLATFORM" = "ios" ]; then
 fi
 
 # ========================================
-# ANDROID: Fix react-native-iap product flavor ambiguity
+# ANDROID: Fix react-native-iap product flavor ambiguity (DISABLED by default)
+# To enable, set ENABLE_ANDROID_GRADLE_PATCH=1 in the env
 # ========================================
-if [ "$EAS_BUILD_PLATFORM" = "android" ]; then
+if [ "$EAS_BUILD_PLATFORM" = "android" ] && [ "$ENABLE_ANDROID_GRADLE_PATCH" = "1" ]; then
   echo "🔧 [EAS Hook] Patching Android build.gradle for react-native-iap..."
 
   BUILD_GRADLE_PATH="android/app/build.gradle"
@@ -66,47 +67,8 @@ if [ "$EAS_BUILD_PLATFORM" = "android" ]; then
       exit 1
     fi
   fi
-fi
-
-# ========================================
-# iOS: Patch Podfile to fix RCT-Folly typedef issue
-# ========================================
-if [ "$EAS_BUILD_PLATFORM" = "ios" ]; then
-  echo "🔧 [EAS Hook] Patching iOS Podfile to fix RCT-Folly typedef issue..."
-
-  PODFILE_PATH="ios/Podfile"
-
-  if [ ! -f "$PODFILE_PATH" ]; then
-    echo "⚠️  [EAS Hook] Podfile not found yet, will be generated during prebuild"
-  else
-    echo "✅ [EAS Hook] Found Podfile, adding post_install hook..."
-
-    # Check if our fix is already present
-    if grep -q "# EAS_FOLLY_FIX" "$PODFILE_PATH"; then
-      echo "✅ [EAS Hook] Folly fix already present in Podfile"
-    else
-      # Add post_install hook at the end of the Podfile
-      cat >> "$PODFILE_PATH" <<'PODFILE_PATCH'
-
-# EAS_FOLLY_FIX
-post_install do |installer|
-  # Fix RCT-Folly typedef redefinition error
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      # Disable Folly coroutines which cause clockid_t typedef conflicts
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_NO_CONFIG=1'
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_MOBILE=1'
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_USE_LIBCPP=1'
-
-      # Set deployment target to 15.1
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
-    end
-  end
-end
-PODFILE_PATCH
-
-      echo "✅ [EAS Hook] Added post_install hook to Podfile with Folly preprocessor flags"
-    fi
+else
+  if [ "$EAS_BUILD_PLATFORM" = "android" ]; then
+    echo "⏭️  [EAS Hook] Skipping Android build.gradle patch (disabled)"
   fi
 fi
