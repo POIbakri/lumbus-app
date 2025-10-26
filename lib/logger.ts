@@ -20,6 +20,15 @@ export const logger = {
   },
 
   /**
+   * Log info (alias for log)
+   */
+  info: (...args: any[]) => {
+    if (isDev) {
+      console.log(...args);
+    }
+  },
+
+  /**
    * Log errors
    * In dev: logs to console
    * In production: should send to error tracking service

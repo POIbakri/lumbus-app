@@ -27,6 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       supportsTablet: true,
       bundleIdentifier: 'com.lumbus.app',
       associatedDomains: ['applinks:getlumbus.com'],
+      usesAppleSignIn: true,
       config: {
         usesNonExemptEncryption: false,
       },
@@ -69,6 +70,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: [
       'expo-router',
       'expo-font',
+      'expo-web-browser',
       [
         '@stripe/stripe-react-native',
         {

@@ -3,6 +3,10 @@ import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, P
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { validatePassword, isValidEmail } from '../../lib/validation';
+import { signInWithApple, signInWithGoogle, isAppleSignInAvailable, handleSocialAuthError } from '../../lib/auth/socialAuth';
+import { AppleLogo } from '../../components/icons/AppleLogo';
+import { GoogleLogo } from '../../components/icons/GoogleLogo';
+import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 
 export default function Signup() {
   const router = useRouter();
@@ -10,9 +14,17 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [showAppleSignIn, setShowAppleSignIn] = useState(false);
+  const { scale, moderateScale, isSmallDevice } = useResponsive();
+
+  // Check if Apple Sign In is available
+  useEffect(() => {
+    isAppleSignInAvailable().then(setShowAppleSignIn);
+  }, []);
 
   // Countdown timer for lockout
   useEffect(() => {
@@ -112,36 +124,64 @@ export default function Signup() {
     );
   }
 
+  async function handleAppleSignIn() {
+    if (socialLoading) return;
+
+    setSocialLoading(true);
+    const result = await signInWithApple();
+    setSocialLoading(false);
+
+    if (result.success) {
+      router.replace('/(tabs)/browse');
+    } else if (result.error && result.error !== 'canceled') {
+      handleSocialAuthError(result.error, 'apple');
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    if (socialLoading) return;
+
+    setSocialLoading(true);
+    const result = await signInWithGoogle();
+    setSocialLoading(false);
+
+    if (result.success) {
+      router.replace('/(tabs)/browse');
+    } else if (result.error && result.error !== 'canceled') {
+      handleSocialAuthError(result.error, 'google');
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-white"
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: getHorizontalPadding() }}>
         {/* Decorative Blobs - Brand Colors */}
-        <View className="absolute top-0 left-0 w-64 h-64 rounded-full" style={{backgroundColor: 'rgba(253, 253, 116, 0.1)'}} />
-        <View className="absolute bottom-0 right-0 w-80 h-80 rounded-full" style={{backgroundColor: 'rgba(135, 239, 255, 0.1)'}} />
-        <View className="absolute top-1/2 right-1/4 w-72 h-72 rounded-full" style={{backgroundColor: 'rgba(247, 226, 251, 0.15)'}} />
+        <View className="absolute top-0 left-0 rounded-full" style={{width: scale(256), height: scale(256), backgroundColor: 'rgba(253, 253, 116, 0.1)'}} />
+        <View className="absolute bottom-0 right-0 rounded-full" style={{width: scale(320), height: scale(320), backgroundColor: 'rgba(135, 239, 255, 0.1)'}} />
+        <View className="absolute rounded-full" style={{top: '33%', right: '25%', width: scale(288), height: scale(288), backgroundColor: 'rgba(247, 226, 251, 0.15)'}} />
 
-        <View className="flex-1 justify-center px-6 relative">
+        <View className="flex-1 justify-center relative" style={{paddingVertical: moderateScale(40)}}>
           {/* Logo Badge */}
-          <View className="items-center mb-8">
+          <View className="items-center" style={{marginBottom: moderateScale(32)}}>
             <Image
               source={require('../../assets/iconlogotrans.png')}
               style={{
-                width: 80,
-                height: 80,
+                width: scale(80),
+                height: scale(80),
                 resizeMode: 'contain',
               }}
             />
           </View>
 
           {/* Title */}
-          <View className="mb-10">
-            <Text className="text-5xl font-black mb-3 uppercase tracking-tight text-center" style={{color: '#1A1A1A'}}>
+          <View style={{marginBottom: moderateScale(40)}}>
+            <Text className="font-black uppercase tracking-tight text-center" style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 36 : 48), lineHeight: getFontSize(isSmallDevice ? 40 : 52), marginBottom: moderateScale(12)}}>
               CREATE{'\n'}ACCOUNT
             </Text>
-            <Text className="text-lg font-bold text-center" style={{color: '#666666'}}>
+            <Text className="font-bold text-center" style={{color: '#666666', fontSize: getFontSize(16)}}>
               Join Lumbus to get started with eSIMs
             </Text>
           </View>
@@ -149,12 +189,12 @@ export default function Signup() {
           {/* Form */}
           <View className="space-y-4">
             <View>
-              <Text className="text-sm font-black mb-2 uppercase tracking-wide" style={{color: '#1A1A1A'}}>
+              <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginBottom: moderateScale(8)}}>
                 Email
               </Text>
               <TextInput
-                className="rounded-2xl px-5 py-4 text-base font-bold"
-                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A'}}
+                className="rounded-2xl font-bold"
+                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A', paddingHorizontal: scale(20), paddingVertical: moderateScale(16), fontSize: getFontSize(16)}}
                 placeholder="you@example.com"
                 placeholderTextColor="#666666"
                 value={email}
@@ -165,13 +205,13 @@ export default function Signup() {
               />
             </View>
 
-            <View className="mt-4">
-              <Text className="text-sm font-black mb-2 uppercase tracking-wide" style={{color: '#1A1A1A'}}>
+            <View style={{marginTop: moderateScale(16)}}>
+              <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginBottom: moderateScale(8)}}>
                 Password
               </Text>
               <TextInput
-                className="rounded-2xl px-5 py-4 text-base font-bold"
-                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A'}}
+                className="rounded-2xl font-bold"
+                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A', paddingHorizontal: scale(20), paddingVertical: moderateScale(16), fontSize: getFontSize(16)}}
                 placeholder="••••••••"
                 placeholderTextColor="#666666"
                 value={password}
@@ -181,13 +221,13 @@ export default function Signup() {
               />
             </View>
 
-            <View className="mt-4">
-              <Text className="text-sm font-black mb-2 uppercase tracking-wide" style={{color: '#1A1A1A'}}>
+            <View style={{marginTop: moderateScale(16)}}>
+              <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginBottom: moderateScale(8)}}>
                 Confirm Password
               </Text>
               <TextInput
-                className="rounded-2xl px-5 py-4 text-base font-bold"
-                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A'}}
+                className="rounded-2xl font-bold"
+                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A', paddingHorizontal: scale(20), paddingVertical: moderateScale(16), fontSize: getFontSize(16)}}
                 placeholder="••••••••"
                 placeholderTextColor="#666666"
                 value={confirmPassword}
@@ -199,32 +239,74 @@ export default function Signup() {
 
             {/* Create Account Button */}
             <TouchableOpacity
-              className="mt-8 rounded-2xl py-5"
-              style={{backgroundColor: lockoutSeconds > 0 ? '#E5E5E5' : '#2EFECC', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8}}
+              className="rounded-2xl"
+              style={{backgroundColor: lockoutSeconds > 0 ? '#E5E5E5' : '#2EFECC', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8, marginTop: moderateScale(32), paddingVertical: moderateScale(20)}}
               onPress={handleSignup}
               disabled={loading || lockoutSeconds > 0}
               activeOpacity={0.8}
             >
-              <Text className="text-center text-lg font-black uppercase tracking-wide" style={{color: '#1A1A1A'}}>
+              <Text className="text-center font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
                 {loading ? 'CREATING ACCOUNT...' : lockoutSeconds > 0 ? `WAIT ${lockoutSeconds}S` : 'CREATE ACCOUNT →'}
               </Text>
             </TouchableOpacity>
 
+            {/* Divider */}
+            <View className="flex-row items-center" style={{marginTop: moderateScale(32)}}>
+              <View style={{flex: 1, height: 1, backgroundColor: '#E5E5E5'}} />
+              <Text className="font-bold" style={{color: '#999999', fontSize: getFontSize(12), paddingHorizontal: scale(12)}}>
+                OR
+              </Text>
+              <View style={{flex: 1, height: 1, backgroundColor: '#E5E5E5'}} />
+            </View>
+
+            {/* Social Sign In Buttons */}
+            <View style={{marginTop: moderateScale(24), gap: moderateScale(12)}}>
+              {/* Apple Sign In (iOS only) */}
+              {showAppleSignIn && (
+                <TouchableOpacity
+                  className="rounded-2xl flex-row items-center justify-center"
+                  style={{backgroundColor: '#000000', paddingVertical: moderateScale(16), borderWidth: 2, borderColor: '#000000'}}
+                  onPress={handleAppleSignIn}
+                  disabled={socialLoading || loading}
+                  activeOpacity={0.8}
+                >
+                  <AppleLogo size={scale(20)} color="#FFFFFF" />
+                  <Text className="font-black uppercase tracking-wide" style={{color: '#FFFFFF', fontSize: getFontSize(14), marginLeft: scale(12)}}>
+                    CONTINUE WITH APPLE
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Google Sign In */}
+              <TouchableOpacity
+                className="rounded-2xl flex-row items-center justify-center"
+                style={{backgroundColor: '#FFFFFF', paddingVertical: moderateScale(16), borderWidth: 2, borderColor: '#E5E5E5'}}
+                onPress={handleGoogleSignIn}
+                disabled={socialLoading || loading}
+                activeOpacity={0.8}
+              >
+                <GoogleLogo size={scale(20)} />
+                <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(14), marginLeft: scale(12)}}>
+                  CONTINUE WITH GOOGLE
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             {/* Login Link */}
-            <View className="flex-row justify-center mt-8">
-              <Text className="font-bold" style={{color: '#666666'}}>
+            <View className="flex-row justify-center" style={{marginTop: moderateScale(32), flexWrap: 'wrap'}}>
+              <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14)}}>
                 Already have an account?{' '}
               </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                <Text className="font-black" style={{color: '#2EFECC'}}>SIGN IN</Text>
+                <Text className="font-black" style={{color: '#2EFECC', fontSize: getFontSize(14)}}>SIGN IN</Text>
               </TouchableOpacity>
             </View>
 
             {/* Trust Badge */}
-            <View className="items-center mt-8">
-              <View className="flex-row items-center gap-2 px-4 py-2 rounded-full" style={{backgroundColor: '#FDFD74'}}>
-                <Text className="text-lg">🌍</Text>
-                <Text className="text-xs font-bold uppercase" style={{color: '#1A1A1A'}}>
+            <View className="items-center" style={{marginTop: moderateScale(24)}}>
+              <View className="flex-row items-center rounded-full" style={{backgroundColor: '#FDFD74', paddingHorizontal: scale(16), paddingVertical: moderateScale(8), gap: scale(8)}}>
+                <Text style={{fontSize: getFontSize(18)}}>🌍</Text>
+                <Text className="font-bold uppercase" style={{color: '#1A1A1A', fontSize: getFontSize(12)}}>
                   Join 50,000+ Users
                 </Text>
               </View>

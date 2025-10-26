@@ -4,6 +4,9 @@ import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { isValidEmail } from '../../lib/validation';
+import { signInWithApple, signInWithGoogle, isAppleSignInAvailable, handleSocialAuthError } from '../../lib/auth/socialAuth';
+import { AppleLogo } from '../../components/icons/AppleLogo';
+import { GoogleLogo } from '../../components/icons/GoogleLogo';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -12,10 +15,17 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [showAppleSignIn, setShowAppleSignIn] = useState(false);
   const { scale, moderateScale, isSmallDevice } = useResponsive();
+
+  // Check if Apple Sign In is available
+  useEffect(() => {
+    isAppleSignInAvailable().then(setShowAppleSignIn);
+  }, []);
 
   // Countdown timer for lockout
   useEffect(() => {
@@ -91,6 +101,34 @@ export default function Login() {
     setFailedAttempts(0);
     setLockoutUntil(null);
     router.replace('/(tabs)/browse');
+  }
+
+  async function handleAppleSignIn() {
+    if (socialLoading) return;
+
+    setSocialLoading(true);
+    const result = await signInWithApple();
+    setSocialLoading(false);
+
+    if (result.success) {
+      router.replace('/(tabs)/browse');
+    } else if (result.error && result.error !== 'canceled') {
+      handleSocialAuthError(result.error, 'apple');
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    if (socialLoading) return;
+
+    setSocialLoading(true);
+    const result = await signInWithGoogle();
+    setSocialLoading(false);
+
+    if (result.success) {
+      router.replace('/(tabs)/browse');
+    } else if (result.error && result.error !== 'canceled') {
+      handleSocialAuthError(result.error, 'google');
+    }
   }
 
 
@@ -175,6 +213,48 @@ export default function Login() {
                 {loading ? 'SIGNING IN...' : lockoutSeconds > 0 ? `WAIT ${lockoutSeconds}S` : 'SIGN IN →'}
               </Text>
             </TouchableOpacity>
+
+            {/* Divider */}
+            <View className="flex-row items-center" style={{marginTop: moderateScale(32)}}>
+              <View style={{flex: 1, height: 1, backgroundColor: '#E5E5E5'}} />
+              <Text className="font-bold" style={{color: '#999999', fontSize: getFontSize(12), paddingHorizontal: scale(12)}}>
+                OR
+              </Text>
+              <View style={{flex: 1, height: 1, backgroundColor: '#E5E5E5'}} />
+            </View>
+
+            {/* Social Sign In Buttons */}
+            <View style={{marginTop: moderateScale(24), gap: moderateScale(12)}}>
+              {/* Apple Sign In (iOS only) */}
+              {showAppleSignIn && (
+                <TouchableOpacity
+                  className="rounded-2xl flex-row items-center justify-center"
+                  style={{backgroundColor: '#000000', paddingVertical: moderateScale(16), borderWidth: 2, borderColor: '#000000'}}
+                  onPress={handleAppleSignIn}
+                  disabled={socialLoading || loading}
+                  activeOpacity={0.8}
+                >
+                  <AppleLogo size={scale(20)} color="#FFFFFF" />
+                  <Text className="font-black uppercase tracking-wide" style={{color: '#FFFFFF', fontSize: getFontSize(14), marginLeft: scale(12)}}>
+                    CONTINUE WITH APPLE
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Google Sign In */}
+              <TouchableOpacity
+                className="rounded-2xl flex-row items-center justify-center"
+                style={{backgroundColor: '#FFFFFF', paddingVertical: moderateScale(16), borderWidth: 2, borderColor: '#E5E5E5'}}
+                onPress={handleGoogleSignIn}
+                disabled={socialLoading || loading}
+                activeOpacity={0.8}
+              >
+                <GoogleLogo size={scale(20)} />
+                <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(14), marginLeft: scale(12)}}>
+                  CONTINUE WITH GOOGLE
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Signup Link */}
             <View className="flex-row justify-center" style={{marginTop: moderateScale(32), flexWrap: 'wrap'}}>

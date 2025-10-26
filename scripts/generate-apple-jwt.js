@@ -25,13 +25,10 @@ const CONFIG = {
   privateKeyPath: path.join(__dirname, 'AuthKey_BSJA7B55F5.p8'),
 };
 
-// Alternative: Use private key directly (uncomment if you don't have a separate .p8 file)
-const PRIVATE_KEY_CONTENT = `-----BEGIN PRIVATE KEY-----
-MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgYNbn3BTxjQAVxPpq
-FYIc3RIi+E51kgkCG/WKwBqzuJOgCgYIKoZIzj0DAQehRANCAAQh4K8Wds+yyICW
-AbemDXGJySgNMQ5bscUTGRq0KHf1Mr70ZeWF5V2OImCJwdYO4OfBsXRputKEUFDY
-wR6bE/Bq
------END PRIVATE KEY-----`;
+// Alternative: Use private key directly (only use if .p8 file doesn't exist)
+// WARNING: Do NOT commit the actual private key to version control!
+// This is just a placeholder - replace with your key only for local use
+const PRIVATE_KEY_CONTENT = process.env.APPLE_PRIVATE_KEY || '';
 
 /**
  * Base64 URL encoding (RFC 4648)
