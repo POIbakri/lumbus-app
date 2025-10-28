@@ -118,11 +118,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       eas: {
         projectId: 'b38159ea-bd8e-4aca-92dc-5aecadc110b9',
       },
-      // Environment variables - these MUST be set in .env file
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-      apiUrl: process.env.EXPO_PUBLIC_API_URL,
+      // Environment variables with fallback empty strings to prevent nil in native config
+      // lib/config.ts will throw clear runtime errors if these are empty
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
+      stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '',
+      apiUrl: process.env.EXPO_PUBLIC_API_URL ?? '',
     },
   };
 };

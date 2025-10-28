@@ -58,22 +58,38 @@ fi
 if [ -f eas.json ]; then
     success "eas.json exists"
 
-    # Check if all build profiles have the required env vars
+    # Check if all build profiles exist
     for profile in development preview production; do
         if grep -q "\"$profile\"" eas.json; then
             success "Build profile '$profile' exists"
-
-            # Check if env vars are referenced
-            if grep -A 20 "\"$profile\"" eas.json | grep -q "EXPO_PUBLIC_SUPABASE_URL"; then
-                success "Build profile '$profile' has EXPO_PUBLIC_SUPABASE_URL"
-            else
-                warn "Build profile '$profile' missing EXPO_PUBLIC_SUPABASE_URL"
-            fi
         fi
     done
 else
     error "eas.json not found"
 fi
+
+# Check EAS environment variables for preview profile (default build target)
+echo ""
+echo "Checking EAS environment variables for 'preview' profile..."
+if command -v eas &> /dev/null; then
+    # Check if we can run eas env:list
+    if eas env:list --environment preview &> /dev/null; then
+        EAS_ENV_OUTPUT=$(eas env:list --environment preview 2>&1)
+
+        for var in "${REQUIRED_VARS[@]}"; do
+            if echo "$EAS_ENV_OUTPUT" | grep -q "$var"; then
+                success "EAS preview environment has $var"
+            else
+                warn "EAS preview environment missing $var - run './setup-eas-secrets.sh'"
+            fi
+        done
+    else
+        warn "Unable to check EAS environment variables (not logged in or no network)"
+    fi
+else
+    warn "EAS CLI not found - skipping EAS environment check"
+fi
+echo ""
 
 # Check if app.config.ts exists
 if [ -f app.config.ts ]; then
