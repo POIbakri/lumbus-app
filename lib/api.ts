@@ -213,9 +213,9 @@ export async function fetchOrderById(orderId: string): Promise<Order | null> {
 
   // Transform the data to handle array/object plan format
   const order = {
-    ...data,
-    plan: Array.isArray(data.plans) ? data.plans[0] : data.plans,
-  };
+    ...(data as any),
+    plan: Array.isArray((data as any).plans) ? (data as any).plans[0] : (data as any).plans,
+  } as Order;
 
   return order;
 }
