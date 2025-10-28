@@ -1,27 +1,40 @@
-// Read configuration directly from environment variables
-// These are set via EAS secrets and embedded into the app at build time
+// Lazy getter functions to avoid immediate evaluation
+function getEnvVar(key: string, errorMessage: string): string {
+  // Use type assertion to access process.env with dynamic key
+  const value = (process.env as Record<string, string | undefined>)[key];
+
+  if (!value) {
+    console.error(`[CONFIG ERROR] Missing environment variable: ${key}`);
+    throw new Error(errorMessage);
+  }
+
+  return value;
+}
+
+// Export lazy getters that only evaluate when accessed
 export const config = {
-  supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL as string,
-  supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY as string,
-  stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY as string,
-  apiUrl: process.env.EXPO_PUBLIC_API_URL as string,
+  get supabaseUrl(): string {
+    return getEnvVar(
+      'EXPO_PUBLIC_SUPABASE_URL',
+      'Supabase URL is missing. Ensure EXPO_PUBLIC_SUPABASE_URL is set in EAS secrets.'
+    );
+  },
+  get supabaseAnonKey(): string {
+    return getEnvVar(
+      'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+      'Supabase Anon Key is missing. Ensure EXPO_PUBLIC_SUPABASE_ANON_KEY is set in EAS secrets.'
+    );
+  },
+  get stripePublishableKey(): string {
+    return getEnvVar(
+      'EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY',
+      'Stripe Publishable Key is missing. Ensure EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is set in EAS secrets.'
+    );
+  },
+  get apiUrl(): string {
+    return getEnvVar(
+      'EXPO_PUBLIC_API_URL',
+      'API URL is missing. Ensure EXPO_PUBLIC_API_URL is set in EAS secrets.'
+    );
+  },
 };
-
-// Validate required config
-if (!config.supabaseUrl || !config.supabaseAnonKey) {
-  throw new Error(
-    'Supabase configuration is missing. Ensure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY are set in EAS secrets.'
-  );
-}
-
-if (!config.stripePublishableKey) {
-  throw new Error(
-    'Stripe configuration is missing. Ensure EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is set in EAS secrets.'
-  );
-}
-
-if (!config.apiUrl) {
-  throw new Error(
-    'API URL is missing. Ensure EXPO_PUBLIC_API_URL is set in EAS secrets.'
-  );
-}
