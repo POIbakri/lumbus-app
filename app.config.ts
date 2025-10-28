@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: 'Lumbus',
     slug: 'lumbus',
     owner: 'lumbus',
-    version: '1.0.1',
+    version: '1.0.2',
     orientation: 'portrait',
     icon: './assets/iconlogotrans.png',
     userInterfaceStyle: 'light',
@@ -35,7 +35,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSCameraUsageDescription: 'This app requires camera access to scan QR codes for eSIM installation.',
         ITSAppUsesNonExemptEncryption: false,
       },
-      buildNumber: '2',
+      buildNumber: '3',
     },
     android: {
       adaptiveIcon: {
@@ -43,7 +43,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: '#ffffff',
       },
       package: 'com.lumbus.app',
-      versionCode: 2,
+      versionCode: 3,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
@@ -118,12 +118,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       eas: {
         projectId: 'b38159ea-bd8e-4aca-92dc-5aecadc110b9',
       },
-      // Environment variables with fallback empty strings to prevent nil in native config
-      // lib/config.ts will throw clear runtime errors if these are empty
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
-      stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '',
-      apiUrl: process.env.EXPO_PUBLIC_API_URL ?? '',
     },
   };
 };
