@@ -35,11 +35,27 @@ const secureStorage = {
   },
 };
 
-export const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
-  auth: {
-    storage: secureStorage, // Using encrypted SecureStore instead of AsyncStorage
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
+// Lazy initialization to ensure config values are available
+let supabaseInstance: ReturnType<typeof createClient> | null = null;
+
+function getSupabaseClient() {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(config.supabaseUrl, config.supabaseAnonKey, {
+      auth: {
+        storage: secureStorage, // Using encrypted SecureStore instead of AsyncStorage
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+      },
+    });
+  }
+  return supabaseInstance;
+}
+
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(target, prop) {
+    const client = getSupabaseClient();
+    const value = client[prop as keyof typeof client];
+    return typeof value === 'function' ? value.bind(client) : value;
   },
 });
