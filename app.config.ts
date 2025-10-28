@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: 'Lumbus',
     slug: 'lumbus',
     owner: 'lumbus',
-    version: '1.0.2',
+    version: '1.0.3',
     orientation: 'portrait',
     icon: './assets/iconlogotrans.png',
     userInterfaceStyle: 'light',
@@ -35,7 +35,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSCameraUsageDescription: 'This app requires camera access to scan QR codes for eSIM installation.',
         ITSAppUsesNonExemptEncryption: false,
       },
-      buildNumber: '3',
+      buildNumber: '4',
     },
     android: {
       adaptiveIcon: {
@@ -43,7 +43,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: '#ffffff',
       },
       package: 'com.lumbus.app',
-      versionCode: 3,
+      versionCode: 4,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
