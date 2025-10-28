@@ -28,6 +28,23 @@ success() {
     echo "✅ $1"
 }
 
+# Check for uncommitted changes (critical for EAS builds)
+if [ -d .git ]; then
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        error "You have uncommitted changes in your working directory"
+        echo "   EAS remote builds only use committed code. Please commit and push before building."
+        echo ""
+        echo "   Modified files:"
+        git status --short | sed 's/^/   /'
+        echo ""
+    else
+        success "Working directory is clean (all changes committed)"
+    fi
+else
+    warn "Not a git repository - skipping git check"
+fi
+echo ""
+
 # Check if .env exists
 if [ -f .env ]; then
     success ".env file exists"
