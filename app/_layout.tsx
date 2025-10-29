@@ -33,6 +33,10 @@ const queryClient = new QueryClient({
   },
 });
 
+// Get Stripe key safely - ensure it's never nil/undefined to prevent native crash
+// Fallback to empty string if undefined (Stripe will handle validation in JS layer)
+const stripePublishableKey = config.stripePublishableKey || '';
+
 export default function RootLayout() {
   const router = useRouter();
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
@@ -138,7 +142,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <StripeProvider publishableKey={config.stripePublishableKey}>
+        <StripeProvider publishableKey={stripePublishableKey}>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
