@@ -6,12 +6,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const googleServicesPath = path.join(__dirname, 'google-services.json');
   const hasGoogleServices = fs.existsSync(googleServicesPath);
 
+  // Force new build - environment variables now read at runtime via lazy getters
   return {
     ...config,
     name: 'Lumbus',
     slug: 'lumbus',
     owner: 'lumbus',
-    version: '1.0.5',
+    version: '1.0.6',
     orientation: 'portrait',
     icon: './assets/iconlogotrans.png',
     userInterfaceStyle: 'light',
@@ -35,7 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSCameraUsageDescription: 'This app requires camera access to scan QR codes for eSIM installation.',
         ITSAppUsesNonExemptEncryption: false,
       },
-      buildNumber: '4',
+      buildNumber: '5',
     },
     android: {
       adaptiveIcon: {
@@ -43,7 +44,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: '#ffffff',
       },
       package: 'com.lumbus.app',
-      versionCode: 4,
+      versionCode: 5,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
