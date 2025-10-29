@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const googleServicesPath = path.join(__dirname, 'google-services.json');
   const hasGoogleServices = fs.existsSync(googleServicesPath);
 
-  // Force new build - environment variables now read at runtime via lazy getters
+  // Force new build v1.0.8 - with Stripe key safety fix to prevent nil crash
   return {
     ...config,
     name: 'Lumbus',
@@ -97,7 +97,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           ios: {
             useFrameworks: 'static',
             buildReactNativeFromSource: true,
-            deploymentTarget: '15.0',
+            deploymentTarget: '15.1',
           },
         },
       ],
