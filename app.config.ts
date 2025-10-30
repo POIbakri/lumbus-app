@@ -36,7 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSCameraUsageDescription: 'This app requires camera access to scan QR codes for eSIM installation.',
         ITSAppUsesNonExemptEncryption: false,
       },
-      buildNumber: '7',
+      buildNumber: '8',
     },
     android: {
       adaptiveIcon: {
