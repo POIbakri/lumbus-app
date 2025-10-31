@@ -1,8 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-import * as Linking from 'expo-linking';
-import { Alert, Platform } from 'react-native';
+import { Linking, Alert, Platform } from 'react-native';
 import { config } from '../lib/config';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { supabase } from '../lib/supabase';
@@ -66,9 +65,23 @@ export default function RootLayout() {
     setupAndroidNotifications();
 
     // Handle deep links for payment success
+    const parseUrl = (url: string): { path: string | null; queryParams: Record<string, string> } => {
+      try {
+        const u = new URL(url);
+        const path = (u.pathname || '').replace(/^\//, '');
+        const queryParams: Record<string, string> = {};
+        u.searchParams.forEach((value, key) => {
+          queryParams[key] = value;
+        });
+        return { path, queryParams };
+      } catch {
+        return { path: null, queryParams: {} };
+      }
+    };
+
     const handleDeepLink = (event: { url: string }) => {
       try {
-        const { path, queryParams } = Linking.parse(event.url);
+        const { path, queryParams } = parseUrl(event.url);
 
         // Whitelist allowed paths for security
         const allowedPaths = ['dashboard', 'payment-complete'];
