@@ -4,7 +4,7 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { config } from '../lib/config';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import {
@@ -33,14 +33,13 @@ const queryClient = new QueryClient({
   },
 });
 
-// Get Stripe key safely - ensure it's never nil/undefined to prevent native crash
-// Fallback to empty string if undefined (Stripe will handle validation in JS layer)
-const stripePublishableKey = config.stripePublishableKey || '';
-
 export default function RootLayout() {
   const router = useRouter();
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
+
+  // Only resolve Stripe key on Android to avoid touching Stripe on iOS
+  const stripePublishableKey = Platform.OS === 'android' ? (config.stripePublishableKey || '') : '';
 
   useEffect(() => {
     // Register for push notifications
@@ -142,7 +141,21 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <StripeProvider publishableKey={stripePublishableKey}>
+        {Platform.OS === 'android' ? (
+          <StripeProvider publishableKey={stripePublishableKey} merchantIdentifier="merchant.com.lumbus.app">
+            <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="plan" options={{ headerShown: false }} />
+              <Stack.Screen name="region" options={{ headerShown: false }} />
+              <Stack.Screen name="install" options={{ headerShown: false }} />
+              <Stack.Screen name="esim-details" options={{ headerShown: false }} />
+              <Stack.Screen name="topup" options={{ headerShown: false }} />
+            </Stack>
+          </StripeProvider>
+        ) : (
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -154,7 +167,7 @@ export default function RootLayout() {
             <Stack.Screen name="esim-details" options={{ headerShown: false }} />
             <Stack.Screen name="topup" options={{ headerShown: false }} />
           </Stack>
-        </StripeProvider>
+        )}
       </QueryClientProvider>
     </ErrorBoundary>
   );

@@ -3,7 +3,7 @@ import { initPaymentSheet, presentPaymentSheet, initStripe } from '@stripe/strip
 import { logger } from '../logger';
 import { PurchaseParams, PurchaseResult } from './PaymentService';
 import { createCheckout } from '../api';
-import Constants from 'expo-constants';
+import { config } from '../config';
 
 /**
  * Android Stripe Payment Service
@@ -38,7 +38,7 @@ export class StripeService {
     }
 
     try {
-      const publishableKey = Constants.expoConfig?.extra?.stripePublishableKey;
+      const publishableKey = config.stripePublishableKey;
 
       if (!publishableKey) {
         throw new Error('Stripe publishable key not configured');
