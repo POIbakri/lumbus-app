@@ -1,9 +1,17 @@
 import { Platform } from 'react-native';
-import { initPaymentSheet, presentPaymentSheet, initStripe } from '@stripe/stripe-react-native';
 import { logger } from '../logger';
 import { PurchaseParams, PurchaseResult } from './PaymentService';
 import { createCheckout } from '../api';
 import { config } from '../config';
+
+// Dynamically load stripe module only when needed (Android) to avoid iOS native initialization
+let stripeModule: any | null = null;
+async function getStripeModule() {
+  if (!stripeModule) {
+    stripeModule = await import('@stripe/stripe-react-native');
+  }
+  return stripeModule;
+}
 
 /**
  * Android Stripe Payment Service
@@ -44,6 +52,7 @@ export class StripeService {
         throw new Error('Stripe publishable key not configured');
       }
 
+      const { initStripe } = await getStripeModule();
       await initStripe({
         publishableKey,
         merchantIdentifier: 'merchant.com.lumbus.app',
@@ -84,6 +93,7 @@ export class StripeService {
 
       // Step 2: Initialize payment sheet with Google Pay support
       logger.log('🔄 Initializing payment sheet...');
+      const { initPaymentSheet } = await getStripeModule();
       const { error: initError } = await initPaymentSheet({
         merchantDisplayName: 'Lumbus',
         paymentIntentClientSecret: clientSecret,
@@ -115,6 +125,7 @@ export class StripeService {
 
       // Step 3: Present payment sheet to user
       logger.log('🔄 Presenting payment sheet...');
+      const { presentPaymentSheet } = await getStripeModule();
       const { error: paymentError } = await presentPaymentSheet();
 
       if (paymentError) {

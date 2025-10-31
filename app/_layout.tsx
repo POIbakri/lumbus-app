@@ -1,6 +1,5 @@
 import { Stack, useRouter } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { StripeProvider } from '@stripe/stripe-react-native';
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
@@ -40,6 +39,8 @@ export default function RootLayout() {
 
   // Only resolve Stripe key on Android to avoid touching Stripe on iOS
   const stripePublishableKey = Platform.OS === 'android' ? (config.stripePublishableKey || '') : '';
+  // Dynamically load StripeProvider only on Android to avoid iOS native initialization
+  const StripeProviderAny: any = Platform.OS === 'android' ? require('@stripe/stripe-react-native').StripeProvider : null;
 
   useEffect(() => {
     // Register for push notifications
@@ -142,7 +143,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         {Platform.OS === 'android' ? (
-          <StripeProvider publishableKey={stripePublishableKey} merchantIdentifier="merchant.com.lumbus.app">
+          <StripeProviderAny publishableKey={stripePublishableKey} merchantIdentifier="merchant.com.lumbus.app">
             <Stack>
               <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -154,7 +155,7 @@ export default function RootLayout() {
               <Stack.Screen name="esim-details" options={{ headerShown: false }} />
               <Stack.Screen name="topup" options={{ headerShown: false }} />
             </Stack>
-          </StripeProvider>
+          </StripeProviderAny>
         ) : (
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />

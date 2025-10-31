@@ -5,6 +5,22 @@ import * as path from 'path';
 export default ({ config }: ConfigContext): ExpoConfig => {
   const googleServicesPath = path.join(__dirname, 'google-services.json');
   const hasGoogleServices = fs.existsSync(googleServicesPath);
+  const isAndroidBuild = process.env.EAS_BUILD_PLATFORM === 'android' || process.env.EXPO_OS === 'android';
+
+  // Build plugins list with conditional Stripe plugin for Android only
+  const plugins: any[] = [
+    'expo-router',
+    'expo-font',
+    'expo-web-browser',
+  ];
+  if (isAndroidBuild) {
+    plugins.push([
+      '@stripe/stripe-react-native',
+      {
+        merchantIdentifier: 'merchant.com.lumbus.app',
+      },
+    ]);
+  }
 
   // Force new build v1.0.8 - with Stripe key safety fix to prevent nil crash
   return {
@@ -69,15 +85,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       favicon: './assets/iconlogofavicon/favicon.ico',
     },
     plugins: [
-      'expo-router',
-      'expo-font',
-      'expo-web-browser',
-      [
-        '@stripe/stripe-react-native',
-        {
-          merchantIdentifier: 'merchant.com.lumbus.app',
-        },
-      ],
+      ...plugins,
       [
         'expo-notifications',
         {
