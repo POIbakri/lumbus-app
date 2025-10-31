@@ -40,7 +40,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     orientation: 'portrait',
     icon: './assets/iconlogotrans.png',
     userInterfaceStyle: 'light',
-    newArchEnabled: false,
+    newArchEnabled: true,
     scheme: 'lumbus',
     description: 'Get instant eSIM data plans for travel. Stay connected worldwide with affordable mobile data. No physical SIM card needed - activate eSIM in minutes.',
     splash: {
@@ -98,13 +98,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         'expo-build-properties',
         {
           android: {
-            newArchEnabled: true,
+            // New Arch enabled globally; no override needed here
             extraMavenRepos: [
               '$rootDir/../node_modules/react-native/android',
             ],
           },
           ios: {
-            newArchEnabled: false,
+            // New Arch enabled globally; no override needed here
             useFrameworks: 'static',
             buildReactNativeFromSource: true,
             deploymentTarget: '15.1',
