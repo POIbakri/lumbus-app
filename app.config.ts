@@ -20,6 +20,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         merchantIdentifier: 'merchant.com.lumbus.app',
       },
     ]);
+    plugins.push([
+      'expo-notifications',
+      {
+        icon: './assets/iconlogofavicon/android-chrome-192x192.png',
+        color: '#2EFECC',
+        mode: 'production',
+      },
+    ]);
   }
 
   // Force new build v1.0.8 - with Stripe key safety fix to prevent nil crash
@@ -28,7 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: 'Lumbus',
     slug: 'lumbus',
     owner: 'lumbus',
-    version: '1.0.8',
+    version: '1.0.9',
     orientation: 'portrait',
     icon: './assets/iconlogotrans.png',
     userInterfaceStyle: 'light',
@@ -52,7 +60,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSCameraUsageDescription: 'This app requires camera access to scan QR codes for eSIM installation.',
         ITSAppUsesNonExemptEncryption: false,
       },
-      buildNumber: '8',
+      buildNumber: '9',
     },
     android: {
       adaptiveIcon: {
@@ -60,7 +68,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: '#ffffff',
       },
       package: 'com.lumbus.app',
-      versionCode: 7,
+      versionCode: 9,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
@@ -86,14 +94,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     plugins: [
       ...plugins,
-      [
-        'expo-notifications',
-        {
-          icon: './assets/iconlogofavicon/android-chrome-192x192.png',
-          color: '#2EFECC',
-          mode: 'production',
-        },
-      ],
       [
         'expo-build-properties',
         {

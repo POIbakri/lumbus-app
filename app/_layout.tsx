@@ -1,19 +1,10 @@
 import { Stack, useRouter } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 import { Alert, Platform } from 'react-native';
 import { config } from '../lib/config';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import {
-  registerForPushNotifications,
-  savePushToken,
-  addNotificationReceivedListener,
-  addNotificationResponseReceivedListener,
-  getNotificationData,
-  NotificationType,
-} from '../lib/notifications';
 import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/validation';
 import { logger } from '../lib/logger';
@@ -34,8 +25,8 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const router = useRouter();
-  const notificationListener = useRef<Notifications.EventSubscription | null>(null);
-  const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const notificationListener = useRef<any>(null);
+  const responseListener = useRef<any>(null);
 
   // Only resolve Stripe key on Android to avoid touching Stripe on iOS
   const stripePublishableKey = Platform.OS === 'android' ? (config.stripePublishableKey || '') : '';
@@ -43,38 +34,36 @@ export default function RootLayout() {
   const StripeProviderAny: any = Platform.OS === 'android' ? require('@stripe/stripe-react-native').StripeProvider : null;
 
   useEffect(() => {
-    // Register for push notifications
-    async function setupNotifications() {
-      const token = await registerForPushNotifications();
+    // Only initialize notifications on Android to avoid iOS native init
+    async function setupAndroidNotifications() {
+      try {
+        if (Platform.OS !== 'android') return;
+        const notif = await import('../lib/notifications');
 
-      if (token) {
-        // Get current user and save token
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await savePushToken(user.id, token);
+        const token = await notif.registerForPushNotifications();
+        if (token) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await notif.savePushToken(user.id, token);
+          }
         }
+
+        notificationListener.current = notif.addNotificationReceivedListener(() => {});
+
+        responseListener.current = notif.addNotificationResponseReceivedListener((response: any) => {
+          const data = notif.getNotificationData(response);
+          if (data.type === notif.NotificationType.ESIM_READY && data.orderId) {
+            router.push(`/install/${data.orderId}`);
+          } else if (data.orderId) {
+            router.push('/(tabs)/dashboard');
+          }
+        });
+      } catch (e) {
+        logger.error('Notifications init error:', e);
       }
     }
 
-    setupNotifications();
-
-    // Handle notifications received while app is in foreground
-    notificationListener.current = addNotificationReceivedListener((notification) => {
-      // Notification received - handled silently
-    });
-
-    // Handle notification taps
-    responseListener.current = addNotificationResponseReceivedListener((response) => {
-      const data = getNotificationData(response);
-
-      // Navigate based on notification type
-      if (data.type === NotificationType.ESIM_READY && data.orderId) {
-        router.push(`/install/${data.orderId}`);
-      } else if (data.orderId) {
-        // For usage alerts, navigate to dashboard
-        router.push('/(tabs)/dashboard');
-      }
-    });
+    setupAndroidNotifications();
 
     // Handle deep links for payment success
     const handleDeepLink = (event: { url: string }) => {
@@ -129,11 +118,13 @@ export default function RootLayout() {
     });
 
     return () => {
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
+      if (Platform.OS === 'android') {
+        if (notificationListener.current) {
+          notificationListener.current.remove();
+        }
+        if (responseListener.current) {
+          responseListener.current.remove();
+        }
       }
       subscription.remove();
     };
