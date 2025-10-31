@@ -98,13 +98,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         'expo-build-properties',
         {
           android: {
-            // New Arch enabled globally; no override needed here
+            newArchEnabled: true,
             extraMavenRepos: [
               '$rootDir/../node_modules/react-native/android',
             ],
           },
           ios: {
-            // New Arch enabled globally; no override needed here
+            newArchEnabled: false,
             useFrameworks: 'static',
             buildReactNativeFromSource: true,
             deploymentTarget: '15.1',
