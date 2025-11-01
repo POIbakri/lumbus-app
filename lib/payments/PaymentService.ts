@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
-import { IAPService } from './IAPService';
+// Use v13 IAP service for iOS to avoid NitroIap issues
+import { IAPServiceV13 } from './IAPServiceV13.ios';
 import { StripeService } from './StripeService';
 import { logger } from '../logger';
 
@@ -34,12 +35,12 @@ export interface PurchaseResult {
 }
 
 class PaymentServiceClass {
-  private iapService: IAPService;
+  private iapService: IAPServiceV13;
   private stripeService: StripeService;
   private initialized = false;
 
   constructor() {
-    this.iapService = new IAPService();
+    this.iapService = new IAPServiceV13();
     this.stripeService = new StripeService();
   }
 

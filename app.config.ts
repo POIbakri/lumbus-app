@@ -40,7 +40,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     orientation: 'portrait',
     icon: './assets/iconlogotrans.png',
     userInterfaceStyle: 'light',
-    newArchEnabled: true,
+    newArchEnabled: false,
     scheme: 'lumbus',
     description: 'Get instant eSIM data plans for travel. Stay connected worldwide with affordable mobile data. No physical SIM card needed - activate eSIM in minutes.',
     splash: {

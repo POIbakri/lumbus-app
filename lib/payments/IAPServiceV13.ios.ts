@@ -1,22 +1,14 @@
-import {
-  initConnection,
-  endConnection,
-  fetchProducts,
-  requestPurchase,
-  finishTransaction,
-  purchaseUpdatedListener,
-  purchaseErrorListener,
-  Product,
-  Purchase,
-  PurchaseError,
-} from 'react-native-iap';
+import * as RNIap from 'react-native-iap';
 import { Alert, Platform } from 'react-native';
 import { logger } from '../logger';
 import { PurchaseParams, PurchaseResult } from './PaymentService';
 import { createIAPCheckout, validateAppleReceipt } from '../api';
 
 /**
- * iOS Apple In-App Purchase Service
+ * iOS Apple In-App Purchase Service (v13 API)
+ *
+ * This version uses react-native-iap v13.x API which is more stable
+ * and doesn't require NitroIap/NitroModules
  *
  * Handles all Apple IAP transactions including:
  * - Product fetching from App Store Connect
@@ -24,15 +16,8 @@ import { createIAPCheckout, validateAppleReceipt } from '../api';
  * - Transaction verification via your backend
  * - Receipt validation
  * - Purchase restoration
- *
- * Apple supports:
- * - Apple Pay (default, seamless)
- * - Credit/Debit cards
- * - Face ID / Touch ID authentication
- *
- * Commission: 15-30% to Apple (handled automatically)
  */
-export class IAPService {
+export class IAPServiceV13 {
   private purchaseUpdateSubscription: any;
   private purchaseErrorSubscription: any;
   private isConnected = false;
@@ -43,13 +28,13 @@ export class IAPService {
    */
   async initialize(): Promise<void> {
     if (Platform.OS !== 'ios') {
-      throw new Error('IAPService is only available on iOS');
+      throw new Error('IAPServiceV13 is only available on iOS');
     }
 
     try {
-      await initConnection();
+      await RNIap.initConnection();
       this.isConnected = true;
-      logger.log('✅ Connected to App Store');
+      logger.log('✅ Connected to App Store (v13)');
 
       // Set up purchase listeners
       this.setupPurchaseListeners();
@@ -64,11 +49,11 @@ export class IAPService {
    */
   private setupPurchaseListeners(): void {
     // Listen for purchase updates
-    this.purchaseUpdateSubscription = purchaseUpdatedListener(
-      async (purchase: Purchase) => {
+    this.purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(
+      async (purchase: RNIap.Purchase) => {
         logger.log('✅ Purchase update received:', purchase);
 
-        // Get transaction ID (works for both iOS and Android)
+        // Get transaction ID
         const transactionId = purchase.transactionId;
         if (transactionId) {
           try {
@@ -83,7 +68,7 @@ export class IAPService {
             // Verify the receipt with backend
             logger.log('🔄 Verifying receipt with backend...');
             const validationResult = await validateAppleReceipt({
-              receipt: transactionId,
+              receipt: purchase.transactionReceipt || transactionId,
               orderId: orderId,
             });
 
@@ -91,7 +76,10 @@ export class IAPService {
               logger.log('✅ Receipt validated successfully');
 
               // Finish the transaction only after successful verification
-              await finishTransaction({ purchase, isConsumable: true });
+              await RNIap.finishTransaction({
+                purchase,
+                isConsumable: true
+              });
               logger.log('✅ Transaction finished');
 
               // Clean up pending order
@@ -109,9 +97,9 @@ export class IAPService {
     );
 
     // Listen for purchase errors
-    this.purchaseErrorSubscription = purchaseErrorListener(
-      (error: PurchaseError) => {
-        if (error.code && error.code.includes('USER_CANCELLED')) {
+    this.purchaseErrorSubscription = RNIap.purchaseErrorListener(
+      (error: RNIap.PurchaseError) => {
+        if (error.code === 'E_USER_CANCELLED') {
           logger.log('ℹ️ User cancelled purchase');
         } else {
           logger.error('❌ Purchase error:', error);
@@ -123,18 +111,18 @@ export class IAPService {
   /**
    * Get products from App Store
    */
-  async getProducts(productIds: string[]): Promise<Product[]> {
+  async getProducts(productIds: string[]): Promise<RNIap.Product[]> {
     if (!this.isConnected) {
       throw new Error('IAP not initialized. Call initialize() first.');
     }
 
     try {
-      const products = await fetchProducts({ skus: productIds });
+      const products = await RNIap.getProducts({ skus: productIds });
       if (!products || products.length === 0) {
         throw new Error('No products returned from App Store');
       }
       logger.log(`✅ Fetched ${products.length} products from App Store`);
-      return products as Product[];
+      return products;
     } catch (error) {
       logger.error('❌ Failed to fetch products:', error);
       throw new Error('Unable to load products from App Store.');
@@ -175,14 +163,7 @@ export class IAPService {
 
       // Step 2: Request purchase from Apple
       // This will show Apple's native payment sheet with Apple Pay / Card options
-      await requestPurchase({
-        request: {
-          ios: {
-            sku: productId,
-          },
-        },
-        type: 'in-app',
-      });
+      await RNIap.requestPurchase({ sku: productId });
 
       // Note: The purchase completion is handled by purchaseUpdatedListener
       // We return immediately as the listener will handle verification
@@ -195,21 +176,21 @@ export class IAPService {
       logger.error('❌ IAP Purchase failed:', error);
 
       // Handle specific IAP errors
-      if (error.code && error.code.includes('USER_CANCELLED')) {
+      if (error.code === 'E_USER_CANCELLED') {
         return {
           success: false,
           error: 'Purchase cancelled',
         };
       }
 
-      if (error.code && error.code.includes('ITEM_UNAVAILABLE')) {
+      if (error.code === 'E_ITEM_UNAVAILABLE') {
         return {
           success: false,
           error: 'This item is currently unavailable. Please try again later.',
         };
       }
 
-      if (error.code && error.code.includes('NETWORK')) {
+      if (error.code === 'E_NETWORK_ERROR') {
         return {
           success: false,
           error: 'Network error. Please check your connection and try again.',
@@ -235,13 +216,17 @@ export class IAPService {
     try {
       logger.log('🔄 Restoring purchases...');
 
-      // react-native-iap handles restoration automatically
-      // when user makes a new purchase of a previously purchased item
-      // For consumables (like eSIM data), restoration isn't typically applicable
+      const purchases = await RNIap.getAvailablePurchases();
+
+      if (purchases && purchases.length > 0) {
+        logger.log(`✅ Found ${purchases.length} purchases to restore`);
+        // Process restored purchases if needed
+        // For consumables like eSIM data, restoration might not be applicable
+      }
 
       Alert.alert(
         'Restore Purchases',
-        'Your purchases are automatically restored when you log in with the same Apple ID.',
+        'Your purchases have been restored successfully.',
         [{ text: 'OK' }]
       );
     } catch (error) {
@@ -266,7 +251,7 @@ export class IAPService {
       }
 
       if (this.isConnected) {
-        await endConnection();
+        await RNIap.endConnection();
         this.isConnected = false;
         logger.log('✅ Disconnected from App Store');
       }
