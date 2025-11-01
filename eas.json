@@ -8,9 +8,6 @@
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development",
-      "cache": {
-        "clear": true
-      },
       "env": {
         "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON",
         "EXPO_NO_CAPABILITY_SYNC": "1"
@@ -22,9 +19,6 @@
     "preview": {
       "distribution": "internal",
       "environment": "preview",
-      "cache": {
-        "clear": true
-      },
       "env": {
         "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON",
         "EXPO_NO_CAPABILITY_SYNC": "1"
@@ -37,9 +31,6 @@
     "production": {
       "autoIncrement": true,
       "environment": "production",
-      "cache": {
-        "clear": true
-      },
       "env": {
         "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON",
         "EXPO_NO_CAPABILITY_SYNC": "1"
