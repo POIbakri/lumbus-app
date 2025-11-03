@@ -371,6 +371,91 @@ export async function fetchReferralInfo(): Promise<ReferralData> {
   return response.json();
 }
 
+// Validate referral code
+export interface ValidateReferralCodeParams {
+  code: string;
+  userId?: string;
+  email?: string;
+}
+
+export interface ValidateReferralCodeResponse {
+  valid: boolean;
+  benefits?: {
+    discount: number;
+    freeDataMB: number;
+    message: string;
+  };
+  error?: string;
+}
+
+export async function validateReferralCode(params: ValidateReferralCodeParams): Promise<ValidateReferralCodeResponse> {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetchWithTimeout(`${API_URL}/referral-codes/validate`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+    }, 10000);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      return {
+        valid: false,
+        error: errorData?.error || 'Invalid referral code',
+      };
+    }
+
+    return response.json();
+  } catch (error) {
+    logger.error('Error validating referral code:', error);
+    return {
+      valid: false,
+      error: 'Failed to validate referral code',
+    };
+  }
+}
+
+// Link referral code to user
+export interface LinkReferralCodeParams {
+  userId: string;
+  referralCode: string;
+}
+
+export interface LinkReferralCodeResponse {
+  success: boolean;
+  message: string;
+  error?: string;
+}
+
+export async function linkReferralCode(params: LinkReferralCodeParams): Promise<LinkReferralCodeResponse> {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetchWithTimeout(`${API_URL}/referrals/link`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+    }, 10000);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      return {
+        success: false,
+        message: '',
+        error: errorData?.error || 'Failed to link referral code',
+      };
+    }
+
+    return response.json();
+  } catch (error) {
+    logger.error('Error linking referral code:', error);
+    return {
+      success: false,
+      message: '',
+      error: 'Failed to link referral code',
+    };
+  }
+}
+
 // Region API
 export interface RegionCountry {
   code: string;
@@ -463,6 +548,7 @@ export interface IAPCheckoutParams {
   isTopUp?: boolean;
   existingOrderId?: string;
   iccid?: string;
+  referralCode?: string; // Optional referral code for discount
 }
 
 export interface IAPCheckoutResponse {

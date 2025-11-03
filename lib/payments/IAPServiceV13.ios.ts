@@ -148,6 +148,7 @@ export class IAPServiceV13 {
         iccid: params.iccid,
         currency: params.currency,
         amount: params.price, // Send the price (Apple handles actual conversion)
+        referralCode: params.referralCode, // Pass referral code for discount
       });
 
       const { orderId, productId } = checkoutResponse;

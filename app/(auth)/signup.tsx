@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -7,6 +7,9 @@ import { signInWithApple, signInWithGoogle, isAppleSignInAvailable, handleSocial
 import { AppleLogo } from '../../components/icons/AppleLogo';
 import { GoogleLogo } from '../../components/icons/GoogleLogo';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
+import { useReferral } from '../../contexts/ReferralContext';
+import { linkReferralCode } from '../../lib/api';
+import { ReferralBadge } from '../components/ReferralBanner';
 
 export default function Signup() {
   const router = useRouter();
@@ -19,12 +22,25 @@ export default function Signup() {
   const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [showAppleSignIn, setShowAppleSignIn] = useState(false);
+  const [manualReferralCode, setManualReferralCode] = useState('');
+  const [showReferralInput, setShowReferralInput] = useState(false);
   const { scale, moderateScale, isSmallDevice } = useResponsive();
+  const { referralCode, setReferralCode: setGlobalReferralCode, clearReferralCode } = useReferral();
+  const hasSyncedRef = useRef(false);
 
   // Check if Apple Sign In is available
   useEffect(() => {
     isAppleSignInAvailable().then(setShowAppleSignIn);
   }, []);
+
+  // Sync manual input with global referral code (only once on mount)
+  useEffect(() => {
+    if (referralCode && !hasSyncedRef.current) {
+      setManualReferralCode(referralCode);
+      setShowReferralInput(true); // Show the input if code was applied via deep link
+      hasSyncedRef.current = true;
+    }
+  }, [referralCode]);
 
   // Countdown timer for lockout
   useEffect(() => {
@@ -46,6 +62,27 @@ export default function Signup() {
 
     return () => clearInterval(interval);
   }, [lockoutUntil]);
+
+  // Handle manual referral code input with validation
+  const handleReferralCodeChange = (text: string) => {
+    // Frontend validation: uppercase, alphanumeric only, max 8 chars
+    const filtered = text
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '') // Only allow A-Z and 0-9
+      .slice(0, 8); // Max 8 characters
+
+    setManualReferralCode(filtered);
+
+    // Auto-apply when 8 characters are entered
+    if (filtered.length === 8) {
+      setGlobalReferralCode(filtered);
+      Alert.alert(
+        'Referral Code Applied!',
+        "You'll get 10% OFF + 1GB FREE on your first purchase!",
+        [{ text: 'Got it!' }]
+      );
+    }
+  };
 
   async function handleSignup() {
     // Check if locked out
@@ -112,9 +149,28 @@ export default function Signup() {
     setFailedAttempts(0);
     setLockoutUntil(null);
 
+    // Link referral code if present
+    if (data.user && referralCode) {
+      try {
+        const result = await linkReferralCode({
+          userId: data.user.id,
+          referralCode: referralCode,
+        });
+        if (result.success) {
+          // Don't show this message, we'll show it after login
+          // clearReferralCode will happen after they make their first purchase
+        }
+      } catch (error) {
+        // Silent fail - don't block signup flow
+        // Referral code will still be stored and used at checkout
+      }
+    }
+
     Alert.alert(
       'Success',
-      'Account created successfully! Please sign in.',
+      referralCode
+        ? 'Account created! Sign in to use your referral discount.'
+        : 'Account created successfully! Please sign in.',
       [
         {
           text: 'OK',
@@ -186,6 +242,13 @@ export default function Signup() {
             </Text>
           </View>
 
+          {/* Referral Badge */}
+          {referralCode && (
+            <View className="items-center" style={{marginBottom: moderateScale(24)}}>
+              <ReferralBadge />
+            </View>
+          )}
+
           {/* Form */}
           <View className="space-y-4">
             <View>
@@ -236,6 +299,44 @@ export default function Signup() {
                 editable={!loading}
               />
             </View>
+
+            {/* Referral Code Input */}
+            {!referralCode && (
+              <View style={{marginTop: moderateScale(16)}}>
+                {!showReferralInput ? (
+                  <TouchableOpacity
+                    onPress={() => setShowReferralInput(true)}
+                    style={{paddingVertical: moderateScale(12)}}
+                  >
+                    <Text className="font-bold text-center" style={{color: '#2EFECC', fontSize: getFontSize(14)}}>
+                      Have a referral code? Tap to enter
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View>
+                    <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginBottom: moderateScale(8)}}>
+                      Referral Code (Optional)
+                    </Text>
+                    <TextInput
+                      className="rounded-2xl font-bold"
+                      style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: manualReferralCode.length === 8 ? '#2EFECC' : '#E5E5E5', color: '#1A1A1A', paddingHorizontal: scale(20), paddingVertical: moderateScale(16), fontSize: getFontSize(16)}}
+                      placeholder="Enter 8-character code"
+                      placeholderTextColor="#666666"
+                      value={manualReferralCode}
+                      onChangeText={handleReferralCodeChange}
+                      autoCapitalize="characters"
+                      maxLength={8}
+                      editable={!loading}
+                    />
+                    {manualReferralCode.length > 0 && manualReferralCode.length < 8 && (
+                      <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(11), marginTop: moderateScale(4)}}>
+                        {8 - manualReferralCode.length} characters remaining
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
 
             {/* Create Account Button */}
             <TouchableOpacity

@@ -1,12 +1,14 @@
 import { Stack, useRouter } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, Alert, Platform } from 'react-native';
 import { config } from '../lib/config';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/validation';
 import { logger } from '../lib/logger';
+import { ReferralProvider } from '../contexts/ReferralContext';
+import { DeepLinkHandler } from './components/DeepLinkHandler';
 import "../global.css";
 
 const queryClient = new QueryClient({
@@ -22,7 +24,7 @@ const queryClient = new QueryClient({
   },
 });
 
-export default function RootLayout() {
+function AppContent() {
   const router = useRouter();
   const notificationListener = useRef<any>(null);
   const responseListener = useRef<any>(null);
@@ -64,72 +66,6 @@ export default function RootLayout() {
 
     setupAndroidNotifications();
 
-    // Handle deep links for payment success
-    const parseUrl = (url: string): { path: string | null; queryParams: Record<string, string> } => {
-      try {
-        const u = new URL(url);
-        const path = (u.pathname || '').replace(/^\//, '');
-        const queryParams: Record<string, string> = {};
-        u.searchParams.forEach((value, key) => {
-          queryParams[key] = value;
-        });
-        return { path, queryParams };
-      } catch {
-        return { path: null, queryParams: {} };
-      }
-    };
-
-    const handleDeepLink = (event: { url: string }) => {
-      try {
-        const { path, queryParams } = parseUrl(event.url);
-
-        // Whitelist allowed paths for security
-        const allowedPaths = ['dashboard', 'payment-complete'];
-        if (!path || !allowedPaths.includes(path)) {
-          logger.warn('Invalid deep link path attempted:', path);
-          return;
-        }
-
-        // Handle top-up success redirect
-        if (path === 'dashboard' && queryParams?.topup === 'success') {
-          const orderId = queryParams.order as string;
-
-          // Validate orderId format (must be valid UUID)
-          if (!orderId || !isValidUUID(orderId)) {
-            logger.error('Invalid order ID in deep link:', orderId);
-            Alert.alert('Error', 'Invalid link. Please try again.');
-            return;
-          }
-
-          Alert.alert(
-            'Top-Up Successful!',
-            'Data has been added to your eSIM',
-            [
-              {
-                text: 'View eSIM',
-                onPress: () => {
-                  router.push(`/esim-details/${orderId}`);
-                },
-              },
-            ]
-          );
-        }
-      } catch (error) {
-        logger.error('Error handling deep link:', error);
-        Alert.alert('Error', 'Unable to process link. Please try again.');
-      }
-    };
-
-    // Listen for deep links while app is running
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-
-    // Check if app was opened from a deep link
-    Linking.getInitialURL().then(url => {
-      if (url) {
-        handleDeepLink({ url });
-      }
-    });
-
     return () => {
       if (Platform.OS === 'android') {
         if (notificationListener.current) {
@@ -139,28 +75,14 @@ export default function RootLayout() {
           responseListener.current.remove();
         }
       }
-      subscription.remove();
     };
   }, []);
 
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        {Platform.OS === 'android' ? (
-          <StripeProviderAny publishableKey={stripePublishableKey} merchantIdentifier="merchant.com.lumbus.app">
-            <Stack>
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="plan" options={{ headerShown: false }} />
-              <Stack.Screen name="region" options={{ headerShown: false }} />
-              <Stack.Screen name="install" options={{ headerShown: false }} />
-              <Stack.Screen name="esim-details" options={{ headerShown: false }} />
-              <Stack.Screen name="topup" options={{ headerShown: false }} />
-            </Stack>
-          </StripeProviderAny>
-        ) : (
+    <>
+      <DeepLinkHandler />
+      {Platform.OS === 'android' ? (
+        <StripeProviderAny publishableKey={stripePublishableKey} merchantIdentifier="merchant.com.lumbus.app">
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -172,7 +94,31 @@ export default function RootLayout() {
             <Stack.Screen name="esim-details" options={{ headerShown: false }} />
             <Stack.Screen name="topup" options={{ headerShown: false }} />
           </Stack>
-        )}
+        </StripeProviderAny>
+      ) : (
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="plan" options={{ headerShown: false }} />
+          <Stack.Screen name="region" options={{ headerShown: false }} />
+          <Stack.Screen name="install" options={{ headerShown: false }} />
+          <Stack.Screen name="esim-details" options={{ headerShown: false }} />
+          <Stack.Screen name="topup" options={{ headerShown: false }} />
+        </Stack>
+      )}
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ReferralProvider>
+          <AppContent />
+        </ReferralProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

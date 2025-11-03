@@ -46,6 +46,7 @@ export interface CheckoutParams {
   isTopUp?: boolean;
   existingOrderId?: string;
   iccid?: string;
+  referralCode?: string; // Optional referral code for discount
 }
 
 export interface PaymentIntentResponse {

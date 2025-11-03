@@ -85,6 +85,7 @@ export class StripeService {
         isTopUp: params.isTopUp || false,
         existingOrderId: params.existingOrderId,
         iccid: params.iccid,
+        referralCode: params.referralCode, // Pass referral code for discount
       });
 
       if (!clientSecret || !orderId) {

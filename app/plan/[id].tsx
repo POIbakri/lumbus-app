@@ -9,15 +9,19 @@ import { useCurrency } from '../../hooks/useCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { logger } from '../../lib/logger';
 import { PaymentService } from '../../lib/payments/PaymentService';
+import { useReferral } from '../../contexts/ReferralContext';
+import { ReferralBanner } from '../components/ReferralBanner';
 
 export default function PlanDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [displayPrice, setDisplayPrice] = useState<string>('');
+  const [discountedPrice, setDiscountedPrice] = useState<string>('');
   const [showCountries, setShowCountries] = useState(false);
   const { convertMultiplePrices, symbol, loading: currencyLoading, currency } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
+  const { hasActiveReferral, referralCode } = useReferral();
 
   // Initialize payment service on mount
   useEffect(() => {
@@ -56,7 +60,15 @@ export default function PlanDetail() {
     const prices = [plan.retail_price || plan.price];
     const converted = await convertMultiplePrices(prices);
     setDisplayPrice(converted[0].formatted);
-  }, [plan, convertMultiplePrices]);
+
+    // Calculate discounted price if referral is active (10% off)
+    if (hasActiveReferral) {
+      const originalValue = converted[0].converted;
+      const discountedValue = originalValue * 0.9; // 10% off
+      const formatted = `${symbol}${discountedValue.toFixed(2)}`;
+      setDiscountedPrice(formatted);
+    }
+  }, [plan, convertMultiplePrices, hasActiveReferral, symbol]);
 
   useEffect(() => {
     if (plan && !currencyLoading) {
@@ -105,6 +117,7 @@ export default function PlanDetail() {
         currency,
         email: user.email!,
         userId: user.id,
+        referralCode: referralCode || undefined, // Pass referral code if available
       });
 
       setLoading(false);
@@ -174,14 +187,38 @@ export default function PlanDetail() {
         </View>
 
         <View style={{paddingHorizontal: getHorizontalPadding(), paddingVertical: moderateScale(24)}}>
+          {/* Referral Banner */}
+          <ReferralBanner />
+
           {/* Price Card */}
           <View className="rounded-2xl" style={{backgroundColor: '#F5F5F5', padding: moderateScale(24), marginBottom: moderateScale(24)}}>
             <View className="flex-row justify-between items-center" style={{marginBottom: moderateScale(20)}}>
               <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(12)}}>Price</Text>
-              <View className="rounded-xl" style={{backgroundColor: '#2EFECC', paddingHorizontal: scale(16), paddingVertical: moderateScale(8)}}>
-                <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(28)}}>
-                  {displayPrice || `${symbol}${plan.price}`}
-                </Text>
+              <View className="items-end">
+                {hasActiveReferral && (
+                  <Text
+                    className="font-bold line-through"
+                    style={{
+                      color: '#999999',
+                      fontSize: getFontSize(16),
+                      marginBottom: moderateScale(4),
+                    }}
+                  >
+                    {displayPrice || `${symbol}${plan.price}`}
+                  </Text>
+                )}
+                <View className="rounded-xl" style={{backgroundColor: '#2EFECC', paddingHorizontal: scale(16), paddingVertical: moderateScale(8)}}>
+                  <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(28)}}>
+                    {hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || `${symbol}${plan.price}`)}
+                  </Text>
+                </View>
+                {hasActiveReferral && (
+                  <View className="rounded-lg" style={{backgroundColor: '#FEF3C7', paddingHorizontal: scale(8), paddingVertical: moderateScale(4), marginTop: moderateScale(4)}}>
+                    <Text className="font-black uppercase" style={{color: '#1A1A1A', fontSize: getFontSize(10)}}>
+                      10% OFF
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -327,7 +364,7 @@ export default function PlanDetail() {
               <Ionicons name="logo-apple" size={getFontSize(20)} color="#1A1A1A" style={{marginRight: scale(8)}} />
             )}
             <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {loading ? 'Processing...' : `Buy now for ${displayPrice || `${symbol}${plan.price}`} →`}
+              {loading ? 'Processing...' : `Buy now for ${hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || `${symbol}${plan.price}`)} →`}
             </Text>
           </View>
         </TouchableOpacity>
