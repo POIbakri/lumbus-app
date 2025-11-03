@@ -150,7 +150,7 @@ export default function InstallEsim() {
   }
 
   // Order is still processing or not ready
-  const isReady = (order.status === 'active' || order.status === 'depleted') && order.activation_code;
+  const isReady = (order.status === 'active' || order.status === 'depleted' || order.status === 'provisioning') && order.activation_code;
   if (!isReady) {
     return (
       <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>

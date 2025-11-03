@@ -232,7 +232,7 @@ export default function Dashboard() {
     const isOrderExpired = isExpired(order);
 
     return (
-      <TouchableOpacity
+      <View
         key={order.id}
         className="bg-white mb-4"
         style={{
@@ -245,86 +245,118 @@ export default function Dashboard() {
           borderWidth: 2,
           borderColor: isProvisioning ? '#FDFD74' : isOrderExpired ? '#EF4444' : '#E5E5E5',
         }}
-        onPress={handlePress}
-        activeOpacity={0.8}
       >
-        {/* Ready to Activate Badge for Provisioning */}
-        {isProvisioning && (
-          <View className="flex-row items-center mb-3" style={{
-            backgroundColor: '#FFFEF0',
-            borderWidth: 2,
-            borderColor: '#FDFD74',
-            alignSelf: 'flex-start',
-            paddingHorizontal: moderateScale(12),
-            paddingVertical: moderateScale(8),
-            borderRadius: getBorderRadius(12),
-          }}>
-            <Ionicons name="download-outline" size={getIconSize(16)} color="#1A1A1A" />
-            <Text className="ml-1 font-black uppercase tracking-wide" style={{ color: '#1A1A1A', fontSize: getFontSize(11) }}>
-              Ready to Activate
-            </Text>
-          </View>
-        )}
-
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1">
-            <Text className="font-black mb-2" style={{
-              color: '#1A1A1A',
-              fontSize: getFontSize(24),
+        <TouchableOpacity
+          onPress={handlePress}
+          activeOpacity={0.8}
+          disabled={isProvisioning} // Disable touch for provisioning cards - use button instead
+        >
+          {/* Ready to Activate Badge for Provisioning */}
+          {isProvisioning && (
+            <View className="flex-row items-center mb-3" style={{
+              backgroundColor: '#FFFEF0',
+              borderWidth: 2,
+              borderColor: '#FDFD74',
+              alignSelf: 'flex-start',
+              paddingHorizontal: moderateScale(12),
+              paddingVertical: moderateScale(8),
+              borderRadius: getBorderRadius(12),
             }}>
-              {region}
-            </Text>
-            {isProvisioning ? (
-              <Text className="font-bold mb-1" style={{
-                color: '#1A1A1A',
-                fontSize: getFontSize(20),
-              }}>
-                {mbMatch ? `${mbMatch[1]} MB plan` : `${totalDataGB} GB plan`}
+              <Ionicons name="download-outline" size={getIconSize(16)} color="#1A1A1A" />
+              <Text className="ml-1 font-black uppercase tracking-wide" style={{ color: '#1A1A1A', fontSize: getFontSize(11) }}>
+                Ready to Activate
               </Text>
-            ) : (
-              <Text className="font-bold mb-1" style={{
-                color: '#1A1A1A',
-                fontSize: getFontSize(20),
-              }}>
-                {formatDataRemaining()}
-              </Text>
-            )}
-            {expiryDate ? (
-              <Text className="font-bold" style={{
-                color: '#666666',
-                fontSize: getFontSize(14),
-              }}>
-                Expires on {expiryDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
-              </Text>
-            ) : order.plan?.validity_days ? (
-              <Text className="font-bold" style={{
-                color: '#666666',
-                fontSize: getFontSize(14),
-              }}>
-                Valid for {order.plan.validity_days} {order.plan.validity_days === 1 ? 'day' : 'days'}
-              </Text>
-            ) : null}
-          </View>
+            </View>
+          )}
 
-          {/* Circular Progress with Flag */}
-          {isProvisioning ? (
-            <View style={{
-              width: adaptiveScale(80),
-              height: adaptiveScale(80),
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1">
+              <Text className="font-black mb-2" style={{
+                color: '#1A1A1A',
+                fontSize: getFontSize(24),
+              }}>
+                {region}
+              </Text>
+              {isProvisioning ? (
+                <Text className="font-bold mb-1" style={{
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(20),
+                }}>
+                  {mbMatch ? `${mbMatch[1]} MB plan` : `${totalDataGB} GB plan`}
+                </Text>
+              ) : (
+                <Text className="font-bold mb-1" style={{
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(20),
+                }}>
+                  {formatDataRemaining()}
+                </Text>
+              )}
+              {expiryDate ? (
+                <Text className="font-bold" style={{
+                  color: '#666666',
+                  fontSize: getFontSize(14),
+                }}>
+                  Expires on {expiryDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
+                </Text>
+              ) : order.plan?.validity_days ? (
+                <Text className="font-bold" style={{
+                  color: '#666666',
+                  fontSize: getFontSize(14),
+                }}>
+                  Valid for {order.plan.validity_days} {order.plan.validity_days === 1 ? 'day' : 'days'}
+                </Text>
+              ) : null}
+            </View>
+
+            {/* Circular Progress with Flag */}
+            {isProvisioning ? (
+              <View style={{
+                width: adaptiveScale(80),
+                height: adaptiveScale(80),
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#FFFEF0',
+                borderRadius: adaptiveScale(40),
+                borderWidth: 3,
+                borderColor: '#FDFD74'
+              }}>
+                <Text style={{ fontSize: getFontSize(32) }}>{flag}</Text>
+              </View>
+            ) : (
+              <CircularProgress percentage={percentageUsed} flag={flag} />
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* Activate Button for Provisioning eSIMs */}
+        {isProvisioning && (
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#2EFECC',
+              paddingVertical: moderateScale(14),
+              borderRadius: getBorderRadius(12),
+              marginTop: moderateScale(16),
+              flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: '#FFFEF0',
-              borderRadius: adaptiveScale(40),
-              borderWidth: 3,
-              borderColor: '#FDFD74'
+              borderWidth: 2,
+              borderColor: '#1A1A1A',
+            }}
+            onPress={() => router.push(`/install/${order.id}`)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="download-outline" size={getIconSize(20)} color="#1A1A1A" style={{ marginRight: moderateScale(8) }} />
+            <Text className="font-black uppercase" style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(16),
+              letterSpacing: 1,
             }}>
-              <Text style={{ fontSize: getFontSize(32) }}>{flag}</Text>
-            </View>
-          ) : (
-            <CircularProgress percentage={percentageUsed} flag={flag} />
-          )}
-        </View>
-      </TouchableOpacity>
+              Activate eSIM
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
     );
   }, [router, extractRegion, getExpiryDate, getCountryFlag, isExpired]);
 
