@@ -3,11 +3,8 @@ module.exports = {
     '@stripe/stripe-react-native': {
       platforms: { ios: null },
     },
-    'react-native-worklets-core': {
-      platforms: { ios: null },
-    },
-    'react-native-worklets': {
-      platforms: { ios: null, android: null },
+    'react-native-iap': {
+      platforms: { android: null }, // iOS only - Android uses Stripe
     },
   },
 };
