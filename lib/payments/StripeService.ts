@@ -111,7 +111,25 @@ export class StripeService {
           colors: {
             primary: '#2EFECC',
             background: '#FFFFFF',
-            componentBackground: '#F5F5F5',
+            componentBackground: '#FFFFFF',
+            componentText: '#1A1A1A',
+            componentBorder: '#E0E0E0',
+            text: '#1A1A1A',
+            placeholderText: '#999999',
+            secondaryText: '#666666',
+            icon: '#666666',
+            error: '#FF3B30',
+          },
+          shapes: {
+            borderRadius: 12,
+            borderWidth: 1,
+          },
+          primaryButton: {
+            colors: {
+              background: '#2EFECC',
+              text: '#1A1A1A',
+              border: '#2EFECC',
+            },
           },
         },
         // Enable Link for faster checkout

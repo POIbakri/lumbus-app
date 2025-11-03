@@ -7,6 +7,7 @@ import { fetchUserOrders, fetchOrderById } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { Order } from '../../types';
 import { Circle, Svg } from 'react-native-svg';
+import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
 
 type TabType = 'active' | 'expired';
 
@@ -16,6 +17,7 @@ export default function Dashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('active');
+  const { moderateScale, adaptiveScale, isTablet, screenWidth } = useResponsive();
 
   // Get user ID on mount
   useEffect(() => {
@@ -119,41 +121,43 @@ export default function Dashboard() {
   }, []);
 
   // Memoize CircularProgress component to prevent re-renders
-  const CircularProgress = memo(({ percentage, size = 80, strokeWidth = 6, flag }: { percentage: number; size?: number; strokeWidth?: number; flag: string }) => {
-    const radius = (size - strokeWidth) / 2;
+  const CircularProgress = memo(({ percentage, size, strokeWidth, flag }: { percentage: number; size?: number; strokeWidth?: number; flag: string }) => {
+    const responsiveSize = size || adaptiveScale(80);
+    const responsiveStrokeWidth = strokeWidth || adaptiveScale(6);
+    const radius = (responsiveSize - responsiveStrokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
     const progress = 100 - percentage; // Invert to show remaining
     const strokeDashoffset = (progress / 100) * circumference;
 
     return (
-      <View style={{ width: size, height: size, position: 'relative' }}>
-        <Svg width={size} height={size}>
+      <View style={{ width: responsiveSize, height: responsiveSize, position: 'relative' }}>
+        <Svg width={responsiveSize} height={responsiveSize}>
           {/* Background circle */}
           <Circle
-            cx={size / 2}
-            cy={size / 2}
+            cx={responsiveSize / 2}
+            cy={responsiveSize / 2}
             r={radius}
             stroke="#E5E5E5"
-            strokeWidth={strokeWidth}
+            strokeWidth={responsiveStrokeWidth}
             fill="none"
           />
           {/* Progress circle */}
           <Circle
-            cx={size / 2}
-            cy={size / 2}
+            cx={responsiveSize / 2}
+            cy={responsiveSize / 2}
             r={radius}
             stroke="#2EFECC"
-            strokeWidth={strokeWidth}
+            strokeWidth={responsiveStrokeWidth}
             fill="none"
             strokeDasharray={`${circumference} ${circumference}`}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            transform={`rotate(-90 ${responsiveSize / 2} ${responsiveSize / 2})`}
           />
         </Svg>
         {/* Flag in center */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 32 }}>{flag}</Text>
+          <Text style={{ fontSize: getFontSize(32) }}>{flag}</Text>
         </View>
       </View>
     );
@@ -230,8 +234,10 @@ export default function Dashboard() {
     return (
       <TouchableOpacity
         key={order.id}
-        className="bg-white rounded-3xl p-6 mb-4"
+        className="bg-white mb-4"
         style={{
+          borderRadius: getBorderRadius(24),
+          padding: getSpacing(24),
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.08,
@@ -244,9 +250,17 @@ export default function Dashboard() {
       >
         {/* Ready to Activate Badge for Provisioning */}
         {isProvisioning && (
-          <View className="flex-row items-center mb-3 px-3 py-2 rounded-xl" style={{ backgroundColor: '#FFFEF0', borderWidth: 2, borderColor: '#FDFD74', alignSelf: 'flex-start' }}>
-            <Ionicons name="download-outline" size={16} color="#1A1A1A" />
-            <Text className="ml-1 font-black uppercase tracking-wide" style={{ color: '#1A1A1A', fontSize: 11 }}>
+          <View className="flex-row items-center mb-3" style={{
+            backgroundColor: '#FFFEF0',
+            borderWidth: 2,
+            borderColor: '#FDFD74',
+            alignSelf: 'flex-start',
+            paddingHorizontal: moderateScale(12),
+            paddingVertical: moderateScale(8),
+            borderRadius: getBorderRadius(12),
+          }}>
+            <Ionicons name="download-outline" size={getIconSize(16)} color="#1A1A1A" />
+            <Text className="ml-1 font-black uppercase tracking-wide" style={{ color: '#1A1A1A', fontSize: getFontSize(11) }}>
               Ready to Activate
             </Text>
           </View>
@@ -254,24 +268,39 @@ export default function Dashboard() {
 
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
-            <Text className="text-2xl font-black mb-2" style={{ color: '#1A1A1A' }}>
+            <Text className="font-black mb-2" style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(24),
+            }}>
               {region}
             </Text>
             {isProvisioning ? (
-              <Text className="text-xl font-bold mb-1" style={{ color: '#1A1A1A' }}>
+              <Text className="font-bold mb-1" style={{
+                color: '#1A1A1A',
+                fontSize: getFontSize(20),
+              }}>
                 {mbMatch ? `${mbMatch[1]} MB plan` : `${totalDataGB} GB plan`}
               </Text>
             ) : (
-              <Text className="text-xl font-bold mb-1" style={{ color: '#1A1A1A' }}>
+              <Text className="font-bold mb-1" style={{
+                color: '#1A1A1A',
+                fontSize: getFontSize(20),
+              }}>
                 {formatDataRemaining()}
               </Text>
             )}
             {expiryDate ? (
-              <Text className="text-sm font-bold" style={{ color: '#666666' }}>
+              <Text className="font-bold" style={{
+                color: '#666666',
+                fontSize: getFontSize(14),
+              }}>
                 Expires on {expiryDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
               </Text>
             ) : order.plan?.validity_days ? (
-              <Text className="text-sm font-bold" style={{ color: '#666666' }}>
+              <Text className="font-bold" style={{
+                color: '#666666',
+                fontSize: getFontSize(14),
+              }}>
                 Valid for {order.plan.validity_days} {order.plan.validity_days === 1 ? 'day' : 'days'}
               </Text>
             ) : null}
@@ -279,8 +308,17 @@ export default function Dashboard() {
 
           {/* Circular Progress with Flag */}
           {isProvisioning ? (
-            <View style={{ width: 80, height: 80, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFEF0', borderRadius: 40, borderWidth: 3, borderColor: '#FDFD74' }}>
-              <Text style={{ fontSize: 32 }}>{flag}</Text>
+            <View style={{
+              width: adaptiveScale(80),
+              height: adaptiveScale(80),
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#FFFEF0',
+              borderRadius: adaptiveScale(40),
+              borderWidth: 3,
+              borderColor: '#FDFD74'
+            }}>
+              <Text style={{ fontSize: getFontSize(32) }}>{flag}</Text>
             </View>
           ) : (
             <CircularProgress percentage={percentageUsed} flag={flag} />
@@ -326,7 +364,7 @@ export default function Dashboard() {
   if (isLoading && !orders) {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size="large" color="#2EFECC" />
+        <ActivityIndicator size={isTablet ? 'large' : 'large'} color="#2EFECC" />
       </View>
     );
   }
@@ -349,16 +387,31 @@ export default function Dashboard() {
   return (
     <View className="flex-1" style={{ backgroundColor: '#FFFFFF' }}>
       {/* Header */}
-      <View className="px-6 pt-16 pb-6" style={{ backgroundColor: '#FFFFFF' }}>
-        <Text className="text-4xl font-black uppercase tracking-tight mb-6" style={{ color: '#1A1A1A' }}>
+      <View style={{
+        paddingHorizontal: getHorizontalPadding(),
+        paddingTop: moderateScale(60),
+        paddingBottom: moderateScale(24),
+        backgroundColor: '#FFFFFF'
+      }}>
+        <Text className="font-black uppercase tracking-tight" style={{
+          color: '#1A1A1A',
+          fontSize: getFontSize(isTablet ? 48 : 36),
+          marginBottom: moderateScale(24),
+        }}>
           eSIM
         </Text>
 
         {/* Tabs */}
-        <View className="flex-row rounded-2xl p-1" style={{ backgroundColor: '#F5F5F5' }}>
+        <View className="flex-row" style={{
+          backgroundColor: '#F5F5F5',
+          borderRadius: getBorderRadius(16),
+          padding: moderateScale(4),
+        }}>
           <TouchableOpacity
-            className="flex-1 py-3 rounded-xl"
+            className="flex-1"
             style={{
+              paddingVertical: moderateScale(12),
+              borderRadius: getBorderRadius(12),
               backgroundColor: activeTab === 'active' ? '#FFFFFF' : 'transparent',
             }}
             onPress={() => setActiveTab('active')}
@@ -368,7 +421,7 @@ export default function Dashboard() {
               className="text-center font-black uppercase tracking-wide"
               style={{
                 color: activeTab === 'active' ? '#1A1A1A' : '#666666',
-                fontSize: 14,
+                fontSize: getFontSize(14),
               }}
             >
               Active
@@ -376,8 +429,10 @@ export default function Dashboard() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-1 py-3 rounded-xl"
+            className="flex-1"
             style={{
+              paddingVertical: moderateScale(12),
+              borderRadius: getBorderRadius(12),
               backgroundColor: activeTab === 'expired' ? '#FFFFFF' : 'transparent',
             }}
             onPress={() => setActiveTab('expired')}
@@ -387,7 +442,7 @@ export default function Dashboard() {
               className="text-center font-black uppercase tracking-wide"
               style={{
                 color: activeTab === 'expired' ? '#1A1A1A' : '#666666',
-                fontSize: 14,
+                fontSize: getFontSize(14),
               }}
             >
               Expired
@@ -402,8 +457,9 @@ export default function Dashboard() {
         renderItem={({ item }) => renderOrderCard(item)}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
-          padding: 16,
-          paddingBottom: 100, // Space for fixed bottom button
+          paddingHorizontal: getHorizontalPadding(),
+          paddingTop: moderateScale(8),
+          paddingBottom: moderateScale(120), // Space for fixed bottom button
         }}
         refreshControl={
           <RefreshControl
@@ -419,14 +475,26 @@ export default function Dashboard() {
         initialNumToRender={5}
         updateCellsBatchingPeriod={50}
         ListEmptyComponent={
-          <View className="items-center justify-center py-12">
-            <View className="rounded-full p-6 mb-6" style={{ backgroundColor: '#F5F5F5' }}>
-              <Ionicons name="receipt-outline" size={64} color="#666666" />
+          <View className="items-center justify-center" style={{ paddingVertical: moderateScale(48) }}>
+            <View style={{
+              backgroundColor: '#F5F5F5',
+              borderRadius: adaptiveScale(50),
+              padding: moderateScale(24),
+              marginBottom: moderateScale(24),
+            }}>
+              <Ionicons name="receipt-outline" size={getIconSize(64)} color="#666666" />
             </View>
-            <Text className="text-2xl font-black mb-2 uppercase" style={{ color: '#1A1A1A' }}>
+            <Text className="font-black mb-2 uppercase text-center" style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(24),
+            }}>
               {activeTab === 'active' ? 'No Active eSIMs' : 'No Expired eSIMs'}
             </Text>
-            <Text className="text-center px-6 font-bold mb-8" style={{ color: '#666666' }}>
+            <Text className="text-center font-bold" style={{
+              color: '#666666',
+              fontSize: getFontSize(16),
+              paddingHorizontal: getHorizontalPadding(),
+            }}>
               {activeTab === 'active'
                 ? 'Browse our plans to get started with your first eSIM'
                 : 'You have no expired eSIMs'}
@@ -443,17 +511,17 @@ export default function Dashboard() {
           left: 0,
           right: 0,
           backgroundColor: '#FFFFFF',
-          paddingHorizontal: 24,
-          paddingTop: 16,
-          paddingBottom: 32,
+          paddingHorizontal: getHorizontalPadding(),
+          paddingTop: moderateScale(16),
+          paddingBottom: moderateScale(32),
           borderTopWidth: 1,
           borderTopColor: '#F5F5F5',
         }}>
           <TouchableOpacity
-            className="rounded-full"
             style={{
               backgroundColor: '#FFFFFF',
-              paddingVertical: 18,
+              paddingVertical: moderateScale(18),
+              borderRadius: getBorderRadius(999),
               borderWidth: 2,
               borderColor: '#1A1A1A',
               shadowColor: '#000',
@@ -464,7 +532,10 @@ export default function Dashboard() {
             onPress={handleAddMoreData}
             activeOpacity={0.8}
           >
-            <Text className="font-black text-lg text-center" style={{ color: '#1A1A1A' }}>
+            <Text className="font-black text-center" style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(18),
+            }}>
               Add more data
             </Text>
           </TouchableOpacity>

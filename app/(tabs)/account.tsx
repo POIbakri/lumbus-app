@@ -4,10 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useState, useEffect, useCallback } from 'react';
 import ReferAndEarn from '../components/ReferAndEarn';
+import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
 
 export default function Account() {
   const router = useRouter();
   const [email, setEmail] = useState<string>('');
+  const { moderateScale, adaptiveScale, isTablet } = useResponsive();
 
   const getUserEmail = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -74,28 +76,61 @@ export default function Account() {
   return (
     <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
       {/* Header with brand color */}
-      <View className="px-6 pt-16 pb-6" style={{backgroundColor: '#FDFD74'}}>
-        <Text className="text-4xl font-black uppercase tracking-tight" style={{color: '#1A1A1A', marginBottom: 12}}>
+      <View style={{
+        backgroundColor: '#FDFD74',
+        paddingHorizontal: getHorizontalPadding(),
+        paddingTop: moderateScale(60),
+        paddingBottom: moderateScale(24),
+      }}>
+        <Text className="font-black uppercase tracking-tight" style={{
+          color: '#1A1A1A',
+          fontSize: getFontSize(isTablet ? 48 : 36),
+          marginBottom: moderateScale(12),
+        }}>
           ACCOUNT
         </Text>
-        <Text className="text-base font-bold" style={{color: '#1A1A1A', opacity: 0.8}}>
+        <Text className="font-bold" style={{
+          color: '#1A1A1A',
+          opacity: 0.8,
+          fontSize: getFontSize(16),
+        }}>
           Manage your profile and settings
         </Text>
       </View>
 
       <ScrollView className="flex-1">
-        <View className="p-4">
+        <View style={{ padding: getHorizontalPadding() }}>
         {/* Profile Card */}
-        <View className="bg-white rounded-2xl p-6 mb-6" style={{shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.08, shadowRadius: 8, borderWidth: 2, borderColor: '#E5E5E5'}}>
+        <View className="bg-white" style={{
+          borderRadius: getBorderRadius(16),
+          padding: moderateScale(24),
+          marginBottom: moderateScale(24),
+          shadowColor: '#000',
+          shadowOffset: {width: 0, height: 2},
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          borderWidth: 2,
+          borderColor: '#E5E5E5',
+        }}>
           <View className="flex-row items-center">
-            <View className="p-4 rounded-2xl" style={{backgroundColor: '#2EFECC'}}>
-              <Ionicons name="person" size={32} color="#1A1A1A" />
+            <View style={{
+              backgroundColor: '#2EFECC',
+              padding: moderateScale(16),
+              borderRadius: getBorderRadius(16),
+            }}>
+              <Ionicons name="person" size={getIconSize(32)} color="#1A1A1A" />
             </View>
-            <View className="ml-5 flex-1">
-              <Text className="text-xs mb-1 uppercase font-black tracking-wide" style={{color: '#666666'}}>
+            <View style={{ marginLeft: moderateScale(20), flex: 1 }}>
+              <Text className="mb-1 uppercase font-black tracking-wide" style={{
+                color: '#666666',
+                fontSize: getFontSize(12),
+              }}>
                 Email Address
               </Text>
-              <Text className="text-lg font-black" style={{color: '#1A1A1A'}}>
+              <Text className="font-black" style={{
+                color: '#1A1A1A',
+                fontSize: getFontSize(18),
+              }}>
                 {email}
               </Text>
             </View>
@@ -106,75 +141,139 @@ export default function Account() {
         <ReferAndEarn />
 
         {/* Menu Items */}
-        <View className="bg-white rounded-2xl overflow-hidden mb-6" style={{shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.08, shadowRadius: 8, borderWidth: 2, borderColor: '#E5E5E5'}}>
+        <View className="bg-white overflow-hidden" style={{
+          borderRadius: getBorderRadius(16),
+          marginBottom: moderateScale(24),
+          shadowColor: '#000',
+          shadowOffset: {width: 0, height: 2},
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          borderWidth: 2,
+          borderColor: '#E5E5E5',
+        }}>
           <TouchableOpacity
-            className="flex-row items-center justify-between p-5"
-            style={{borderBottomWidth: 2, borderBottomColor: '#E5E5E5'}}
+            className="flex-row items-center justify-between"
+            style={{
+              padding: moderateScale(20),
+              borderBottomWidth: 2,
+              borderBottomColor: '#E5E5E5',
+            }}
             onPress={openHelpSupport}
             activeOpacity={0.7}
           >
             <View className="flex-row items-center">
-              <View className="p-2 rounded-xl" style={{backgroundColor: '#E0FEF7'}}>
-                <Ionicons name="help-circle-outline" size={24} color="#2EFECC" />
+              <View style={{
+                backgroundColor: '#E0FEF7',
+                padding: moderateScale(8),
+                borderRadius: getBorderRadius(12),
+              }}>
+                <Ionicons name="help-circle-outline" size={getIconSize(24)} color="#2EFECC" />
               </View>
-              <Text className="ml-4 text-base font-black uppercase tracking-wide" style={{color: '#1A1A1A'}}>
+              <Text className="font-black uppercase tracking-wide" style={{
+                color: '#1A1A1A',
+                fontSize: getFontSize(16),
+                marginLeft: moderateScale(16),
+              }}>
                 Help & Support
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={22} color="#2EFECC" />
+            <Ionicons name="chevron-forward" size={getIconSize(22)} color="#2EFECC" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-row items-center justify-between p-5"
-            style={{borderBottomWidth: 2, borderBottomColor: '#E5E5E5'}}
+            className="flex-row items-center justify-between"
+            style={{
+              padding: moderateScale(20),
+              borderBottomWidth: 2,
+              borderBottomColor: '#E5E5E5',
+            }}
             onPress={openTermsOfService}
             activeOpacity={0.7}
           >
             <View className="flex-row items-center">
-              <View className="p-2 rounded-xl" style={{backgroundColor: '#E0FEF7'}}>
-                <Ionicons name="document-text-outline" size={24} color="#2EFECC" />
+              <View style={{
+                backgroundColor: '#E0FEF7',
+                padding: moderateScale(8),
+                borderRadius: getBorderRadius(12),
+              }}>
+                <Ionicons name="document-text-outline" size={getIconSize(24)} color="#2EFECC" />
               </View>
-              <Text className="ml-4 text-base font-black uppercase tracking-wide" style={{color: '#1A1A1A'}}>
+              <Text className="font-black uppercase tracking-wide" style={{
+                color: '#1A1A1A',
+                fontSize: getFontSize(16),
+                marginLeft: moderateScale(16),
+              }}>
                 Terms of Service
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={22} color="#2EFECC" />
+            <Ionicons name="chevron-forward" size={getIconSize(22)} color="#2EFECC" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-row items-center justify-between p-5"
+            className="flex-row items-center justify-between"
+            style={{
+              padding: moderateScale(20),
+            }}
             onPress={openPrivacyPolicy}
             activeOpacity={0.7}
           >
             <View className="flex-row items-center">
-              <View className="p-2 rounded-xl" style={{backgroundColor: '#E0FEF7'}}>
-                <Ionicons name="shield-checkmark-outline" size={24} color="#2EFECC" />
+              <View style={{
+                backgroundColor: '#E0FEF7',
+                padding: moderateScale(8),
+                borderRadius: getBorderRadius(12),
+              }}>
+                <Ionicons name="shield-checkmark-outline" size={getIconSize(24)} color="#2EFECC" />
               </View>
-              <Text className="ml-4 text-base font-black uppercase tracking-wide" style={{color: '#1A1A1A'}}>
+              <Text className="font-black uppercase tracking-wide" style={{
+                color: '#1A1A1A',
+                fontSize: getFontSize(16),
+                marginLeft: moderateScale(16),
+              }}>
                 Privacy Policy
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={22} color="#2EFECC" />
+            <Ionicons name="chevron-forward" size={getIconSize(22)} color="#2EFECC" />
           </TouchableOpacity>
         </View>
 
         {/* Sign Out Button */}
         <TouchableOpacity
-          className="rounded-2xl p-5 flex-row items-center justify-center"
-          style={{backgroundColor: '#EF4444', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8}}
+          className="flex-row items-center justify-center"
+          style={{
+            backgroundColor: '#EF4444',
+            borderRadius: getBorderRadius(16),
+            padding: moderateScale(20),
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: 4},
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+          }}
           onPress={handleSignOut}
           activeOpacity={0.8}
         >
-          <Ionicons name="log-out-outline" size={26} color="white" />
-          <Text className="ml-3 text-base font-black uppercase tracking-wide" style={{color: '#FFFFFF'}}>
+          <Ionicons name="log-out-outline" size={getIconSize(26)} color="white" />
+          <Text className="font-black uppercase tracking-wide" style={{
+            color: '#FFFFFF',
+            fontSize: getFontSize(16),
+            marginLeft: moderateScale(12),
+          }}>
             Sign Out
           </Text>
         </TouchableOpacity>
 
         {/* Version Badge */}
-        <View className="items-center mt-8">
-          <View className="px-5 py-2 rounded-full" style={{backgroundColor: '#F5F5F5'}}>
-            <Text className="text-xs font-bold uppercase tracking-wide" style={{color: '#666666'}}>
+        <View className="items-center" style={{ marginTop: moderateScale(32) }}>
+          <View style={{
+            backgroundColor: '#F5F5F5',
+            paddingHorizontal: moderateScale(20),
+            paddingVertical: moderateScale(8),
+            borderRadius: getBorderRadius(999),
+          }}>
+            <Text className="font-bold uppercase tracking-wide" style={{
+              color: '#666666',
+              fontSize: getFontSize(12),
+            }}>
               ⚡ Lumbus v1.0.0
             </Text>
           </View>

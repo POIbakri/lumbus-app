@@ -1,9 +1,8 @@
-import { View, Text, TouchableOpacity, Dimensions, StyleSheet, Animated, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Image, ScrollView } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../hooks/useResponsive';
 
 const COLORS = {
   primary: '#2EFECC',
@@ -34,7 +33,7 @@ const screens: OnboardingScreen[] = [
   {
     stepNumber: 0,
     stepBadge: {
-      backgroundColor: COLORS.yellow, // No badge displayed, just for reference
+      backgroundColor: COLORS.yellow,
       number: '0',
     },
     useLogo: true,
@@ -120,13 +119,13 @@ const screens: OnboardingScreen[] = [
 export default function Onboarding() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { moderateScale, adaptiveScale, isTablet, screenWidth } = useResponsive();
 
   const handleNext = () => {
     if (currentIndex < screens.length - 1) {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
     } else {
-      // Navigate to login screen
       router.replace('/(auth)/login');
     }
   };
@@ -137,156 +136,350 @@ export default function Onboarding() {
 
   return (
     <View style={styles.container}>
-      {/* Skip Button */}
-      <TouchableOpacity
-        style={styles.skipButton}
-        onPress={handleSkip}
-        activeOpacity={0.7}
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.skipText}>SKIP</Text>
-      </TouchableOpacity>
+        <View style={{ flex: 1, paddingHorizontal: getHorizontalPadding() }}>
+          {/* Skip Button */}
+          <TouchableOpacity
+            style={{
+              alignSelf: 'flex-end',
+              paddingVertical: moderateScale(8),
+              paddingHorizontal: moderateScale(16),
+              marginTop: moderateScale(60),
+            }}
+            onPress={handleSkip}
+            activeOpacity={0.7}
+          >
+            <Text style={{
+              fontSize: getFontSize(14),
+              fontWeight: '700',
+              color: COLORS.gray,
+              letterSpacing: 1,
+            }}>
+              SKIP
+            </Text>
+          </TouchableOpacity>
 
-      {/* Content */}
-      <View style={styles.content}>
-        {screens.map((screen, index) => {
-          if (index !== currentIndex) return null;
+          {/* Content */}
+          <View style={{
+            flex: 1,
+            justifyContent: 'center',
+            paddingBottom: moderateScale(20),
+          }}>
+            {screens.map((screen, index) => {
+              if (index !== currentIndex) return null;
 
-          return (
-            <View
-              key={index}
-              style={styles.screenContainer}
-            >
-              {/* Logo or Emoji - larger for first screen */}
-              {screen.useLogo ? (
-                <Image
-                  source={require('../assets/logotrans.png')}
-                  style={{
-                    width: 200,
-                    height: 160,
-                    resizeMode: 'contain',
-                    marginBottom: 32,
-                  }}
-                />
-              ) : (
-                <Text style={[styles.emoji, screen.stepNumber === 0 && styles.emojiLarge]}>{screen.emoji}</Text>
-              )}
+              return (
+                <View
+                  key={index}
+                  style={{ alignItems: 'center' }}
+                >
+                  {/* Logo or Emoji */}
+                  {screen.useLogo ? (
+                    <Image
+                      source={require('../assets/logotrans.png')}
+                      style={{
+                        width: adaptiveScale(isTablet ? 250 : 200),
+                        height: adaptiveScale(isTablet ? 200 : 160),
+                        resizeMode: 'contain',
+                        marginBottom: moderateScale(32),
+                      }}
+                    />
+                  ) : (
+                    <Text style={{
+                      fontSize: getFontSize(isTablet ? 96 : 72),
+                      marginBottom: moderateScale(24),
+                    }}>
+                      {screen.emoji}
+                    </Text>
+                  )}
 
-              {/* Title */}
-              <Text style={styles.title}>{screen.title}</Text>
+                  {/* Title */}
+                  <Text style={{
+                    fontSize: getFontSize(isTablet ? 40 : 32),
+                    fontWeight: '900',
+                    color: COLORS.black,
+                    textAlign: 'center',
+                    letterSpacing: -0.5,
+                    marginBottom: moderateScale(16),
+                  }}>
+                    {screen.title}
+                  </Text>
 
-              {/* Description */}
-              <Text style={styles.description}>{screen.description}</Text>
+                  {/* Description */}
+                  <Text style={{
+                    fontSize: getFontSize(16),
+                    fontWeight: '600',
+                    color: COLORS.gray,
+                    textAlign: 'center',
+                    lineHeight: getFontSize(16) * 1.5,
+                    marginBottom: moderateScale(32),
+                    paddingHorizontal: moderateScale(16),
+                  }}>
+                    {screen.description}
+                  </Text>
 
-              {/* Features */}
-              <View style={styles.featuresContainer}>
-                {screen.features.map((feature, idx) => (
-                  <View key={idx} style={[
-                    styles.featureRow,
-                    screen.stepNumber === 0 && styles.featureRowColored
-                  ]}>
-                    <View style={screen.stepNumber === 0 ? styles.featureIconBadge : null}>
-                      <Text style={[
-                        styles.featureIcon,
-                        screen.stepNumber === 0 && styles.featureIconColored
-                      ]}>{feature.icon}</Text>
-                    </View>
-                    <Text style={styles.featureText}>{feature.text}</Text>
+                  {/* Features */}
+                  <View style={{
+                    width: '100%',
+                    marginBottom: moderateScale(32),
+                  }}>
+                    {screen.features.map((feature, idx) => (
+                      <View
+                        key={idx}
+                        style={
+                          screen.stepNumber === 0 ? {
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: COLORS.yellow,
+                            borderRadius: getBorderRadius(12),
+                            paddingVertical: moderateScale(16),
+                            paddingHorizontal: moderateScale(16),
+                            marginBottom: moderateScale(16),
+                          } : {
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            marginBottom: moderateScale(12),
+                            paddingHorizontal: moderateScale(16),
+                          }
+                        }
+                      >
+                        {screen.stepNumber === 0 ? (
+                          <View style={{
+                            width: adaptiveScale(32),
+                            height: adaptiveScale(32),
+                            borderRadius: adaptiveScale(16),
+                            backgroundColor: COLORS.black,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: moderateScale(12),
+                          }}>
+                            <Text style={{
+                              fontSize: getFontSize(16),
+                              color: COLORS.yellow,
+                              fontWeight: '900',
+                            }}>
+                              {feature.icon}
+                            </Text>
+                          </View>
+                        ) : (
+                          <Text style={{
+                            fontSize: getFontSize(18),
+                            color: COLORS.primary,
+                            marginRight: moderateScale(12),
+                            fontWeight: '900',
+                          }}>
+                            {feature.icon}
+                          </Text>
+                        )}
+                        <Text style={{
+                          fontSize: getFontSize(15),
+                          fontWeight: '700',
+                          color: COLORS.black,
+                          flex: 1,
+                        }}>
+                          {feature.text}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
 
-              {/* Example Card */}
-              {screen.exampleCard && (
-                <View style={styles.exampleCardContainer}>
-                  {/* Plan Card (Screen 1) */}
-                  {screen.stepNumber === 1 && (
-                    <View
-                      style={[
-                        styles.planCard,
-                        { backgroundColor: screen.exampleCard.backgroundColor },
-                      ]}
-                    >
-                      <Text style={styles.planCardTitle}>
-                        {screen.exampleCard.title}
-                      </Text>
-                      <Text style={styles.planCardPrice}>
-                        {screen.exampleCard.price}
-                      </Text>
-                      <View style={styles.planCardDivider} />
-                      {screen.exampleCard.details.map((detail: any, idx: number) => (
-                        <View key={idx} style={styles.planDetailRow}>
-                          <Text style={styles.planDetailLabel}>{detail.label}</Text>
-                          <Text style={styles.planDetailValue}>{detail.value}</Text>
+                  {/* Example Card */}
+                  {screen.exampleCard && (
+                    <View style={{
+                      width: '100%',
+                      marginTop: moderateScale(8),
+                    }}>
+                      {/* Plan Card (Screen 1) */}
+                      {screen.stepNumber === 1 && (
+                        <View style={{
+                          backgroundColor: screen.exampleCard.backgroundColor,
+                          borderRadius: getBorderRadius(20),
+                          padding: moderateScale(20),
+                          borderWidth: 2,
+                          borderColor: '#E5E5E5',
+                        }}>
+                          <Text style={{
+                            fontSize: getFontSize(18),
+                            fontWeight: '900',
+                            color: COLORS.black,
+                            marginBottom: moderateScale(8),
+                            textTransform: 'uppercase',
+                          }}>
+                            {screen.exampleCard.title}
+                          </Text>
+                          <Text style={{
+                            fontSize: getFontSize(28),
+                            fontWeight: '900',
+                            color: COLORS.black,
+                            marginBottom: moderateScale(16),
+                          }}>
+                            {screen.exampleCard.price}
+                          </Text>
+                          <View style={{
+                            height: 2,
+                            backgroundColor: '#E5E5E5',
+                            marginBottom: moderateScale(12),
+                          }} />
+                          {screen.exampleCard.details.map((detail: any, idx: number) => (
+                            <View key={idx} style={{
+                              flexDirection: 'row',
+                              justifyContent: 'space-between',
+                              marginBottom: moderateScale(8),
+                            }}>
+                              <Text style={{
+                                fontSize: getFontSize(14),
+                                fontWeight: '700',
+                                color: COLORS.gray,
+                              }}>
+                                {detail.label}
+                              </Text>
+                              <Text style={{
+                                fontSize: getFontSize(14),
+                                fontWeight: '900',
+                                color: COLORS.black,
+                              }}>
+                                {detail.value}
+                              </Text>
+                            </View>
+                          ))}
                         </View>
-                      ))}
-                    </View>
-                  )}
+                      )}
 
-                  {/* Payment Card (Screen 2) */}
-                  {screen.stepNumber === 2 && (
-                    <View
-                      style={[
-                        styles.paymentCard,
-                        { backgroundColor: screen.exampleCard.backgroundColor },
-                      ]}
-                    >
-                      {screen.exampleCard.paymentMethods.map((method: any, idx: number) => (
-                        <View key={idx} style={styles.paymentMethodRow}>
-                          <Text style={styles.paymentIcon}>{method.icon}</Text>
-                          <Text style={styles.paymentLabel}>{method.label}</Text>
+                      {/* Payment Card (Screen 2) */}
+                      {screen.stepNumber === 2 && (
+                        <View style={{
+                          backgroundColor: screen.exampleCard.backgroundColor,
+                          borderRadius: getBorderRadius(20),
+                          padding: moderateScale(20),
+                          borderWidth: 2,
+                          borderColor: '#E5E5E5',
+                        }}>
+                          {screen.exampleCard.paymentMethods.map((method: any, idx: number) => (
+                            <View key={idx} style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              paddingVertical: moderateScale(12),
+                              borderBottomWidth: idx < screen.exampleCard.paymentMethods.length - 1 ? 1 : 0,
+                              borderBottomColor: '#E5E5E5',
+                            }}>
+                              <Text style={{
+                                fontSize: getFontSize(24),
+                                marginRight: moderateScale(12),
+                              }}>
+                                {method.icon}
+                              </Text>
+                              <Text style={{
+                                fontSize: getFontSize(16),
+                                fontWeight: '700',
+                                color: COLORS.black,
+                              }}>
+                                {method.label}
+                              </Text>
+                            </View>
+                          ))}
                         </View>
-                      ))}
-                    </View>
-                  )}
+                      )}
 
-                  {/* Ready Card (Screen 3) */}
-                  {screen.stepNumber === 3 && (
-                    <View
-                      style={[
-                        styles.readyCard,
-                        { backgroundColor: screen.exampleCard.backgroundColor },
-                      ]}
-                    >
-                      <Text style={styles.readyIcon}>{screen.exampleCard.icon}</Text>
-                      <Text style={styles.readyTitle}>{screen.exampleCard.title}</Text>
-                      <Text style={styles.readySubtitle}>{screen.exampleCard.subtitle}</Text>
+                      {/* Ready Card (Screen 3) */}
+                      {screen.stepNumber === 3 && (
+                        <View style={{
+                          backgroundColor: screen.exampleCard.backgroundColor,
+                          borderRadius: getBorderRadius(20),
+                          padding: moderateScale(32),
+                          borderWidth: 2,
+                          borderColor: '#E5E5E5',
+                          alignItems: 'center',
+                        }}>
+                          <Text style={{
+                            fontSize: getFontSize(64),
+                            marginBottom: moderateScale(16),
+                          }}>
+                            {screen.exampleCard.icon}
+                          </Text>
+                          <Text style={{
+                            fontSize: getFontSize(18),
+                            fontWeight: '900',
+                            color: COLORS.black,
+                            textAlign: 'center',
+                            marginBottom: moderateScale(8),
+                            textTransform: 'uppercase',
+                          }}>
+                            {screen.exampleCard.title}
+                          </Text>
+                          <Text style={{
+                            fontSize: getFontSize(14),
+                            fontWeight: '700',
+                            color: COLORS.gray,
+                            textAlign: 'center',
+                          }}>
+                            {screen.exampleCard.subtitle}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
                 </View>
-              )}
-            </View>
-          );
-        })}
-      </View>
+              );
+            })}
+          </View>
 
-      {/* Pagination Dots */}
-      <View style={styles.pagination}>
-        {screens.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.dot,
-              {
-                backgroundColor:
-                  index === currentIndex ? COLORS.primary : '#E5E5E5',
-                width: index === currentIndex ? 24 : 8,
-              },
-            ]}
-          />
-        ))}
-      </View>
+          {/* Pagination Dots */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: moderateScale(16),
+            gap: moderateScale(8),
+          }}>
+            {screens.map((_, index) => (
+              <View
+                key={index}
+                style={{
+                  height: adaptiveScale(8),
+                  borderRadius: adaptiveScale(4),
+                  backgroundColor: index === currentIndex ? COLORS.primary : '#E5E5E5',
+                  width: index === currentIndex ? adaptiveScale(24) : adaptiveScale(8),
+                }}
+              />
+            ))}
+          </View>
 
-      {/* Next Button */}
-      <TouchableOpacity
-        style={styles.nextButton}
-        onPress={handleNext}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.nextButtonText}>
-          {currentIndex === screens.length - 1 ? 'GET STARTED' : 'NEXT'}
-        </Text>
-        <Ionicons name="arrow-forward" size={20} color={COLORS.black} />
-      </TouchableOpacity>
+          {/* Next Button */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: COLORS.primary,
+              borderRadius: getBorderRadius(16),
+              paddingVertical: moderateScale(16),
+              paddingHorizontal: moderateScale(32),
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: moderateScale(12),
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 4,
+              marginBottom: moderateScale(20),
+            }}
+            onPress={handleNext}
+            activeOpacity={0.8}
+          >
+            <Text style={{
+              fontSize: getFontSize(16),
+              fontWeight: '900',
+              color: COLORS.black,
+              letterSpacing: 1,
+            }}>
+              {currentIndex === screens.length - 1 ? 'GET STARTED' : 'NEXT'}
+            </Text>
+            <Ionicons name="arrow-forward" size={getIconSize(20)} color={COLORS.black} />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -295,235 +488,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 24,
-  },
-  skipButton: {
-    alignSelf: 'flex-end',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  skipText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.gray,
-    letterSpacing: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  screenContainer: {
-    alignItems: 'center',
-  },
-  stepBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  stepBadgeText: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: COLORS.black,
-  },
-  emoji: {
-    fontSize: 72,
-    marginBottom: 24,
-  },
-  emojiLarge: {
-    fontSize: 96,
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: COLORS.black,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.gray,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
-    paddingHorizontal: 16,
-  },
-  featuresContainer: {
-    width: '100%',
-    marginBottom: 32,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 16,
-  },
-  featureRowColored: {
-    backgroundColor: COLORS.yellow,
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  featureIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  featureIcon: {
-    fontSize: 18,
-    color: COLORS.primary,
-    marginRight: 12,
-    fontWeight: '900',
-  },
-  featureIconColored: {
-    fontSize: 16,
-    color: COLORS.yellow,
-    marginRight: 0,
-  },
-  featureText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.black,
-    flex: 1,
-  },
-  exampleCardContainer: {
-    width: '100%',
-    marginTop: 8,
-  },
-  // Plan Card Styles
-  planCard: {
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: '#E5E5E5',
-  },
-  planCardTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: COLORS.black,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  planCardPrice: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: COLORS.black,
-    marginBottom: 16,
-  },
-  planCardDivider: {
-    height: 2,
-    backgroundColor: '#E5E5E5',
-    marginBottom: 12,
-  },
-  planDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  planDetailLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.gray,
-  },
-  planDetailValue: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: COLORS.black,
-  },
-  // Payment Card Styles
-  paymentCard: {
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: '#E5E5E5',
-  },
-  paymentMethodRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-  },
-  paymentIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  paymentLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.black,
-  },
-  // Ready Card Styles
-  readyCard: {
-    borderRadius: 20,
-    padding: 32,
-    borderWidth: 2,
-    borderColor: '#E5E5E5',
-    alignItems: 'center',
-  },
-  readyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  readyTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: COLORS.black,
-    textAlign: 'center',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  readySubtitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.gray,
-    textAlign: 'center',
-  },
-  // Pagination
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-  },
-  // Next Button
-  nextButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    marginBottom: 10,
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: COLORS.black,
-    letterSpacing: 1,
   },
 });
