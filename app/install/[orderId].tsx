@@ -151,7 +151,7 @@ export default function InstallEsim() {
 
   // Order is still processing or not ready
   // IMPORTANT: Check BOTH activation_code AND smdp to avoid invalid LPA strings
-  const isReady = (order.status === 'active' || order.status === 'depleted' || order.status === 'provisioning') &&
+  const isReady = (order.status === 'active' || order.status === 'depleted' || order.status === 'provisioning' || order.status === 'completed') &&
                   order.activation_code &&
                   order.smdp;
   if (!isReady) {
