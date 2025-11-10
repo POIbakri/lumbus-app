@@ -179,7 +179,7 @@ export default function Dashboard() {
       totalDataGB = mbValue / 1024; // Convert to GB for consistency (100MB = 0.09765625 GB)
     }
 
-    const isProvisioning = order.status === 'provisioning';
+    const isProvisioning = order.status === 'provisioning' || order.status === 'completed';
     const isDepleted = order.status === 'depleted';
 
     // Use data from order object directly if available, fallback to fetched usage data
@@ -365,14 +365,21 @@ export default function Dashboard() {
     if (!orders) return [];
 
     return orders.filter(order => {
-      // Show active, depleted, expired, and provisioning eSIMs (skip pending, failed, paid)
-      const validStatuses = ['active', 'depleted', 'expired', 'provisioning'];
+      // CRITICAL: Explicitly exclude invalid order statuses
+      const invalidStatuses = ['cancelled', 'revoked', 'failed', 'unknown', 'pending', 'paid'];
+      if (invalidStatuses.includes(order.status)) {
+        return false;
+      }
+
+      // Show active, depleted, expired, provisioning, and completed eSIMs
+      // IMPORTANT: 'completed' status means eSIM is ready to activate (backend provisioning done)
+      const validStatuses = ['active', 'depleted', 'expired', 'provisioning', 'completed'];
       if (!validStatuses.includes(order.status)) {
         return false;
       }
 
-      // Provisioning eSIMs are always active (ready to activate)
-      if (order.status === 'provisioning') {
+      // Completed and Provisioning eSIMs are always active (ready to activate)
+      if (order.status === 'provisioning' || order.status === 'completed') {
         return activeTab === 'active';
       }
 
