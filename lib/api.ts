@@ -496,7 +496,9 @@ export async function fetchRegionInfo(regionCode: string): Promise<RegionInfo | 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-        const response = await fetch(`https://getlumbus.com/api/regions/${regionCode}`, {
+        // Use the configured API URL instead of hardcoded production URL
+        // This ensures staging/QA builds fetch from the correct environment
+        const response = await fetch(`${API_URL}/regions/${regionCode}`, {
           signal: controller.signal,
           headers: {
             'Accept': 'application/json',

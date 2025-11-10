@@ -19,7 +19,7 @@ export default function PlanDetail() {
   const [displayPrice, setDisplayPrice] = useState<string>('');
   const [discountedPrice, setDiscountedPrice] = useState<string>('');
   const [showCountries, setShowCountries] = useState(false);
-  const { convertMultiplePrices, symbol, loading: currencyLoading, currency } = useCurrency();
+  const { convertMultiplePrices, symbol, formatPrice, loading: currencyLoading, currency } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
   const { hasActiveReferral, referralCode } = useReferral();
 
@@ -65,10 +65,10 @@ export default function PlanDetail() {
     if (hasActiveReferral) {
       const originalValue = converted[0].converted;
       const discountedValue = originalValue * 0.9; // 10% off
-      const formatted = `${symbol}${discountedValue.toFixed(2)}`;
+      const formatted = formatPrice(discountedValue);
       setDiscountedPrice(formatted);
     }
-  }, [plan, convertMultiplePrices, hasActiveReferral, symbol]);
+  }, [plan, convertMultiplePrices, hasActiveReferral, formatPrice]);
 
   useEffect(() => {
     if (plan && !currencyLoading) {
@@ -204,12 +204,12 @@ export default function PlanDetail() {
                       marginBottom: moderateScale(4),
                     }}
                   >
-                    {displayPrice || `${symbol}${plan.price}`}
+                    {displayPrice || formatPrice(plan.price)}
                   </Text>
                 )}
                 <View className="rounded-xl" style={{backgroundColor: '#2EFECC', paddingHorizontal: scale(16), paddingVertical: moderateScale(8)}}>
                   <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(28)}}>
-                    {hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || `${symbol}${plan.price}`)}
+                    {hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.price))}
                   </Text>
                 </View>
                 {hasActiveReferral && (
@@ -364,7 +364,7 @@ export default function PlanDetail() {
               <Ionicons name="logo-apple" size={getFontSize(20)} color="#1A1A1A" style={{marginRight: scale(8)}} />
             )}
             <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {loading ? 'Processing...' : `Buy now for ${hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || `${symbol}${plan.price}`)} →`}
+              {loading ? 'Processing...' : `Buy now for ${hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.price))} →`}
             </Text>
           </View>
         </TouchableOpacity>

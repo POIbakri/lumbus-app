@@ -150,7 +150,10 @@ export default function InstallEsim() {
   }
 
   // Order is still processing or not ready
-  const isReady = (order.status === 'active' || order.status === 'depleted' || order.status === 'provisioning') && order.activation_code;
+  // IMPORTANT: Check BOTH activation_code AND smdp to avoid invalid LPA strings
+  const isReady = (order.status === 'active' || order.status === 'depleted' || order.status === 'provisioning') &&
+                  order.activation_code &&
+                  order.smdp;
   if (!isReady) {
     return (
       <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
@@ -175,7 +178,8 @@ export default function InstallEsim() {
 
   const planName = order.plan?.name || 'Unknown Plan';
   const region = extractRegion(planName);
-  const lpaString = `LPA:1$${order.smdp}$${order.activation_code}`;
+  // Safe to use non-null assertion here because isReady check above ensures both exist
+  const lpaString = `LPA:1$${order.smdp!}$${order.activation_code!}`;
 
   // Determine button description based on platform and iOS version
   const getInstallButtonDescription = () => {

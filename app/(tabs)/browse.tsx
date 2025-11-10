@@ -27,7 +27,7 @@ export default function Browse() {
   const [regionsWithPrices, setRegionsWithPrices] = useState<RegionGroup[]>([]);
   const { scale, moderateScale, isSmallDevice } = useResponsive();
   const { location, loading: locationLoading } = useLocation();
-  const { convertMultiplePrices, symbol, loading: currencyLoading } = useCurrency();
+  const { convertMultiplePrices, symbol, formatPrice, loading: currencyLoading } = useCurrency();
 
   const { data: plans, isLoading, isFetching, error } = useQuery({
     queryKey: ['plans'],
@@ -200,7 +200,7 @@ export default function Browse() {
 
         <View className="flex-row items-center justify-between pt-3" style={{borderTopWidth: 2, borderTopColor: 'rgba(0,0,0,0.1)'}}>
           <Text className="text-base font-bold uppercase" style={{color: '#1A1A1A', opacity: 0.7}}>
-            From {symbol}{(group.convertedMinPrice || group.minPrice).toFixed(2)}
+            From {formatPrice(group.convertedMinPrice || group.minPrice)}
           </Text>
           <View className="flex-row items-center">
             <Text className="text-base font-black uppercase mr-2" style={{color: '#1A1A1A'}}>
@@ -211,7 +211,7 @@ export default function Browse() {
         </View>
       </TouchableOpacity>
     );
-  }, [getRegionColor, symbol, router]);
+  }, [getRegionColor, formatPrice, router]);
 
   // Only show full loading on initial load, not when refetching cached data
   if ((isLoading && !plans) || currencyLoading) {

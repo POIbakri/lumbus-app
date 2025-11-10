@@ -20,7 +20,22 @@ export function DeepLinkHandler() {
     const parseUrl = (url: string): { path: string | null; queryParams: Record<string, string> } => {
       try {
         const u = new URL(url);
-        const path = (u.pathname || '').replace(/^\//, '');
+
+        // For custom schemes (lumbus://), combine host + pathname
+        // Example: lumbus://ref/ABC12345 → host="ref", pathname="/ABC12345" → path="ref/ABC12345"
+        // For HTTP/HTTPS, use pathname only
+        // Example: https://lumbus.com/r/ABC12345 → pathname="/r/ABC12345" → path="r/ABC12345"
+        let path: string;
+        if (u.protocol === 'lumbus:') {
+          // Custom scheme: join host + pathname
+          const host = u.host || '';
+          const pathname = (u.pathname || '').replace(/^\//, '');
+          path = host ? (pathname ? `${host}/${pathname}` : host) : pathname;
+        } else {
+          // HTTP/HTTPS: use pathname only
+          path = (u.pathname || '').replace(/^\//, '');
+        }
+
         const queryParams: Record<string, string> = {};
         u.searchParams.forEach((value, key) => {
           queryParams[key] = value;
@@ -51,8 +66,17 @@ export function DeepLinkHandler() {
           return;
         }
 
+        // Handle payment completion (Stripe 3DS return URL)
+        if (path === 'payment-complete') {
+          logger.log('✅ Payment completed via 3DS redirect');
+          // Stripe handles the payment completion automatically
+          // Just navigate to dashboard to show the new order
+          router.push('/(tabs)/dashboard');
+          return;
+        }
+
         // Whitelist allowed paths for security
-        const allowedPaths = ['dashboard', 'payment-complete'];
+        const allowedPaths = ['dashboard'];
         if (!path || !allowedPaths.includes(path)) {
           logger.warn('Invalid deep link path attempted:', path);
           return;

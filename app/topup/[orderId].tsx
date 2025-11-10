@@ -17,7 +17,7 @@ export default function TopUpScreen() {
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
-  const { convertMultiplePrices, symbol, loading: currencyLoading, currency } = useCurrency();
+  const { convertMultiplePrices, symbol, formatPrice, loading: currencyLoading, currency } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
   // Initialize payment service on mount
@@ -256,7 +256,7 @@ export default function TopUpScreen() {
 
           {plansToDisplay.map((plan, index) => {
             const isSelected = selectedPlan?.id === plan.id;
-            const priceDisplay = plan.displayPrice || `${symbol}${(plan.retail_price || plan.price).toFixed(2)}`;
+            const priceDisplay = plan.displayPrice || formatPrice(plan.retail_price || plan.price);
 
             return (
               <TouchableOpacity
@@ -329,7 +329,7 @@ export default function TopUpScreen() {
               <Ionicons name="logo-apple" size={getFontSize(20)} color="#1A1A1A" style={{marginRight: scale(8)}} />
             )}
             <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {loading ? 'Processing...' : (selectedPlan ? `Buy now for ${selectedPlan.displayPrice || `${symbol}${(selectedPlan.retail_price || selectedPlan.price).toFixed(2)}`} →` : 'Select a plan')}
+              {loading ? 'Processing...' : (selectedPlan ? `Buy now for ${selectedPlan.displayPrice || formatPrice(selectedPlan.retail_price || selectedPlan.price)} →` : 'Select a plan')}
             </Text>
           </View>
         </TouchableOpacity>

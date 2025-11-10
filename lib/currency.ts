@@ -144,13 +144,17 @@ export async function convertPrices(
 
 /**
  * Format a price with currency symbol
+ * Uses consistent formatting across iOS and Android
  */
 export function formatPrice(amount: number, currency: Currency): string {
   const currencyInfo = SUPPORTED_CURRENCIES[currency];
 
   if (currency === 'JPY' || currency === 'KRW' || currency === 'IDR') {
-    // Zero decimal currencies
-    return `${currencyInfo.symbol}${Math.round(amount).toLocaleString()}`;
+    // Zero decimal currencies - format with thousands separator
+    // Use en-US locale for consistent comma separators across platforms
+    const rounded = Math.round(amount);
+    const formatted = rounded.toLocaleString('en-US');
+    return `${currencyInfo.symbol}${formatted}`;
   }
 
   return `${currencyInfo.symbol}${amount.toFixed(2)}`;
