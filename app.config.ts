@@ -13,6 +13,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     'expo-font',
     'expo-web-browser',
   ];
+
+  // Add Stripe plugin for Android only
   if (isAndroidBuild) {
     plugins.push([
       '@stripe/stripe-react-native',
@@ -20,15 +22,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         merchantIdentifier: 'merchant.com.lumbus.app',
       },
     ]);
-    plugins.push([
-      'expo-notifications',
-      {
-        icon: './assets/iconlogofavicon/android-chrome-192x192.png',
-        color: '#2EFECC',
-        mode: 'production',
-      },
-    ]);
   }
+
+  // Add expo-notifications for both iOS and Android
+  // Android gets custom icon/color, iOS uses default system appearance
+  plugins.push([
+    'expo-notifications',
+    isAndroidBuild ? {
+      icon: './assets/iconlogofavicon/android-chrome-192x192.png',
+      color: '#2EFECC',
+      mode: 'production',
+    } : {
+      // iOS: No custom configuration needed, uses system defaults
+      mode: 'production',
+    },
+  ]);
 
   // Force new build v1.0.8 - with Stripe key safety fix to prevent nil crash
   return {
@@ -58,6 +66,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       infoPlist: {
         NSCameraUsageDescription: 'This app requires camera access to scan QR codes for eSIM installation.',
+        NSUserNotificationsUsageDescription: 'We send notifications when your eSIM is ready to install and when you\'re running low on data.',
         ITSAppUsesNonExemptEncryption: false,
       },
       buildNumber: '9',
