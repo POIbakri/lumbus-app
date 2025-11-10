@@ -1,5 +1,6 @@
 import * as RNIap from 'react-native-iap';
 import { Alert, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../logger';
 import { PurchaseParams, PurchaseResult } from './PaymentService';
 import { createIAPCheckout, validateAppleReceipt } from '../api';
@@ -16,12 +17,61 @@ import { createIAPCheckout, validateAppleReceipt } from '../api';
  * - Transaction verification via your backend
  * - Receipt validation
  * - Purchase restoration
+ *
+ * IMPORTANT: Persists pending orders to AsyncStorage to survive app restarts.
+ * This prevents users from losing purchases if the app crashes during payment.
  */
 export class IAPServiceV13 {
   private purchaseUpdateSubscription: any;
   private purchaseErrorSubscription: any;
   private isConnected = false;
   private pendingOrderIds: Map<string, string> = new Map(); // Map productId -> orderId
+  private static readonly PENDING_ORDERS_KEY = '@lumbus_pending_iap_orders';
+
+  /**
+   * Load pending orders from AsyncStorage
+   * This restores the productId -> orderId mapping after app restarts
+   */
+  private async loadPendingOrders(): Promise<void> {
+    try {
+      const stored = await AsyncStorage.getItem(IAPServiceV13.PENDING_ORDERS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        this.pendingOrderIds = new Map(Object.entries(parsed));
+        logger.log(`✅ Loaded ${this.pendingOrderIds.size} pending IAP orders from storage`);
+      }
+    } catch (error) {
+      logger.error('❌ Failed to load pending orders:', error);
+      // Non-fatal error - continue without persisted orders
+    }
+  }
+
+  /**
+   * Save pending orders to AsyncStorage
+   * This ensures the productId -> orderId mapping survives app restarts
+   */
+  private async savePendingOrders(): Promise<void> {
+    try {
+      const obj = Object.fromEntries(this.pendingOrderIds);
+      await AsyncStorage.setItem(IAPServiceV13.PENDING_ORDERS_KEY, JSON.stringify(obj));
+      logger.log('✅ Saved pending IAP orders to storage');
+    } catch (error) {
+      logger.error('❌ Failed to save pending orders:', error);
+      // Non-fatal error - order will still process if app doesn't crash
+    }
+  }
+
+  /**
+   * Clear all pending orders from AsyncStorage
+   */
+  private async clearPendingOrders(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(IAPServiceV13.PENDING_ORDERS_KEY);
+      logger.log('✅ Cleared pending IAP orders from storage');
+    } catch (error) {
+      logger.error('❌ Failed to clear pending orders:', error);
+    }
+  }
 
   /**
    * Initialize IAP connection to App Store
@@ -32,6 +82,9 @@ export class IAPServiceV13 {
     }
 
     try {
+      // Load pending orders from storage before connecting
+      await this.loadPendingOrders();
+
       await RNIap.initConnection();
       this.isConnected = true;
       logger.log('✅ Connected to App Store (v13)');
@@ -57,7 +110,7 @@ export class IAPServiceV13 {
         const transactionId = purchase.transactionId;
         if (transactionId) {
           try {
-            // Get the orderId from our pending map
+            // Get the orderId from our pending map (restored from storage on app restart)
             const orderId = this.pendingOrderIds.get(purchase.productId);
 
             if (!orderId) {
@@ -82,8 +135,9 @@ export class IAPServiceV13 {
               });
               logger.log('✅ Transaction finished');
 
-              // Clean up pending order
+              // Clean up pending order from memory and storage
               this.pendingOrderIds.delete(purchase.productId);
+              await this.savePendingOrders();
             } else {
               throw new Error(validationResult.error || 'Receipt validation failed');
             }
@@ -91,6 +145,7 @@ export class IAPServiceV13 {
             logger.error('❌ Receipt verification failed:', error);
             // Note: We don't finish the transaction if verification fails
             // This allows the user to retry or contact support
+            // The pending order remains in storage for retry on next app start
           }
         }
       }
@@ -137,6 +192,8 @@ export class IAPServiceV13 {
       throw new Error('IAP not initialized. Call initialize() first.');
     }
 
+    let productId: string | undefined;
+
     try {
       // Step 1: Create order in your backend and get Apple product ID
       logger.log('🔄 Creating IAP checkout...');
@@ -151,7 +208,8 @@ export class IAPServiceV13 {
         referralCode: params.referralCode, // Pass referral code for discount
       });
 
-      const { orderId, productId } = checkoutResponse;
+      const { orderId, productId: responseProductId } = checkoutResponse;
+      productId = responseProductId;
 
       if (!productId) {
         throw new Error('Invalid product ID received from server');
@@ -159,8 +217,9 @@ export class IAPServiceV13 {
 
       logger.log(`🔄 Requesting purchase for product: ${productId}`);
 
-      // Store orderId for receipt validation
+      // Store orderId for receipt validation (in memory and storage)
       this.pendingOrderIds.set(productId, orderId);
+      await this.savePendingOrders();
 
       // Step 2: Request purchase from Apple
       // This will show Apple's native payment sheet with Apple Pay / Card options
@@ -175,6 +234,13 @@ export class IAPServiceV13 {
       };
     } catch (error: any) {
       logger.error('❌ IAP Purchase failed:', error);
+
+      // Clean up pending order if purchase fails (except for user cancellation)
+      // User cancellation might mean they want to retry later
+      if (productId && error.code !== 'E_USER_CANCELLED') {
+        this.pendingOrderIds.delete(productId);
+        await this.savePendingOrders();
+      }
 
       // Handle specific IAP errors
       if (error.code === 'E_USER_CANCELLED') {
@@ -238,6 +304,7 @@ export class IAPServiceV13 {
 
   /**
    * Clean up IAP connection and listeners
+   * Note: Does NOT clear pending orders from storage as they may still need processing
    */
   async cleanup(): Promise<void> {
     try {
@@ -256,6 +323,9 @@ export class IAPServiceV13 {
         this.isConnected = false;
         logger.log('✅ Disconnected from App Store');
       }
+
+      // Note: We intentionally do NOT clear pending orders here
+      // They need to persist until the purchase is fully completed
     } catch (error) {
       logger.error('❌ IAP cleanup error:', error);
     }
