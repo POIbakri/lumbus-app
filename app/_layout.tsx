@@ -35,11 +35,14 @@ function AppContent() {
   const StripeProviderAny: any = Platform.OS === 'android' ? require('@stripe/stripe-react-native').StripeProvider : null;
 
   useEffect(() => {
-    // Only initialize notifications on Android to avoid iOS native init
-    async function setupAndroidNotifications() {
+    // Initialize notifications for both iOS and Android
+    async function setupNotifications() {
       try {
-        if (Platform.OS !== 'android') return;
         const notif = await import('../lib/notifications');
+        const bgNotif = await import('../lib/backgroundNotifications');
+
+        // Register background notification handler (works when app is closed)
+        await bgNotif.registerBackgroundNotificationTask();
 
         const token = await notif.registerForPushNotifications();
         if (token) {
@@ -49,10 +52,22 @@ function AppContent() {
           }
         }
 
-        notificationListener.current = notif.addNotificationReceivedListener(() => {});
+        // Foreground notification listener (app is open)
+        notificationListener.current = notif.addNotificationReceivedListener((notification: any) => {
+          // Update badge count when notification received in foreground
+          notif.getBadgeCount().then(count => {
+            notif.setBadgeCount(count + 1);
+          });
+        });
 
+        // Notification tap listener (user taps notification)
         responseListener.current = notif.addNotificationResponseReceivedListener((response: any) => {
           const data = notif.getNotificationData(response);
+
+          // Clear badge when user opens notification
+          notif.clearBadge();
+
+          // Navigate based on notification type
           if (data.type === notif.NotificationType.ESIM_READY && data.orderId) {
             router.push(`/install/${data.orderId}`);
           } else if (data.orderId) {
@@ -64,16 +79,14 @@ function AppContent() {
       }
     }
 
-    setupAndroidNotifications();
+    setupNotifications();
 
     return () => {
-      if (Platform.OS === 'android') {
-        if (notificationListener.current) {
-          notificationListener.current.remove();
-        }
-        if (responseListener.current) {
-          responseListener.current.remove();
-        }
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
       }
     };
   }, []);

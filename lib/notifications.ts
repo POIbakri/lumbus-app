@@ -15,6 +15,31 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Set up notification categories for iOS (allows action buttons)
+if (Platform.OS === 'ios') {
+  // Category for eSIM ready notifications with "Install" action
+  Notifications.setNotificationCategoryAsync('esim_ready', [
+    {
+      identifier: 'install',
+      buttonTitle: 'Install eSIM',
+      options: {
+        opensAppToForeground: true,
+      },
+    },
+  ]).catch(err => logger.error('Failed to set esim_ready category:', err));
+
+  // Category for usage alerts with "View Usage" action
+  Notifications.setNotificationCategoryAsync('usage_alert', [
+    {
+      identifier: 'view',
+      buttonTitle: 'View Usage',
+      options: {
+        opensAppToForeground: true,
+      },
+    },
+  ]).catch(err => logger.error('Failed to set usage_alert category:', err));
+}
+
 // Notification categories for different types
 export enum NotificationType {
   ESIM_READY = 'esim_ready',
@@ -151,6 +176,7 @@ export async function sendLocalNotification(
   data?: any
 ) {
   const channelId = type === NotificationType.ESIM_READY ? 'esim-ready' : 'usage-alerts';
+  const categoryIdentifier = type === NotificationType.ESIM_READY ? 'esim_ready' : 'usage_alert';
 
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -162,7 +188,9 @@ export async function sendLocalNotification(
       },
       sound: true,
       priority: Notifications.AndroidNotificationPriority.HIGH,
-      categoryIdentifier: type,
+      // iOS uses categoryIdentifier for action buttons
+      categoryIdentifier: Platform.OS === 'ios' ? categoryIdentifier : type,
+      // Android uses channelId
       ...(Platform.OS === 'android' && { channelId }),
     },
     trigger: null, // Immediate
