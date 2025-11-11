@@ -147,6 +147,11 @@ export async function convertPrices(
  * Uses consistent formatting across iOS and Android
  */
 export function formatPrice(amount: number, currency: Currency): string {
+  // Handle undefined/null/NaN amounts
+  if (amount == null || isNaN(amount)) {
+    return `${SUPPORTED_CURRENCIES[currency].symbol}0.00`;
+  }
+
   const currencyInfo = SUPPORTED_CURRENCIES[currency];
 
   if (currency === 'JPY' || currency === 'KRW' || currency === 'IDR') {

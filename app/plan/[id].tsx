@@ -204,12 +204,12 @@ export default function PlanDetail() {
                       marginBottom: moderateScale(4),
                     }}
                   >
-                    {displayPrice || formatPrice(plan.price)}
+                    {displayPrice || formatPrice(plan.retail_price || plan.price || 0)}
                   </Text>
                 )}
                 <View className="rounded-xl" style={{backgroundColor: '#2EFECC', paddingHorizontal: scale(16), paddingVertical: moderateScale(8)}}>
                   <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(28)}}>
-                    {hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.price))}
+                    {hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.retail_price || plan.price || 0))}
                   </Text>
                 </View>
                 {hasActiveReferral && (

@@ -84,6 +84,10 @@ export function useCurrency() {
    * Format a price in user's currency
    */
   const formatPrice = (amount: number): string => {
+    // Handle undefined/null/NaN amounts
+    if (amount == null || isNaN(amount)) {
+      return `${currencyInfo?.symbol || '$'}0.00`;
+    }
     if (!currencyInfo) return `$${amount.toFixed(2)}`;
     return formatPriceUtil(amount, currencyInfo.currency);
   };
