@@ -57,7 +57,7 @@ export default function PlanDetail() {
   const convertPlanPrice = React.useCallback(async () => {
     if (!plan) return;
 
-    const prices = [plan.retail_price || plan.price];
+    const prices = [plan.retail_price];
     const converted = await convertMultiplePrices(prices);
     setDisplayPrice(converted[0].formatted);
 
@@ -113,7 +113,7 @@ export default function PlanDetail() {
       const result = await PaymentService.purchase({
         planId: plan.id,
         planName: plan.name,
-        price: plan.retail_price || plan.price,
+        price: plan.retail_price,
         currency,
         email: user.email!,
         userId: user.id,
@@ -204,12 +204,12 @@ export default function PlanDetail() {
                       marginBottom: moderateScale(4),
                     }}
                   >
-                    {displayPrice || formatPrice(plan.retail_price || plan.price || 0)}
+                    {displayPrice || formatPrice(plan.retail_price)}
                   </Text>
                 )}
                 <View className="rounded-xl" style={{backgroundColor: '#2EFECC', paddingHorizontal: scale(16), paddingVertical: moderateScale(8)}}>
                   <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(28)}}>
-                    {hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.retail_price || plan.price || 0))}
+                    {hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.retail_price))}
                   </Text>
                 </View>
                 {hasActiveReferral && (
@@ -364,7 +364,7 @@ export default function PlanDetail() {
               <Ionicons name="logo-apple" size={getFontSize(20)} color="#1A1A1A" style={{marginRight: scale(8)}} />
             )}
             <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {loading ? 'Processing...' : `Buy now for ${hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.price))} →`}
+              {loading ? 'Processing...' : `Buy now for ${hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.retail_price))} →`}
             </Text>
           </View>
         </TouchableOpacity>

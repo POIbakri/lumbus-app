@@ -4,14 +4,15 @@ export interface Plan {
   region_code: string;
   data_gb: number;
   validity_days: number;
-  price: number;
+  supplier_sku: string;
   retail_price: number;
-  currency?: string; // Currency code (USD, EUR, etc.)
-  coverage: string[];
+  currency: string;
+  is_active: boolean;
   created_at: string;
-  supplier_sku?: string; // eSIM Access package code
-  displayPrice?: string; // Formatted price in user's currency
-  convertedPrice?: number; // Price in user's currency
+  updated_at: string;
+  // Client-side computed fields (not in database)
+  displayPrice?: string;
+  convertedPrice?: number;
 }
 
 export interface Order {

@@ -71,7 +71,7 @@ export default function TopUpScreen() {
   const convertPricesForPlans = React.useCallback(async () => {
     if (!regionPlans || regionPlans.length === 0) return;
 
-    const prices = regionPlans.map(p => p.retail_price || p.price);
+    const prices = regionPlans.map(p => p.retail_price);
     const converted = await convertMultiplePrices(prices);
 
     const updatedPlans = regionPlans.map((plan, index) => ({
@@ -117,7 +117,7 @@ export default function TopUpScreen() {
       const result = await PaymentService.purchase({
         planId: selectedPlan.id,
         planName: selectedPlan.name,
-        price: selectedPlan.retail_price || selectedPlan.price,
+        price: selectedPlan.retail_price,
         currency,
         email: user.email!,
         userId: user.id,
@@ -256,7 +256,7 @@ export default function TopUpScreen() {
 
           {plansToDisplay.map((plan, index) => {
             const isSelected = selectedPlan?.id === plan.id;
-            const priceDisplay = plan.displayPrice || formatPrice(plan.retail_price || plan.price);
+            const priceDisplay = plan.displayPrice || formatPrice(plan.retail_price);
 
             return (
               <TouchableOpacity
@@ -329,7 +329,7 @@ export default function TopUpScreen() {
               <Ionicons name="logo-apple" size={getFontSize(20)} color="#1A1A1A" style={{marginRight: scale(8)}} />
             )}
             <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {loading ? 'Processing...' : (selectedPlan ? `Buy now for ${selectedPlan.displayPrice || formatPrice(selectedPlan.retail_price || selectedPlan.price)} →` : 'Select a plan')}
+              {loading ? 'Processing...' : (selectedPlan ? `Buy now for ${selectedPlan.displayPrice || formatPrice(selectedPlan.retail_price)} →` : 'Select a plan')}
             </Text>
           </View>
         </TouchableOpacity>

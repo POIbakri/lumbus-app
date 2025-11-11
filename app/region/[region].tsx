@@ -62,7 +62,7 @@ export default function RegionPlans() {
   const convertPricesForPlans = React.useCallback(async () => {
     if (!regionPlans || regionPlans.length === 0) return;
 
-    const prices = regionPlans.map(p => p.retail_price || p.price);
+    const prices = regionPlans.map(p => p.retail_price);
     const converted = await convertMultiplePrices(prices);
 
     const updatedPlans = regionPlans.map((plan, index) => ({
@@ -104,7 +104,7 @@ export default function RegionPlans() {
           </View>
           <View className="px-4 py-3 rounded-xl" style={{backgroundColor: '#2EFECC'}}>
             <Text className="font-black text-xl" style={{color: '#1A1A1A'}}>
-              {plan.displayPrice || `${symbol}${plan.price}`}
+              {plan.displayPrice || `${symbol}${plan.retail_price}`}
             </Text>
           </View>
         </View>

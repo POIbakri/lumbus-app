@@ -74,12 +74,12 @@ export default function Browse() {
 
       if (existing) {
         existing.planCount += 1;
-        existing.minPrice = Math.min(existing.minPrice, plan.retail_price || plan.price);
+        existing.minPrice = Math.min(existing.minPrice, plan.retail_price);
       } else {
         groupMap.set(region, {
           region,
           planCount: 1,
-          minPrice: plan.retail_price || plan.price,
+          minPrice: plan.retail_price,
           regionCode,
           isMultiCountry,
         });

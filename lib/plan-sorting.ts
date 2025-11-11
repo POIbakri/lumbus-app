@@ -84,7 +84,7 @@ export function sortPlansByLocation(plans: Plan[], userLocation: UserLocation | 
       return b.score - a.score; // Higher score first
     }
     // Same relevance, sort by price
-    return (a.plan.retail_price || a.plan.price) - (b.plan.retail_price || b.plan.price);
+    return a.plan.retail_price - b.plan.retail_price;
   });
 
   return plansWithScores.map(item => item.plan);
