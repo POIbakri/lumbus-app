@@ -75,18 +75,35 @@ export async function fetchPlans(): Promise<Plan[]> {
   } catch (error) {
     logger.error('Error fetching plans from API:', error);
 
-    // Fallback to direct Supabase query if API fails
-    const { data, error: supabaseError } = await supabase
-      .from('plans')
-      .select('*')
-      .order('price', { ascending: true });
+    // Fallback to direct Supabase query with pagination if API fails
+    logger.info('Fetching plans from Supabase with pagination...');
+    let allPlans: Plan[] = [];
+    let from = 0;
+    const limit = 1000;
 
-    if (supabaseError) {
-      logger.error('Supabase error:', supabaseError);
-      throw supabaseError;
+    while (true) {
+      const { data, error: supabaseError } = await supabase
+        .from('plans')
+        .select('*')
+        .order('retail_price', { ascending: true })
+        .range(from, from + limit - 1);
+
+      if (supabaseError) {
+        logger.error('Supabase error:', supabaseError);
+        throw supabaseError;
+      }
+
+      if (!data || data.length === 0) break;
+
+      allPlans = allPlans.concat(data);
+
+      if (data.length < limit) break; // No more records
+
+      from += limit;
     }
 
-    return data || [];
+    logger.info(`Fetched ${allPlans.length} plans from Supabase fallback`);
+    return allPlans;
   }
 }
 
