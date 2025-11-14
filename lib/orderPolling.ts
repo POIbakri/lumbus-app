@@ -46,12 +46,9 @@ export async function pollOrderStatus(
 
   let attempts = 0;
 
-  logger.log(`📊 Starting order polling for ${orderId}`);
-
   const poll = async (): Promise<PollingResult> => {
     try {
       attempts++;
-      logger.log(`🔄 Polling attempt ${attempts}/${maxAttempts}`);
 
       // Fetch current order status
       const order = await fetchOrderById(orderId);
@@ -67,7 +64,6 @@ export async function pollOrderStatus(
 
       // Check if order is complete with activation details
       if (order.status === 'completed' && order.activation_code && order.smdp) {
-        logger.log('✅ Order completed successfully!');
         return {
           success: true,
           order,
@@ -78,7 +74,6 @@ export async function pollOrderStatus(
 
       // Check if order is active (for existing eSIMs being topped up)
       if (order.status === 'active' && order.activation_code && order.smdp) {
-        logger.log('✅ Order is active and ready!');
         return {
           success: true,
           order,
@@ -89,7 +84,7 @@ export async function pollOrderStatus(
 
       // Check for terminal failure states
       if (order.status === 'failed' || order.status === 'cancelled' || order.status === 'revoked' || order.status === 'refunded') {
-        logger.error(`❌ Order ${order.status}`);
+        logger.error(`Order polling terminated: ${order.status}`, { orderId, status: order.status });
         return {
           success: false,
           order,
@@ -101,7 +96,6 @@ export async function pollOrderStatus(
 
       // Check for terminal states that are not failures but should stop polling
       if (order.status === 'depleted' || order.status === 'expired') {
-        logger.log(`⚠️ Order is ${order.status}, stopping poll`);
         return {
           success: false,
           order,
@@ -115,7 +109,6 @@ export async function pollOrderStatus(
       if (attempts < maxAttempts) {
         // Calculate delay with exponential backoff
         const delay = Math.min(initialDelay * Math.pow(2, attempts - 1), maxDelay);
-        logger.log(`⏱️ Waiting ${delay}ms before next poll...`);
 
         // Wait before next attempt
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -125,7 +118,7 @@ export async function pollOrderStatus(
       }
 
       // Max attempts reached - order stuck
-      logger.error(`⏰ Order polling timed out after ${attempts} attempts`);
+      logger.error('Order polling timeout', { orderId, attempts, status: order.status });
       return {
         success: false,
         order,
@@ -135,7 +128,8 @@ export async function pollOrderStatus(
       };
 
     } catch (error) {
-      logger.error('❌ Polling error:', error);
+      // Log critical polling errors
+      logger.error('Order polling error', { orderId, attempts, error });
 
       // Notify error callback
       if (onError && error instanceof Error) {

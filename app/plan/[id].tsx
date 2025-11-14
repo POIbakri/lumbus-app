@@ -27,7 +27,7 @@ export default function PlanDetail() {
   // Initialize payment service on mount
   useEffect(() => {
     PaymentService.initialize().catch(error => {
-      logger.error('Failed to initialize payment service:', error);
+      // Failed to initialize payment service
     });
 
     return () => {
@@ -123,7 +123,6 @@ export default function PlanDetail() {
 
       if (result.success && result.orderId) {
         // Payment successful - poll for order completion
-        logger.log('✅ Payment successful, polling order status...');
 
         // Show loading alert while polling
         Alert.alert(
@@ -139,7 +138,7 @@ export default function PlanDetail() {
           initialDelay: 2000,
           maxDelay: 30000,
           onStatusUpdate: (order) => {
-            logger.log(`📊 Order status: ${order.status}`);
+            // Order status update
           }
         });
 
@@ -147,11 +146,9 @@ export default function PlanDetail() {
 
         if (pollingResult.success && pollingResult.order) {
           // Order ready - navigate to install screen
-          logger.log('✅ Order completed, navigating to install screen');
           router.replace(`/install/${result.orderId}`);
         } else if (pollingResult.timedOut) {
           // Order taking too long - still navigate but show warning
-          logger.warn('⏰ Order polling timed out, navigating anyway');
           Alert.alert(
             'eSIM Processing',
             'Your eSIM is taking longer than expected to process. You can check the status in a moment.',

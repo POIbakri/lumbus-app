@@ -44,7 +44,6 @@ export default function InstallEsim() {
     // Check if order needs polling
     if (shouldPollOrder(order)) {
       setIsPolling(true);
-      logger.log('🔄 Order needs polling, starting...');
 
       pollOrderStatus(orderId, {
         maxAttempts: 15,
@@ -62,10 +61,8 @@ export default function InstallEsim() {
         setPollingStatus('');
 
         if (result.success) {
-          logger.log('✅ Order completed via polling');
           refetch();
         } else if (result.timedOut) {
-          logger.warn('⏰ Order polling timed out');
           Alert.alert(
             'Taking Longer Than Expected',
             'Your eSIM is taking longer than usual to process. You can wait here or check back later from your dashboard.',
