@@ -150,18 +150,97 @@ export default function EsimDetails() {
   return (
     <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
       <ScrollView>
-        {/* Header with brand turquoise */}
-        <View style={{backgroundColor: '#2EFECC', paddingHorizontal: getHorizontalPadding(), paddingTop: moderateScale(64), paddingBottom: moderateScale(32)}}>
-          <TouchableOpacity onPress={() => router.back()} style={{marginBottom: moderateScale(16)}}>
-            <Ionicons name="arrow-back" size={scale(24)} color="#1A1A1A" />
+        {/* Enhanced Header with modern design */}
+        <View style={{
+          backgroundColor: '#2EFECC',
+          paddingHorizontal: getHorizontalPadding(),
+          paddingTop: moderateScale(64),
+          paddingBottom: moderateScale(36),
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.12,
+          shadowRadius: 10,
+          elevation: 8,
+        }}>
+          {/* Enhanced Back Button */}
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              marginBottom: moderateScale(24),
+              backgroundColor: 'rgba(26, 26, 26, 0.1)',
+              borderRadius: 50,
+              width: scale(40),
+              height: scale(40),
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="arrow-back" size={scale(22)} color="#1A1A1A" />
           </TouchableOpacity>
 
-          <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(32), lineHeight: getFontSize(36), marginBottom: moderateScale(8)}}>
-            {region}
-          </Text>
-          <Text className="font-bold" style={{color: '#1A1A1A', opacity: 0.8, fontSize: getFontSize(16)}}>
-            {mbMatch ? `${mbMatch[1]} MB` : `${totalDataGB} GB`} • {order.plan?.validity_days || 0} days
-          </Text>
+          {/* Title Section with enhanced design */}
+          <View>
+            {/* Main Title with accent - single line layout */}
+            <View className="flex-row items-center" style={{marginBottom: moderateScale(16)}}>
+              <View style={{
+                width: 4,
+                height: getFontSize(isSmallDevice ? 28 : 34),
+                backgroundColor: '#1A1A1A',
+                marginRight: moderateScale(12),
+                borderRadius: 2,
+              }} />
+              <Text
+                className="font-black uppercase tracking-tight"
+                style={{
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(isSmallDevice ? 28 : 34),
+                  letterSpacing: -0.5,
+                  flex: 1,
+                }}
+                numberOfLines={1}
+                adjustsFontSizeToFit={true}
+              >
+                {region}
+              </Text>
+            </View>
+
+            {/* Plan Info Row */}
+            <View className="flex-row items-center flex-wrap">
+              <View style={{
+                backgroundColor: '#1A1A1A',
+                borderRadius: 10,
+                paddingVertical: moderateScale(6),
+                paddingHorizontal: scale(14),
+                marginRight: moderateScale(8),
+              }}>
+                <Text className="font-bold tracking-wide" style={{
+                  color: '#2EFECC',
+                  fontSize: getFontSize(13),
+                  letterSpacing: 0.5,
+                }}>
+                  {mbMatch ? `${mbMatch[1]} MB` : `${totalDataGB} GB`}
+                </Text>
+              </View>
+
+              <View style={{
+                backgroundColor: 'rgba(26, 26, 26, 0.1)',
+                borderRadius: 10,
+                paddingVertical: moderateScale(6),
+                paddingHorizontal: scale(12),
+              }}>
+                <Text className="font-semibold" style={{
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(12),
+                  letterSpacing: 0.2,
+                }}>
+                  {order.plan?.validity_days || 0} Days
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
 
       <View style={{paddingHorizontal: getHorizontalPadding(), paddingBottom: moderateScale(24)}}>

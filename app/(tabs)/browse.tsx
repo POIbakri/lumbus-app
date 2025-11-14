@@ -238,75 +238,174 @@ export default function Browse() {
 
   return (
     <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
-      {/* Header with brand color background */}
-      <View style={{backgroundColor: '#2EFECC', paddingHorizontal: getHorizontalPadding(), paddingTop: moderateScale(60), paddingBottom: moderateScale(24)}}>
-        <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 36 : 42), marginBottom: moderateScale(12)}}>
-          BROWSE
-        </Text>
-        <Text className="font-bold" style={{color: '#1A1A1A', opacity: 0.8, fontSize: getFontSize(16), marginBottom: moderateScale(20)}}>
-          Choose your destination
-        </Text>
-
-        {/* Tab Switcher */}
-        <View className="flex-row rounded-2xl p-1 mb-4" style={{backgroundColor: '#1A1A1A'}}>
-          <TouchableOpacity
-            className="flex-1 py-3 rounded-xl items-center"
-            style={{
-              backgroundColor: activeTab === 'country' ? '#FDFD74' : 'transparent',
-              borderWidth: 2,
-              borderColor: activeTab === 'country' ? '#1A1A1A' : 'transparent',
-            }}
-            onPress={() => setActiveTab('country')}
-            activeOpacity={0.7}
-          >
-            <Text
-              className="font-black uppercase tracking-wide"
-              style={{
-                color: activeTab === 'country' ? '#1A1A1A' : '#FDFD74',
-                fontSize: getFontSize(14),
-              }}
-            >
-              📍 COUNTRIES
+      {/* Enhanced Header with gradient and improved design */}
+      <View style={{
+        backgroundColor: '#2EFECC',
+        paddingHorizontal: getHorizontalPadding(),
+        paddingTop: moderateScale(60),
+        paddingBottom: moderateScale(32),
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 8,
+      }}>
+        {/* Title Section with improved hierarchy */}
+        <View style={{marginBottom: moderateScale(24)}}>
+          <View className="flex-row items-center" style={{marginBottom: moderateScale(8)}}>
+            <View style={{
+              width: 4,
+              height: getFontSize(isSmallDevice ? 36 : 42),
+              backgroundColor: '#1A1A1A',
+              marginRight: moderateScale(12),
+              borderRadius: 2,
+            }} />
+            <Text className="font-black uppercase tracking-tight" style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(isSmallDevice ? 36 : 42),
+              letterSpacing: -0.5,
+            }}>
+              BROWSE
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-1 py-3 rounded-xl items-center"
-            style={{
-              backgroundColor: activeTab === 'region' ? '#FDFD74' : 'transparent',
-              borderWidth: 2,
-              borderColor: activeTab === 'region' ? '#1A1A1A' : 'transparent',
-            }}
-            onPress={() => setActiveTab('region')}
-            activeOpacity={0.7}
-          >
-            <Text
-              className="font-black uppercase tracking-wide"
-              style={{
-                color: activeTab === 'region' ? '#1A1A1A' : '#FDFD74',
-                fontSize: getFontSize(14),
-              }}
-            >
-              🌍 REGIONS
-            </Text>
-          </TouchableOpacity>
+          </View>
+          <Text className="font-semibold" style={{
+            color: '#1A1A1A',
+            opacity: 0.75,
+            fontSize: getFontSize(18),
+            letterSpacing: 0.3,
+          }}>
+            Choose your destination
+          </Text>
         </View>
 
-        <View className="bg-white rounded-2xl flex-row items-center" style={{borderWidth: 2, borderColor: '#E5E5E5', paddingHorizontal: scale(20), paddingVertical: moderateScale(14)}}>
-          <Ionicons name="search" size={scale(22)} color="#2EFECC" />
+        {/* Enhanced Tab Switcher with improved visual design */}
+        <View style={{
+          backgroundColor: 'rgba(26, 26, 26, 0.1)',
+          borderRadius: 18,
+          padding: 4,
+          marginBottom: moderateScale(20),
+        }}>
+          <View className="flex-row">
+            <TouchableOpacity
+              className="flex-1"
+              style={{
+                backgroundColor: activeTab === 'country' ? '#1A1A1A' : 'transparent',
+                borderRadius: 14,
+                paddingVertical: moderateScale(14),
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={() => setActiveTab('country')}
+              activeOpacity={0.8}
+            >
+              <Text
+                className="font-bold tracking-wide"
+                style={{
+                  color: activeTab === 'country' ? '#2EFECC' : '#1A1A1A',
+                  fontSize: getFontSize(14),
+                  letterSpacing: 0.5,
+                }}
+              >
+                COUNTRIES
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1"
+              style={{
+                backgroundColor: activeTab === 'region' ? '#1A1A1A' : 'transparent',
+                borderRadius: 14,
+                paddingVertical: moderateScale(14),
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={() => setActiveTab('region')}
+              activeOpacity={0.8}
+            >
+              <Text
+                className="font-bold tracking-wide"
+                style={{
+                  color: activeTab === 'region' ? '#2EFECC' : '#1A1A1A',
+                  fontSize: getFontSize(14),
+                  letterSpacing: 0.5,
+                }}
+              >
+                REGIONS
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Enhanced Search Bar with modern styling */}
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: scale(18),
+          paddingVertical: moderateScale(14),
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 2,
+        }}>
+          <View style={{
+            backgroundColor: '#E0FEF7',
+            borderRadius: 10,
+            padding: 8,
+          }}>
+            <Ionicons name="search" size={scale(20)} color="#2EFECC" />
+          </View>
           <TextInput
-            className="flex-1 font-bold"
-            style={{color: '#1A1A1A', marginLeft: scale(12), fontSize: getFontSize(15)}}
+            className="flex-1 font-semibold"
+            style={{
+              color: '#1A1A1A',
+              marginLeft: scale(12),
+              fontSize: getFontSize(15),
+              letterSpacing: 0.2,
+            }}
             placeholder={activeTab === 'country' ? 'Search countries...' : 'Search regions...'}
-            placeholderTextColor="#666666"
+            placeholderTextColor="#999999"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              style={{padding: 4}}
+            >
+              <Ionicons name="close-circle" size={scale(20)} color="#999999" />
+            </TouchableOpacity>
+          )}
         </View>
 
+        {/* Enhanced Location Display */}
         {location && !locationLoading && (
-          <View className="flex-row items-center" style={{marginTop: moderateScale(12)}}>
-            <Ionicons name="location" size={scale(16)} color="#1A1A1A" />
-            <Text className="font-bold" style={{color: '#1A1A1A', opacity: 0.7, fontSize: getFontSize(12), marginLeft: scale(6)}}>
+          <View style={{
+            marginTop: moderateScale(16),
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            borderRadius: 12,
+            paddingVertical: moderateScale(8),
+            paddingHorizontal: scale(12),
+            flexDirection: 'row',
+            alignItems: 'center',
+            alignSelf: 'flex-start',
+          }}>
+            <View style={{
+              backgroundColor: '#1A1A1A',
+              borderRadius: 6,
+              padding: 4,
+              marginRight: 8,
+            }}>
+              <Ionicons name="location" size={scale(14)} color="#2EFECC" />
+            </View>
+            <Text className="font-semibold" style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(13),
+              letterSpacing: 0.2,
+            }}>
               Your location: {location.country_name}
             </Text>
           </View>

@@ -151,83 +151,195 @@ export default function RegionPlans() {
 
   return (
     <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
-      {/* Header */}
-      <View style={{backgroundColor: '#2EFECC', paddingHorizontal: getHorizontalPadding(), paddingTop: moderateScale(60), paddingBottom: moderateScale(24)}}>
+      {/* Enhanced Header with improved design */}
+      <View style={{
+        backgroundColor: '#2EFECC',
+        paddingHorizontal: getHorizontalPadding(),
+        paddingTop: moderateScale(60),
+        paddingBottom: moderateScale(32),
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 8,
+      }}>
+        {/* Enhanced Back Button */}
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{marginBottom: moderateScale(16)}}
-          activeOpacity={0.7}
+          style={{
+            marginBottom: moderateScale(20),
+            backgroundColor: 'rgba(26, 26, 26, 0.1)',
+            borderRadius: 12,
+            paddingVertical: moderateScale(8),
+            paddingHorizontal: scale(12),
+            alignSelf: 'flex-start',
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+          activeOpacity={0.8}
         >
-          <View className="flex-row items-center">
-            <Ionicons name="arrow-back" size={scale(24)} color="#1A1A1A" />
-            <Text className="font-black ml-2" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              BACK
-            </Text>
+          <View style={{
+            backgroundColor: '#1A1A1A',
+            borderRadius: 8,
+            padding: 6,
+            marginRight: 8,
+          }}>
+            <Ionicons name="arrow-back" size={scale(18)} color="#2EFECC" />
           </View>
+          <Text className="font-bold tracking-wide" style={{
+            color: '#1A1A1A',
+            fontSize: getFontSize(14),
+            letterSpacing: 0.5,
+          }}>
+            BACK
+          </Text>
         </TouchableOpacity>
 
-        <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 36 : 42), marginBottom: moderateScale(12)}}>
-          {region?.toUpperCase()}
-        </Text>
-        <Text className="font-bold" style={{color: '#1A1A1A', opacity: 0.8, fontSize: getFontSize(16), marginBottom: moderateScale(12)}}>
-          {plansToDisplay.length} {plansToDisplay.length === 1 ? 'plan' : 'plans'} available
-        </Text>
+        {/* Title Section with accent bar */}
+        <View style={{marginBottom: moderateScale(24)}}>
+          <View className="flex-row items-center" style={{marginBottom: moderateScale(8)}}>
+            <View style={{
+              width: 4,
+              height: getFontSize(isSmallDevice ? 36 : 42),
+              backgroundColor: '#1A1A1A',
+              marginRight: moderateScale(12),
+              borderRadius: 2,
+            }} />
+            <Text className="font-black uppercase tracking-tight" style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(isSmallDevice ? 36 : 42),
+              letterSpacing: -0.5,
+            }}>
+              {region?.toUpperCase()}
+            </Text>
+          </View>
 
-        {/* Countries dropdown */}
+          {/* Plans Available Badge */}
+          <View className="flex-row items-center">
+            <View style={{
+              backgroundColor: 'rgba(26, 26, 26, 0.15)',
+              borderRadius: 10,
+              paddingVertical: moderateScale(6),
+              paddingHorizontal: scale(14),
+              alignSelf: 'flex-start',
+            }}>
+              <Text className="font-semibold" style={{
+                color: '#1A1A1A',
+                fontSize: getFontSize(15),
+                letterSpacing: 0.3,
+              }}>
+                {plansToDisplay.length} {plansToDisplay.length === 1 ? 'Plan' : 'Plans'} Available
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Enhanced Countries Dropdown */}
         {regionInfo?.isMultiCountry && regionInfo.subLocationList.length > 0 && (
-          <View style={{marginTop: moderateScale(16)}}>
+          <View>
             <TouchableOpacity
               onPress={() => setShowCountries(!showCountries)}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
               style={{
-                backgroundColor: '#FDFD74',
-                borderRadius: 12,
-                paddingVertical: moderateScale(12),
-                paddingHorizontal: scale(16),
+                backgroundColor: '#1A1A1A',
+                borderRadius: 16,
+                paddingVertical: moderateScale(14),
+                paddingHorizontal: scale(18),
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
               }}
             >
               <View className="flex-row items-center flex-1">
-                <Ionicons name="flag" size={scale(18)} color="#1A1A1A" />
-                <Text className="font-black uppercase ml-2" style={{color: '#1A1A1A', fontSize: getFontSize(13)}}>
-                  {regionInfo.subLocationList.length} COUNTRIES INCLUDED
-                </Text>
+                <View style={{
+                  backgroundColor: '#FDFD74',
+                  borderRadius: 8,
+                  padding: 6,
+                  marginRight: 10,
+                }}>
+                  <Ionicons name="flag" size={scale(16)} color="#1A1A1A" />
+                </View>
+                <View>
+                  <Text className="font-bold tracking-wide" style={{
+                    color: '#2EFECC',
+                    fontSize: getFontSize(14),
+                    letterSpacing: 0.5,
+                    marginBottom: 2,
+                  }}>
+                    {regionInfo.subLocationList.length} COUNTRIES
+                  </Text>
+                  <Text style={{
+                    color: 'rgba(46, 254, 204, 0.7)',
+                    fontSize: getFontSize(11),
+                    letterSpacing: 0.2,
+                  }}>
+                    Tap to view included regions
+                  </Text>
+                </View>
               </View>
-              <Ionicons
-                name={showCountries ? "chevron-up" : "chevron-down"}
-                size={scale(20)}
-                color="#1A1A1A"
-              />
+              <View style={{
+                backgroundColor: '#2EFECC',
+                borderRadius: 8,
+                padding: 6,
+              }}>
+                <Ionicons
+                  name={showCountries ? "chevron-up" : "chevron-down"}
+                  size={scale(18)}
+                  color="#1A1A1A"
+                />
+              </View>
             </TouchableOpacity>
 
             {showCountries && (
               <View style={{
-                marginTop: moderateScale(8),
-                backgroundColor: 'rgba(255,255,255,0.95)',
-                borderRadius: 12,
-                padding: scale(12),
-                maxHeight: 200,
+                marginTop: moderateScale(12),
+                backgroundColor: '#FFFFFF',
+                borderRadius: 16,
+                padding: scale(16),
+                maxHeight: 240,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.08,
+                shadowRadius: 6,
+                elevation: 3,
               }}>
+                <Text className="font-bold uppercase tracking-wide" style={{
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(12),
+                  marginBottom: moderateScale(12),
+                  opacity: 0.6,
+                }}>
+                  Included Countries
+                </Text>
                 <FlatList
                   data={regionInfo.subLocationList}
                   keyExtractor={(item) => item.code}
                   numColumns={2}
-                  columnWrapperStyle={{gap: 8, marginBottom: 8}}
+                  columnWrapperStyle={{gap: 10, marginBottom: 10}}
                   renderItem={({ item }) => (
                     <View
                       style={{
                         flex: 1,
-                        backgroundColor: '#FFFFFF',
-                        borderRadius: 8,
-                        paddingVertical: moderateScale(8),
-                        paddingHorizontal: scale(12),
+                        backgroundColor: '#F0FFFB',
+                        borderRadius: 10,
+                        paddingVertical: moderateScale(10),
+                        paddingHorizontal: scale(14),
                         borderWidth: 1,
-                        borderColor: '#E5E5E5',
+                        borderColor: '#E0FEF7',
                       }}
                     >
-                      <Text className="font-bold text-xs" style={{color: '#1A1A1A'}}>
+                      <Text className="font-semibold" style={{
+                        color: '#1A1A1A',
+                        fontSize: getFontSize(13),
+                        letterSpacing: 0.2,
+                      }}>
                         {item.name}
                       </Text>
                     </View>

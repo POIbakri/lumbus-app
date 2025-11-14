@@ -17,7 +17,7 @@ export default function Dashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('active');
-  const { moderateScale, adaptiveScale, isTablet, screenWidth } = useResponsive();
+  const { moderateScale, adaptiveScale, isTablet, screenWidth, isSmallDevice } = useResponsive();
 
   // Get user ID on mount
   useEffect(() => {
@@ -425,68 +425,91 @@ export default function Dashboard() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: '#FFFFFF' }}>
-      {/* Header */}
+      {/* Enhanced Header */}
       <View style={{
+        backgroundColor: '#FFFFFF',
         paddingHorizontal: getHorizontalPadding(),
         paddingTop: moderateScale(60),
-        paddingBottom: moderateScale(24),
-        backgroundColor: '#FFFFFF'
+        paddingBottom: moderateScale(28),
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 4,
+        elevation: 2,
       }}>
-        <Text className="font-black uppercase tracking-tight" style={{
-          color: '#1A1A1A',
-          fontSize: getFontSize(isTablet ? 48 : 36),
-          marginBottom: moderateScale(24),
-        }}>
-          eSIM
-        </Text>
+        {/* Title Section with accent */}
+        <View style={{marginBottom: moderateScale(20)}}>
+          <View className="flex-row items-center">
+            <View style={{
+              width: 4,
+              height: getFontSize(isSmallDevice ? 32 : 36),
+              backgroundColor: '#2EFECC',
+              marginRight: moderateScale(12),
+              borderRadius: 2,
+            }} />
+            <Text className="font-black uppercase tracking-tight" style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(isSmallDevice ? 32 : 36),
+              letterSpacing: -0.5,
+            }}>
+              MY eSIMs
+            </Text>
+          </View>
+        </View>
 
-        {/* Tabs */}
-        <View className="flex-row" style={{
+        {/* Enhanced Tabs */}
+        <View style={{
           backgroundColor: '#F5F5F5',
-          borderRadius: getBorderRadius(16),
-          padding: moderateScale(4),
+          borderRadius: 14,
+          padding: 3,
         }}>
-          <TouchableOpacity
-            className="flex-1"
-            style={{
-              paddingVertical: moderateScale(12),
-              borderRadius: getBorderRadius(12),
-              backgroundColor: activeTab === 'active' ? '#FFFFFF' : 'transparent',
-            }}
-            onPress={() => setActiveTab('active')}
-            activeOpacity={0.8}
-          >
-            <Text
-              className="text-center font-black uppercase tracking-wide"
+          <View className="flex-row">
+            <TouchableOpacity
+              className="flex-1"
               style={{
-                color: activeTab === 'active' ? '#1A1A1A' : '#666666',
-                fontSize: getFontSize(14),
+                paddingVertical: moderateScale(12),
+                borderRadius: 11,
+                backgroundColor: activeTab === 'active' ? '#2EFECC' : 'transparent',
               }}
+              onPress={() => setActiveTab('active')}
+              activeOpacity={0.8}
             >
-              Active
-            </Text>
-          </TouchableOpacity>
+              <Text
+                className="text-center font-bold tracking-wide"
+                style={{
+                  color: activeTab === 'active' ? '#1A1A1A' : '#666666',
+                  fontSize: getFontSize(14),
+                  letterSpacing: 0.5,
+                }}
+              >
+                ACTIVE
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            className="flex-1"
-            style={{
-              paddingVertical: moderateScale(12),
-              borderRadius: getBorderRadius(12),
-              backgroundColor: activeTab === 'expired' ? '#FFFFFF' : 'transparent',
-            }}
-            onPress={() => setActiveTab('expired')}
-            activeOpacity={0.8}
-          >
-            <Text
-              className="text-center font-black uppercase tracking-wide"
+            <TouchableOpacity
+              className="flex-1"
               style={{
-                color: activeTab === 'expired' ? '#1A1A1A' : '#666666',
-                fontSize: getFontSize(14),
+                paddingVertical: moderateScale(12),
+                borderRadius: 11,
+                backgroundColor: activeTab === 'expired' ? '#2EFECC' : 'transparent',
               }}
+              onPress={() => setActiveTab('expired')}
+              activeOpacity={0.8}
             >
-              Expired
-            </Text>
-          </TouchableOpacity>
+              <Text
+                className="text-center font-bold tracking-wide"
+                style={{
+                  color: activeTab === 'expired' ? '#1A1A1A' : '#666666',
+                  fontSize: getFontSize(14),
+                  letterSpacing: 0.5,
+                }}
+              >
+                EXPIRED
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 

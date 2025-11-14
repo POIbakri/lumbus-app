@@ -9,7 +9,7 @@ import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSi
 export default function Account() {
   const router = useRouter();
   const [email, setEmail] = useState<string>('');
-  const { moderateScale, adaptiveScale, isTablet } = useResponsive();
+  const { moderateScale, adaptiveScale, isTablet, isSmallDevice } = useResponsive();
 
   const getUserEmail = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -75,27 +75,47 @@ export default function Account() {
 
   return (
     <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
-      {/* Header with brand color */}
+      {/* Enhanced Header with improved design */}
       <View style={{
         backgroundColor: '#FDFD74',
         paddingHorizontal: getHorizontalPadding(),
         paddingTop: moderateScale(60),
-        paddingBottom: moderateScale(24),
+        paddingBottom: moderateScale(32),
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 8,
       }}>
-        <Text className="font-black uppercase tracking-tight" style={{
-          color: '#1A1A1A',
-          fontSize: getFontSize(isTablet ? 48 : 36),
-          marginBottom: moderateScale(12),
-        }}>
-          ACCOUNT
-        </Text>
-        <Text className="font-bold" style={{
-          color: '#1A1A1A',
-          opacity: 0.8,
-          fontSize: getFontSize(16),
-        }}>
-          Manage your profile and settings
-        </Text>
+        {/* Title Section with accent */}
+        <View>
+          <View className="flex-row items-center" style={{marginBottom: moderateScale(8)}}>
+            <View style={{
+              width: 4,
+              height: getFontSize(isSmallDevice ? 32 : 36),
+              backgroundColor: '#1A1A1A',
+              marginRight: moderateScale(12),
+              borderRadius: 2,
+            }} />
+            <Text className="font-black uppercase tracking-tight" style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(isSmallDevice ? 32 : 36),
+              letterSpacing: -0.5,
+            }}>
+              ACCOUNT
+            </Text>
+          </View>
+          <Text className="font-semibold" style={{
+            color: '#1A1A1A',
+            opacity: 0.7,
+            fontSize: getFontSize(16),
+            letterSpacing: 0.2,
+          }}>
+            Manage your profile and settings
+          </Text>
+        </View>
       </View>
 
       <ScrollView className="flex-1">
