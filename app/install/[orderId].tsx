@@ -8,11 +8,14 @@ import * as Clipboard from 'expo-clipboard';
 import { fetchOrderById, subscribeToOrderUpdates } from '../../lib/api';
 import { logger } from '../../lib/logger';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
+import { pollOrderStatus, shouldPollOrder, formatPollingStatus } from '../../lib/orderPolling';
 
 export default function InstallEsim() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const router = useRouter();
   const [showManual, setShowManual] = useState(false);
+  const [pollingStatus, setPollingStatus] = useState<string>('');
+  const [isPolling, setIsPolling] = useState(false);
   const { moderateScale, adaptiveScale, isTablet } = useResponsive();
 
   const { data: order, isLoading, refetch } = useQuery({
@@ -33,6 +36,48 @@ export default function InstallEsim() {
       channel.unsubscribe();
     };
   }, [orderId]);
+
+  // Poll for order completion if needed
+  useEffect(() => {
+    if (!order || !orderId || isPolling) return;
+
+    // Check if order needs polling
+    if (shouldPollOrder(order)) {
+      setIsPolling(true);
+      logger.log('🔄 Order needs polling, starting...');
+
+      pollOrderStatus(orderId, {
+        maxAttempts: 15,
+        initialDelay: 2000,
+        maxDelay: 30000,
+        onStatusUpdate: (updatedOrder) => {
+          // Update polling status message
+          const attempts = 1; // This would need to be tracked properly
+          setPollingStatus(formatPollingStatus(attempts, 15));
+          // Refetch to update UI
+          refetch();
+        }
+      }).then(result => {
+        setIsPolling(false);
+        setPollingStatus('');
+
+        if (result.success) {
+          logger.log('✅ Order completed via polling');
+          refetch();
+        } else if (result.timedOut) {
+          logger.warn('⏰ Order polling timed out');
+          Alert.alert(
+            'Taking Longer Than Expected',
+            'Your eSIM is taking longer than usual to process. You can wait here or check back later from your dashboard.',
+            [
+              { text: 'Keep Waiting', style: 'cancel' },
+              { text: 'Check Later', onPress: () => router.replace('/(tabs)/dashboard') }
+            ]
+          );
+        }
+      });
+    }
+  }, [order, orderId]);
 
   async function copyToClipboard(text: string, label: string) {
     await Clipboard.setStringAsync(text);
@@ -166,11 +211,22 @@ export default function InstallEsim() {
         <View className="flex-1 items-center justify-center" style={{paddingHorizontal: getHorizontalPadding()}}>
           <ActivityIndicator size="large" color="#2EFECC" style={{marginBottom: moderateScale(16)}} />
           <Text className="font-black uppercase tracking-tight text-center mb-2" style={{color: '#1A1A1A', fontSize: getFontSize(24)}}>
-            Provisioning your eSIM
+            {isPolling ? 'Processing Your Order' : 'Provisioning your eSIM'}
           </Text>
-          <Text className="font-bold text-center" style={{color: '#666666', fontSize: getFontSize(14)}}>
-            This usually takes 1-2 minutes. You'll receive an email when your eSIM is ready.
+          <Text className="font-bold text-center" style={{color: '#666666', fontSize: getFontSize(14), marginBottom: moderateScale(20)}}>
+            {pollingStatus || "This usually takes 1-2 minutes. You'll receive an email when your eSIM is ready."}
           </Text>
+          {!isPolling && (
+            <TouchableOpacity
+              onPress={() => refetch()}
+              className="rounded-2xl"
+              style={{backgroundColor: '#2EFECC', paddingVertical: moderateScale(12), paddingHorizontal: moderateScale(24)}}
+            >
+              <Text className="font-bold" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
+                Refresh Status
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );

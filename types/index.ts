@@ -19,7 +19,7 @@ export interface Order {
   id: string;
   user_id: string;
   plan_id: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'active' | 'depleted' | 'expired' | 'provisioning' | 'paid';
+  status: 'pending' | 'paid' | 'provisioning' | 'completed' | 'active' | 'depleted' | 'expired' | 'cancelled' | 'revoked' | 'failed' | 'refunded';
   qr_url: string | null;
   smdp: string | null;
   activation_code: string | null;

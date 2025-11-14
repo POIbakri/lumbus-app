@@ -11,6 +11,7 @@ import { logger } from '../../lib/logger';
 import { PaymentService } from '../../lib/payments/PaymentService';
 import { useReferral } from '../../contexts/ReferralContext';
 import { ReferralBanner } from '../components/ReferralBanner';
+import { pollOrderStatus, formatPollingStatus, getPollingErrorMessage } from '../../lib/orderPolling';
 
 export default function PlanDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -120,20 +121,81 @@ export default function PlanDetail() {
         referralCode: referralCode || undefined, // Pass referral code if available
       });
 
-      setLoading(false);
-
       if (result.success && result.orderId) {
-        // Payment successful - navigate to install screen
-        logger.log('✅ Purchase successful, order ID:', result.orderId);
-        router.replace(`/install/${result.orderId}`);
-      } else if (result.error) {
-        // Only show alert if it's not a cancellation
-        if (result.error !== 'Purchase cancelled' && result.error !== 'Payment cancelled') {
+        // Payment successful - poll for order completion
+        logger.log('✅ Payment successful, polling order status...');
+
+        // Show loading alert while polling
+        Alert.alert(
+          'Processing Your eSIM',
+          'Your payment was successful! Preparing your eSIM...',
+          [],
+          { cancelable: false }
+        );
+
+        // Poll for order completion with exponential backoff
+        const pollingResult = await pollOrderStatus(result.orderId, {
+          maxAttempts: 10,
+          initialDelay: 2000,
+          maxDelay: 30000,
+          onStatusUpdate: (order) => {
+            logger.log(`📊 Order status: ${order.status}`);
+          }
+        });
+
+        setLoading(false);
+
+        if (pollingResult.success && pollingResult.order) {
+          // Order ready - navigate to install screen
+          logger.log('✅ Order completed, navigating to install screen');
+          router.replace(`/install/${result.orderId}`);
+        } else if (pollingResult.timedOut) {
+          // Order taking too long - still navigate but show warning
+          logger.warn('⏰ Order polling timed out, navigating anyway');
           Alert.alert(
-            'Purchase Failed',
-            result.error,
-            [{ text: 'OK' }]
+            'eSIM Processing',
+            'Your eSIM is taking longer than expected to process. You can check the status in a moment.',
+            [
+              {
+                text: 'View Order',
+                onPress: () => router.replace(`/install/${result.orderId}`)
+              },
+              {
+                text: 'Check Later',
+                onPress: () => router.replace('/(tabs)/dashboard')
+              }
+            ]
           );
+        } else {
+          // Order failed
+          const errorMessage = getPollingErrorMessage(pollingResult);
+          Alert.alert(
+            'Order Processing Failed',
+            errorMessage,
+            [
+              {
+                text: 'Contact Support',
+                onPress: () => router.replace('/(tabs)/account')
+              },
+              {
+                text: 'OK',
+                onPress: () => router.replace('/(tabs)/dashboard')
+              }
+            ]
+          );
+        }
+      } else {
+        setLoading(false);
+
+        if (result.error) {
+          // Only show alert if it's not a cancellation
+          if (result.error !== 'Purchase cancelled' && result.error !== 'Payment cancelled') {
+            Alert.alert(
+              'Purchase Failed',
+              result.error,
+              [{ text: 'OK' }]
+            );
+          }
         }
       }
     } catch (error: any) {
