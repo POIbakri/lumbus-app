@@ -41,10 +41,6 @@ export class StripeService {
    * Initialize Stripe
    */
   async initialize(): Promise<void> {
-    if (Platform.OS !== 'android') {
-      throw new Error('StripeService is only available on Android');
-    }
-
     try {
       const publishableKey = config.stripePublishableKey;
 
@@ -55,11 +51,16 @@ export class StripeService {
       const { initStripe } = await getStripeModule();
       await initStripe({
         publishableKey,
+        // Required for Apple Pay on iOS. Ignored on Android.
         merchantIdentifier: 'merchant.com.lumbus.app',
       });
 
       this.isInitialized = true;
-      logger.log('✅ Stripe initialized for Android');
+      logger.log(
+        Platform.OS === 'ios'
+          ? '✅ Stripe initialized for iOS (Apple Pay + cards)'
+          : '✅ Stripe initialized for Android (Google Pay + cards)'
+      );
     } catch (error) {
       logger.error('❌ Failed to initialize Stripe:', error);
       throw new Error('Unable to initialize payment system. Please try again.');
@@ -95,19 +96,16 @@ export class StripeService {
       // Step 2: Initialize payment sheet with Google Pay support
       logger.log('🔄 Initializing payment sheet...');
       const { initPaymentSheet } = await getStripeModule();
-      const { error: initError } = await initPaymentSheet({
-        merchantDisplayName: 'Lumbus',
+      const paymentSheetParams: any = {
+        // Displayed at the top of the Stripe Payment Sheet
+        merchantDisplayName: 'Lumbus (secure payments via Stripe)',
         paymentIntentClientSecret: clientSecret,
         defaultBillingDetails: {
           email: params.email,
         },
         returnURL: 'lumbus://payment-complete',
-        // Google Pay configuration (automatic for Android)
-        googlePay: {
-          merchantCountryCode: 'US',
-          testEnv: __DEV__, // Use test environment in development
-          currencyCode: params.currency?.toUpperCase() || 'USD',
-        },
+        // Country of the merchant; required for Apple Pay and recommended for Google Pay
+        merchantCountryCode: 'US',
         appearance: {
           colors: {
             primary: '#2EFECC',
@@ -135,7 +133,26 @@ export class StripeService {
         },
         // Enable Link for faster checkout
         allowsDelayedPaymentMethods: true,
-      });
+      };
+
+      // Google Pay configuration (Android only)
+      if (Platform.OS === 'android') {
+        paymentSheetParams.googlePay = {
+          merchantCountryCode: 'US',
+          testEnv: __DEV__, // Use test environment in development
+          currencyCode: params.currency?.toUpperCase() || 'USD',
+        };
+      }
+
+      // Apple Pay configuration (iOS only). PaymentSheet will show Apple Pay
+      // as an option when the user has it set up and the merchantIdentifier is configured.
+      if (Platform.OS === 'ios') {
+        paymentSheetParams.applePay = {
+          merchantCountryCode: 'US',
+        };
+      }
+
+      const { error: initError } = await initPaymentSheet(paymentSheetParams);
 
       if (initError) {
         logger.error('❌ Payment sheet initialization error:', initError);

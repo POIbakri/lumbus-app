@@ -508,8 +508,11 @@ export default function PlanDetail() {
         </TouchableOpacity>
 
         {/* Payment method indicator */}
-        <Text className="text-center font-bold" style={{color: '#999999', fontSize: getFontSize(12), marginTop: moderateScale(12)}}>
-          {Platform.OS === 'ios' ? 'Pay with Apple Pay or Card' : 'Pay with Google Pay or Card'}
+        <Text className="text-center font-bold" style={{color: '#999999', fontSize: getFontSize(12), marginTop: moderateScale(8)}}>
+          {Platform.OS === 'ios' ? 'Pay securely with Apple Pay or card' : 'Pay securely with Google Pay or card'}
+        </Text>
+        <Text className="text-center font-semibold" style={{color: '#B0B0B0', fontSize: getFontSize(11), marginTop: moderateScale(4)}}>
+          Payments are securely processed by Stripe. We never store your card details.
         </Text>
       </View>
     </View>

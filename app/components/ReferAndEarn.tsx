@@ -260,6 +260,60 @@ export default function ReferAndEarn() {
         </View>
       </View>
 
+      {/* Claim Rewards Notice - Always show */}
+      <TouchableOpacity
+        className="rounded-2xl flex-row items-center"
+        style={{
+          backgroundColor: '#FEF3C7',
+          padding: moderateScale(16),
+          marginBottom: moderateScale(16),
+          borderWidth: 2,
+          borderColor: '#FBBF24',
+        }}
+        onPress={() => {
+          const url = 'https://getlumbus.com';
+          Linking.openURL(url).catch((err) =>
+            logger.error('Error opening website:', err)
+          );
+        }}
+        activeOpacity={0.8}
+      >
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          padding: moderateScale(8),
+          borderRadius: moderateScale(12),
+          marginRight: scale(12)
+        }}>
+          <Ionicons name="globe-outline" size={scale(24)} color="#FBBF24" />
+        </View>
+        <View style={{ flex: 1, paddingRight: scale(8) }}>
+          <Text
+            className="font-black uppercase tracking-wide"
+            style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(13),
+              marginBottom: moderateScale(4),
+            }}
+          >
+            {referralData.stats.pending_rewards > 0 || referralData.stats.earned_rewards > 0
+              ? 'CLAIM YOUR REWARDS'
+              : 'MANAGE REFERRALS'}
+          </Text>
+          <Text
+            className="font-bold"
+            style={{
+              color: '#666666',
+              fontSize: getFontSize(12),
+              lineHeight: getFontSize(16),
+              flexWrap: 'wrap',
+            }}
+          >
+            Visit getlumbus.com to claim data rewards
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={scale(20)} color="#FBBF24" />
+      </TouchableOpacity>
+
       {/* How it Works */}
       <View className="rounded-2xl" style={{ backgroundColor: '#E0FEF7', padding: moderateScale(20), borderWidth: 2, borderColor: '#2EFECC' }}>
         <View className="flex-row items-center" style={{ marginBottom: moderateScale(12) }}>

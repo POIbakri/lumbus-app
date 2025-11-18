@@ -1,6 +1,4 @@
 import { Platform } from 'react-native';
-// Use v13 IAP service for iOS to avoid NitroIap issues
-import { IAPServiceV13 } from './IAPServiceV13.ios';
 import { StripeService } from './StripeService';
 import { logger } from '../logger';
 
@@ -36,12 +34,11 @@ export interface PurchaseResult {
 }
 
 class PaymentServiceClass {
-  private iapService: IAPServiceV13;
   private stripeService: StripeService;
   private initialized = false;
+  private initializing: Promise<void> | null = null;
 
   constructor() {
-    this.iapService = new IAPServiceV13();
     this.stripeService = new StripeService();
   }
 
@@ -51,38 +48,49 @@ class PaymentServiceClass {
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
-
-    try {
-      if (Platform.OS === 'ios') {
-        await this.iapService.initialize();
-        logger.log('✅ iOS IAP Service initialized');
-      } else {
-        await this.stripeService.initialize();
-        logger.log('✅ Android Stripe Service initialized');
-      }
-      this.initialized = true;
-    } catch (error) {
-      logger.error('❌ Payment service initialization failed:', error);
-      throw error;
+    if (this.initializing) {
+      // If initialization is already in progress, wait for it to complete
+      return this.initializing;
     }
+
+    this.initializing = (async () => {
+      try {
+        await this.stripeService.initialize();
+        logger.log(
+          Platform.OS === 'ios'
+            ? '✅ Stripe Service initialized for iOS (Apple Pay + cards)'
+            : '✅ Stripe Service initialized for Android (Google Pay + cards)'
+        );
+        this.initialized = true;
+      } catch (error) {
+        logger.error('❌ Payment service initialization failed:', error);
+        throw error;
+      } finally {
+        this.initializing = null;
+      }
+    })();
+
+    return this.initializing;
   }
 
   /**
    * Process a purchase using platform-specific payment method
    */
   async purchase(params: PurchaseParams): Promise<PurchaseResult> {
+    // Ensure initialization is complete before attempting a purchase.
+    // This also safely handles the case where initialize() was triggered
+    // but has not yet finished when the user taps "Buy now".
     if (!this.initialized) {
-      throw new Error('Payment service not initialized. Call initialize() first.');
+      await this.initialize();
     }
 
     try {
-      if (Platform.OS === 'ios') {
-        logger.log('🍎 Processing via Apple IAP');
-        return await this.iapService.purchase(params);
-      } else {
-        logger.log('🤖 Processing via Stripe');
-        return await this.stripeService.purchase(params);
-      }
+      logger.log(
+        Platform.OS === 'ios'
+          ? '🍎 Processing payment via Stripe (Apple Pay / card)'
+          : '🤖 Processing payment via Stripe (Google Pay / card)'
+      );
+      return await this.stripeService.purchase(params);
     } catch (error: any) {
       logger.error('❌ Purchase failed:', error);
       return {
@@ -96,10 +104,8 @@ class PaymentServiceClass {
    * Get available products (iOS only - Stripe creates products dynamically)
    */
   async getProducts(productIds: string[]): Promise<any[]> {
-    if (Platform.OS === 'ios') {
-      return await this.iapService.getProducts(productIds);
-    }
-    // Android doesn't need to pre-fetch products
+    // With Stripe on both platforms, products are defined server-side,
+    // so the mobile app does not need to prefetch them.
     return [];
   }
 
@@ -108,9 +114,9 @@ class PaymentServiceClass {
    * Useful for users who reinstalled the app or switched devices
    */
   async restorePurchases(): Promise<void> {
-    if (Platform.OS === 'ios') {
-      await this.iapService.restorePurchases();
-    }
+    // Stripe-based payments do not require client-side "restore" logic
+    // because entitlements come from your backend based on the user's account.
+    logger.log('ℹ️ restorePurchases() called - no-op for Stripe-based payments');
   }
 
   /**
@@ -118,11 +124,9 @@ class PaymentServiceClass {
    */
   async cleanup(): Promise<void> {
     try {
-      if (Platform.OS === 'ios') {
-        await this.iapService.cleanup();
-      }
-      // Stripe doesn't need cleanup
+      // Stripe does not require explicit cleanup; we just reset the flags.
       this.initialized = false;
+      this.initializing = null;
     } catch (error) {
       logger.error('Payment service cleanup error:', error);
     }

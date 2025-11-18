@@ -45,7 +45,9 @@ The configurations below were carefully set to resolve critical iOS crash issues
 module.exports = {
   dependencies: {
     '@stripe/stripe-react-native': {
-      platforms: { ios: null },  // ⚠️ Android only
+      // ⚠️ Stripe enabled on BOTH iOS and Android
+      // iOS: Apple Pay + cards via Stripe Payment Sheet
+      // Android: Google Pay + cards via Stripe Payment Sheet
     },
     'react-native-iap': {
       platforms: { android: null },  // ⚠️ iOS only
@@ -58,12 +60,11 @@ module.exports = {
 ```
 
 **Why:**
-- **iOS**: Uses react-native-iap v13 for in-app purchases
-- **Android**: Uses Stripe for payments (IAP excluded)
+- **iOS & Android**: Use Stripe for payments (single unified flow)
+- **react-native-iap v13**: Still present but only for legacy/backup; not used in current app flow
 - **Worklets**: Needed for Babel plugin but NOT for native code
 
 **NEVER:**
-- ❌ Remove platform exclusions
 - ❌ Enable react-native-iap for Android
 - ❌ Enable react-native-worklets native builds
 

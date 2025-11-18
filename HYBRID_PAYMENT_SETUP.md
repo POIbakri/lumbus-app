@@ -1,45 +1,26 @@
-# Hybrid Payment System - iOS IAP + Android Stripe
+# Unified Payment System - Stripe on iOS & Android
 
 ## Overview
 
-Lumbus uses a **smart hybrid payment system** that maximizes revenue and provides the best user experience on each platform:
+Lumbus uses a **unified Stripe-based payment system** that maximizes revenue and provides the best user experience on each platform:
 
-- **iOS**: Apple In-App Purchase (IAP) - Seamless, trustworthy, mandatory
-- **Android**: Stripe - Keep 97%+ revenue, no Google commission
+- **iOS**: Stripe Payment Sheet with **Apple Pay + cards**
+- **Android**: Stripe Payment Sheet with **Google Pay + cards**
 
 ---
 
 ## Why This Approach?
 
-### iOS: Apple In-App Purchase (15-30% commission)
+### Stripe on both platforms (2.9% + $0.30 fee, typical)
 ✅ **Benefits**:
-- **Required by Apple** for digital goods
-- Seamless Apple Pay integration
-- Face ID / Touch ID authentication
-- Users trust Apple's payment system
-- No external purchase disclosure needed
-- Better conversion rates
-- Automatic tax handling
-
-❌ **Alternative** (External payment with disclosure):
-- 12-27% commission anyway
-- Requires disclosure modal (friction)
-- Monthly sales reporting
-- Compliance headaches
-- Lower conversion rates
-
-**Decision**: Use IAP - similar cost, better UX
-
-### Android: Stripe (2.9% + $0.30 fee)
-✅ **Benefits**:
-- **Google allows external payments** with no commission
-- Keep 97%+ of revenue
+- Single, unified backend integration (no IAP-specific receipt handling)
+- Keep 97%+ of revenue on **both** platforms
 - Support international cards
-- Google Pay automatically included
+- Google Pay (Android) and Apple Pay (iOS) automatically included via Stripe
 - Multi-currency support
-- Instant refunds
+- Instant refunds and chargeback handling via Stripe Dashboard
 
-**Decision**: Use Stripe - maximize revenue
+**Decision**: Use Stripe on both iOS and Android, with Apple Pay on iOS and Google Pay on Android.
 
 ---
 
