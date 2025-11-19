@@ -13,7 +13,7 @@ export interface PollingOptions {
   maxAttempts?: number;
   initialDelay?: number;
   maxDelay?: number;
-  onStatusUpdate?: (order: Order) => void;
+  onStatusUpdate?: (order: Order, currentAttempt: number, maxAttempts: number) => void;
   onError?: (error: Error) => void;
 }
 
@@ -57,9 +57,9 @@ export async function pollOrderStatus(
         throw new Error('Order not found');
       }
 
-      // Notify status update callback
+      // Notify status update callback with current attempt
       if (onStatusUpdate) {
-        onStatusUpdate(order);
+        onStatusUpdate(order, attempts, maxAttempts);
       }
 
       // Check if order is complete with activation details

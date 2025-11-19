@@ -27,6 +27,8 @@ export default function TopUpScreen() {
     });
 
     return () => {
+      // Clean up loading state on unmount to prevent stale state
+      setLoading(false);
       PaymentService.cleanup();
     };
   }, []);
@@ -126,6 +128,7 @@ export default function TopUpScreen() {
         iccid: order.iccid,
       });
 
+      // Always reset loading state after purchase completes
       setLoading(false);
 
       if (result.success) {

@@ -49,10 +49,9 @@ export default function InstallEsim() {
         maxAttempts: 15,
         initialDelay: 2000,
         maxDelay: 30000,
-        onStatusUpdate: (updatedOrder) => {
-          // Update polling status message
-          const attempts = 1; // This would need to be tracked properly
-          setPollingStatus(formatPollingStatus(attempts, 15));
+        onStatusUpdate: (updatedOrder, currentAttempt, maxAttempts) => {
+          // Update polling status message with actual attempt count
+          setPollingStatus(formatPollingStatus(currentAttempt, maxAttempts));
           // Refetch to update UI
           refetch();
         }
@@ -93,7 +92,40 @@ export default function InstallEsim() {
     return major > 17 || (major === 17 && minor >= 4);
   }
 
+  // Helper function to detect test eSIM
+  const isTestEsim = (smdp: string) => {
+    // Be specific to avoid false positives
+    // Matches exactly "test.esim" or "example.com" domains often used in docs
+    // or specific keywords at start of string
+    return smdp === 'test.esim' || 
+           smdp === 'example.com' || 
+           smdp.startsWith('test-') ||
+           smdp.includes('.example.com');
+  };
+
   async function handleDirectInstall(lpaString: string) {
+    // Reviewer simulation bypass for test eSIMs
+    if (order && order.smdp && isTestEsim(order.smdp)) {
+      logger.log('🧪 Test eSIM detected - simulating install view for reviewers');
+      Alert.alert(
+        'Test eSIM Simulation',
+        'This is a test eSIM. In a real scenario, this would launch the iOS/Android eSIM setup wizard.\n\nSimulating success view...',
+        [
+          {
+            text: 'Simulate Success',
+            onPress: () => {
+              Alert.alert(
+                'Installation Complete (Simulated)',
+                'Your eSIM has been "installed". You would now be ready to use data.',
+                [{ text: 'OK' }]
+              );
+            }
+          }
+        ]
+      );
+      return;
+    }
+
     try {
       // iOS: Try iOS 17.4+ deep link first, fallback to manual
       if (Platform.OS === 'ios') {

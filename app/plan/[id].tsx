@@ -31,6 +31,8 @@ export default function PlanDetail() {
     });
 
     return () => {
+      // Clean up loading state on unmount to prevent stale state
+      setLoading(false);
       PaymentService.cleanup();
     };
   }, []);
@@ -137,11 +139,12 @@ export default function PlanDetail() {
           maxAttempts: 10,
           initialDelay: 2000,
           maxDelay: 30000,
-          onStatusUpdate: (order) => {
-            // Order status update
+          onStatusUpdate: (order, currentAttempt, maxAttempts) => {
+            // Order status update - could show progress if needed
           }
         });
 
+        // Always reset loading state before navigating or showing alerts
         setLoading(false);
 
         if (pollingResult.success && pollingResult.order) {
@@ -182,6 +185,7 @@ export default function PlanDetail() {
           );
         }
       } else {
+        // Always reset loading state on failure
         setLoading(false);
 
         if (result.error) {
