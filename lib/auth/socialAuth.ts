@@ -63,7 +63,17 @@ export async function signInWithApple(): Promise<{ success: boolean; error?: str
     return { success: true };
 
   } catch (error: any) {
-    if (error.code === 'ERR_REQUEST_CANCELED' || error.code === 'ERR_CANCELED') {
+    // Check for various cancellation codes from Apple Auth
+    // 'ERR_REQUEST_CANCELED' (Android/General)
+    // 'ERR_CANCELED' (Expo)
+    // '1001' (iOS ASAuthorizationErrorCanceled)
+    if (
+      error.code === 'ERR_REQUEST_CANCELED' || 
+      error.code === 'ERR_CANCELED' || 
+      error.code === '1001' ||
+      (error.message && error.message.includes('canceled')) ||
+      (error.message && error.message.includes('The authorization attempt failed for an unknown reason')) // Often masked cancellation on simulators/dev
+    ) {
       // User canceled the sign-in flow
       logger.info('Apple Sign In canceled by user');
       return {
