@@ -25,17 +25,30 @@ export async function signInWithApple(): Promise<{ success: boolean; error?: str
     }
 
     // Request Apple authentication
+    // We need to generate a nonce for Supabase to verify the integrity of the ID token
+    const rawNonce = Crypto.randomUUID();
+    const hashedNonce = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      rawNonce
+    );
+
     const credential = await AppleAuthentication.signInAsync({
       requestedScopes: [
         AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
         AppleAuthentication.AppleAuthenticationScope.EMAIL,
       ],
+      nonce: hashedNonce,
     });
+
+    if (!credential.identityToken) {
+      throw new Error('Apple Sign In failed - no identity token returned');
+    }
 
     // Sign in to Supabase with Apple ID token
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
-      token: credential.identityToken!,
+      token: credential.identityToken,
+      nonce: rawNonce,
     });
 
     if (error) {
@@ -78,15 +91,23 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
       path: 'auth/callback',
     });
 
-    // Generate a random state parameter for security
-    const state = Crypto.randomUUID();
-
+    // NOTE: When using skipBrowserRedirect: true with PKCE, Supabase's signInWithOAuth
+    // does not automatically return the code_challenge/verifier pair.
+    // However, for mobile apps, Supabase v2 client handles the PKCE flow internally
+    // when not skipping browser redirect, OR we can rely on the automatic handling
+    // if we let Supabase construct the URL.
+    //
+    // The issue is that when we manually handle the redirect, we need the verifier.
+    // BUT, Supabase JS client v2 stores the verifier in local storage before returning the URL.
+    // So when we call exchangeCodeForSession(code), it should automatically look up the verifier
+    // from storage if it was set correctly.
+    
     // Get the Supabase Google OAuth URL
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUri,
-        skipBrowserRedirect: false,
+        skipBrowserRedirect: true,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -109,6 +130,11 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
       };
     }
 
+    // Extract the state parameter from the generated URL to validate it later (CSRF protection)
+    // Supabase generates this state automatically
+    const urlParams = new URLSearchParams(data.url.split('?')[1]);
+    const expectedState = urlParams.get('state');
+
     // Open the browser for Google OAuth
     const result = await WebBrowser.openAuthSessionAsync(
       data.url,
@@ -128,25 +154,55 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
       const url = result.url;
       const params = new URLSearchParams(url.split('#')[1] || url.split('?')[1]);
 
+      const returnedState = params.get('state');
+      
+      // Validate state to prevent CSRF attacks
+      if (expectedState && returnedState !== expectedState) {
+        logger.error('Google Sign In - State mismatch (CSRF check failed)');
+        return {
+          success: false,
+          error: 'Security check failed. Please try again.',
+        };
+      }
+
+      const code = params.get('code');
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
 
-      if (accessToken && refreshToken) {
-        // Set the session in Supabase
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-
+      if (code) {
+        // Handle PKCE flow (recommended)
+        // IMPORTANT: exchangeCodeForSession automatically retrieves the code_verifier
+        // from the storage (SecureStore) where signInWithOAuth stored it.
+        const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+        
         if (sessionError) {
-          logger.error('Google Sign In - Session error:', sessionError);
+          logger.error('Google Sign In - PKCE Session error:', sessionError);
           return {
             success: false,
             error: sessionError.message,
           };
         }
 
-        logger.info('Google Sign In successful');
+        logger.info('Google Sign In successful (PKCE)');
+        return { success: true };
+      }
+
+      if (accessToken && refreshToken) {
+        // Handle Implicit flow (legacy)
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (sessionError) {
+          logger.error('Google Sign In - Implicit Session error:', sessionError);
+          return {
+            success: false,
+            error: sessionError.message,
+          };
+        }
+
+        logger.info('Google Sign In successful (Implicit)');
         return { success: true };
       }
     }

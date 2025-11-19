@@ -53,6 +53,8 @@ export interface CheckoutParams {
 export interface PaymentIntentResponse {
   clientSecret: string;
   orderId: string;
+  publishableKey?: string;
+  stripeMode?: 'test' | 'live';
 }
 
 export interface TopUpPackage {

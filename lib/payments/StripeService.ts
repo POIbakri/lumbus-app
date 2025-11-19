@@ -78,7 +78,7 @@ export class StripeService {
     try {
       // Step 1: Create checkout session with your backend
       logger.log('🔄 Creating Stripe checkout...');
-      const { clientSecret, orderId } = await createCheckout({
+      const { clientSecret, orderId, publishableKey } = await createCheckout({
         planId: params.planId,
         email: params.email,
         currency: params.currency,
@@ -91,6 +91,16 @@ export class StripeService {
 
       if (!clientSecret || !orderId) {
         throw new Error('Invalid checkout response from server');
+      }
+
+      // Check if we need to re-initialize with a test key (for reviewers)
+      if (publishableKey && publishableKey !== config.stripePublishableKey) {
+        logger.log('⚠️ Using dynamic Stripe key from backend (Test Mode)');
+        const { initStripe } = await getStripeModule();
+        await initStripe({
+          publishableKey,
+          merchantIdentifier: 'merchant.com.lumbus.app',
+        });
       }
 
       // Step 2: Initialize payment sheet with Google Pay support
