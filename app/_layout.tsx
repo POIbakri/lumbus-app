@@ -2,6 +2,7 @@ import { Stack, useRouter } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, Alert, Platform } from 'react-native';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import { config } from '../lib/config';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { supabase } from '../lib/supabase';
@@ -29,10 +30,8 @@ function AppContent() {
   const notificationListener = useRef<any>(null);
   const responseListener = useRef<any>(null);
 
-  // Only resolve Stripe key on Android to avoid touching Stripe on iOS
-  const stripePublishableKey = Platform.OS === 'android' ? (config.stripePublishableKey || '') : '';
-  // Dynamically load StripeProvider only on Android to avoid iOS native initialization
-  const StripeProviderAny: any = Platform.OS === 'android' ? require('@stripe/stripe-react-native').StripeProvider : null;
+  // Stripe configuration for both iOS and Android
+  const stripePublishableKey = config.stripePublishableKey || '';
 
   useEffect(() => {
     // Initialize notifications for both iOS and Android
@@ -94,21 +93,11 @@ function AppContent() {
   return (
     <>
       <DeepLinkHandler />
-      {Platform.OS === 'android' ? (
-        <StripeProviderAny publishableKey={stripePublishableKey} merchantIdentifier="merchant.com.lumbus.app">
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="plan" options={{ headerShown: false }} />
-            <Stack.Screen name="region" options={{ headerShown: false }} />
-            <Stack.Screen name="install" options={{ headerShown: false }} />
-            <Stack.Screen name="esim-details" options={{ headerShown: false }} />
-            <Stack.Screen name="topup" options={{ headerShown: false }} />
-          </Stack>
-        </StripeProviderAny>
-      ) : (
+      <StripeProvider 
+        publishableKey={stripePublishableKey} 
+        merchantIdentifier="merchant.com.lumbus.app"
+        urlScheme="lumbus" // Required for 3D Secure redirect handling
+      >
         <Stack>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -120,7 +109,7 @@ function AppContent() {
           <Stack.Screen name="esim-details" options={{ headerShown: false }} />
           <Stack.Screen name="topup" options={{ headerShown: false }} />
         </Stack>
-      )}
+      </StripeProvider>
     </>
   );
 }

@@ -431,3 +431,5 @@ If you ever need to revert to IAP for iOS, you can:
 For now, **Stripe is the primary payment system for both iOS and Android**.
 
 
+
+

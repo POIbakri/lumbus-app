@@ -7,22 +7,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const hasGoogleServices = fs.existsSync(googleServicesPath);
   const isAndroidBuild = process.env.EAS_BUILD_PLATFORM === 'android' || process.env.EXPO_OS === 'android';
 
-  // Build plugins list with conditional Stripe plugin for Android only
+  // Build plugins list
   const plugins: any[] = [
     'expo-router',
     'expo-font',
     'expo-web-browser',
-  ];
-
-  // Add Stripe plugin for Android only
-  if (isAndroidBuild) {
-    plugins.push([
+    [
       '@stripe/stripe-react-native',
       {
         merchantIdentifier: 'merchant.com.lumbus.app',
+        enableGooglePay: true,
       },
-    ]);
-  }
+    ],
+  ];
 
   // Add expo-notifications for both iOS and Android
   // Android gets custom icon/color, iOS uses default system appearance
