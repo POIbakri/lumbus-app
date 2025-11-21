@@ -5,10 +5,12 @@ import { supabase } from '../../lib/supabase';
 import { useState, useEffect, useCallback } from 'react';
 import ReferAndEarn from '../components/ReferAndEarn';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
+import { DeleteAccountModal } from '../components/DeleteAccountModal';
 
 export default function Account() {
   const router = useRouter();
   const [email, setEmail] = useState<string>('');
+  const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
   const { moderateScale, adaptiveScale, isTablet, isSmallDevice } = useResponsive();
 
   const getUserEmail = useCallback(async () => {
@@ -71,6 +73,10 @@ export default function Account() {
     } else {
       Alert.alert('Error', 'Unable to open privacy policy');
     }
+  }, []);
+
+  const handleDeleteAccount = useCallback(() => {
+    setDeleteAccountModalVisible(true);
   }, []);
 
   return (
@@ -257,6 +263,30 @@ export default function Account() {
           </TouchableOpacity>
         </View>
 
+        {/* Delete Account Button - placed before Sign Out for better flow */}
+        <TouchableOpacity
+          className="flex-row items-center justify-center"
+          style={{
+            backgroundColor: '#FEE2E2',
+            borderRadius: getBorderRadius(16),
+            padding: moderateScale(20),
+            marginBottom: moderateScale(16),
+            borderWidth: 2,
+            borderColor: '#FCA5A5',
+          }}
+          onPress={handleDeleteAccount}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="trash-outline" size={getIconSize(26)} color="#EF4444" />
+          <Text className="font-black uppercase tracking-wide" style={{
+            color: '#EF4444',
+            fontSize: getFontSize(16),
+            marginLeft: moderateScale(12),
+          }}>
+            Delete Account
+          </Text>
+        </TouchableOpacity>
+
         {/* Sign Out Button */}
         <TouchableOpacity
           className="flex-row items-center justify-center"
@@ -300,6 +330,12 @@ export default function Account() {
         </View>
         </View>
       </ScrollView>
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        visible={deleteAccountModalVisible}
+        onClose={() => setDeleteAccountModalVisible(false)}
+      />
     </View>
   );
 }

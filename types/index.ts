@@ -89,3 +89,9 @@ export interface TopUpCheckoutResponse {
   clientSecret: string;
   orderId: string;
 }
+
+export interface DeleteAccountResponse {
+  success: boolean;
+  message: string;
+  scheduledDeletion?: string;
+}

@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Plan, Order, CheckoutParams, PaymentIntentResponse, TopUpCheckoutParams, TopUpCheckoutResponse } from '../types';
+import { Plan, Order, CheckoutParams, PaymentIntentResponse, TopUpCheckoutParams, TopUpCheckoutResponse, DeleteAccountResponse } from '../types';
 import { config } from './config';
 import { logger } from './logger';
 
@@ -712,5 +712,48 @@ export async function createTopUpCheckout(params: TopUpCheckoutParams): Promise<
       throw error;
     }
     throw new Error('Failed to create top-up checkout');
+  }
+}
+
+// Account Deletion API
+export async function deleteAccount(confirmText: string): Promise<DeleteAccountResponse> {
+  try {
+    const headers = await getAuthHeaders();
+
+    const response = await fetchWithTimeout(
+      `${API_URL}/user/delete-account`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          confirmText: confirmText,
+        }),
+      },
+      15000
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.error || errorData?.message || 'Failed to delete account';
+      logger.error('Account deletion error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+
+    // Validate the response contains success: true
+    if (!data.success) {
+      const errorMessage = data.message || data.error || 'Account deletion failed';
+      logger.error('Account deletion failed:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Error deleting account:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to delete account');
   }
 }
