@@ -35,13 +35,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
   ]);
 
-  // Force new build v1.0.8 - with Stripe key safety fix to prevent nil crash
+  // Force new build v1.0.12 - Added account deletion feature for App Store compliance
   return {
     ...config,
     name: 'Lumbus',
     slug: 'lumbus',
     owner: 'lumbus',
-    version: '1.0.11',
+    version: '1.0.12',
     orientation: 'portrait',
     icon: './assets/iconlogotrans.png',
     userInterfaceStyle: 'light',
@@ -66,7 +66,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSUserNotificationsUsageDescription: 'We send notifications when your eSIM is ready to install and when you\'re running low on data.',
         ITSAppUsesNonExemptEncryption: false,
       },
-      buildNumber: '14',
+      buildNumber: '15',
     },
     android: {
       adaptiveIcon: {
@@ -74,7 +74,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: '#ffffff',
       },
       package: 'com.lumbus.app',
-      versionCode: 14,
+      versionCode: 15,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
