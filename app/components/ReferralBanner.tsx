@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { useResponsive, getFontSize } from '../../hooks/useResponsive';
 import { useReferral } from '../../contexts/ReferralContext';
+import { PartyIcon } from '../../components/icons/flags';
 
 /**
  * Referral Banner Component
@@ -28,9 +29,9 @@ export function ReferralBanner() {
         borderColor: '#FBBF24', // Amber border
       }}
     >
-      <Text style={{ fontSize: getFontSize(24), marginRight: scale(12) }}>
-        🎉
-      </Text>
+      <View style={{ marginRight: scale(12) }}>
+        <PartyIcon size={getFontSize(24)} />
+      </View>
       <View style={{ flex: 1 }}>
         <Text
           className="font-black uppercase tracking-wide"
@@ -80,9 +81,9 @@ export function ReferralBadge() {
         borderColor: '#FBBF24',
       }}
     >
-      <Text style={{ fontSize: getFontSize(16), marginRight: scale(6) }}>
-        🎉
-      </Text>
+      <View style={{ marginRight: scale(6) }}>
+        <PartyIcon size={getFontSize(16)} />
+      </View>
       <Text
         className="font-black uppercase tracking-wide"
         style={{

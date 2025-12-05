@@ -41,7 +41,7 @@ export default function ReferAndEarn() {
     if (!referralData) return;
 
     await Clipboard.setStringAsync(referralData.ref_code);
-    Alert.alert('✓ Copied', 'Referral code copied to clipboard');
+    Alert.alert('Copied', 'Referral code copied to clipboard');
   };
 
   const shareReferralLink = async () => {
@@ -284,7 +284,7 @@ export default function ReferAndEarn() {
           borderRadius: moderateScale(12),
           marginRight: scale(12)
         }}>
-          <Ionicons name="globe-outline" size={scale(24)} color="#FBBF24" />
+          <Ionicons name="gift-outline" size={scale(24)} color="#FBBF24" />
         </View>
         <View style={{ flex: 1, paddingRight: scale(8) }}>
           <Text

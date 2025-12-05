@@ -87,6 +87,7 @@ export class StripeService {
         existingOrderId: params.existingOrderId,
         iccid: params.iccid,
         referralCode: params.referralCode, // Pass referral code for discount
+        discountCode: params.discountCode, // Pass discount code
       });
 
       if (!clientSecret || !orderId) {

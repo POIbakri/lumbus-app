@@ -11,7 +11,7 @@ import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSi
 import { pollOrderStatus, shouldPollOrder, formatPollingStatus } from '../../lib/orderPolling';
 
 export default function InstallEsim() {
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { orderId, fromPurchase } = useLocalSearchParams<{ orderId: string; fromPurchase?: string }>();
   const router = useRouter();
   const [showManual, setShowManual] = useState(false);
   const [pollingStatus, setPollingStatus] = useState<string>('');
@@ -204,6 +204,17 @@ export default function InstallEsim() {
     return match ? match[1].trim() : cleaned.split(' ')[0];
   }
 
+  // Handle close navigation
+  const handleClose = () => {
+    if (fromPurchase === 'true') {
+      // If came from purchase flow, go to dashboard
+      router.replace('/(tabs)/dashboard');
+    } else {
+      // Otherwise just go back
+      router.back();
+    }
+  };
+
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
@@ -299,7 +310,7 @@ export default function InstallEsim() {
     <ScrollView className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
       {/* Header */}
       <View style={{paddingHorizontal: getHorizontalPadding(), paddingTop: moderateScale(64), paddingBottom: moderateScale(24)}}>
-        <TouchableOpacity onPress={() => router.back()} style={{marginBottom: moderateScale(24)}}>
+        <TouchableOpacity onPress={handleClose} style={{marginBottom: moderateScale(24)}}>
           <Ionicons name="close" size={getIconSize(28)} color="#1A1A1A" />
         </TouchableOpacity>
 

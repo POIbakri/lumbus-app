@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 import { Order } from '../../types';
 import { Circle, Svg } from 'react-native-svg';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
+import { getFlag, GlobeIcon } from '../../components/icons/flags';
 
 type TabType = 'active' | 'expired';
 
@@ -95,39 +96,20 @@ export default function Dashboard() {
     return match ? match[1].trim() : cleaned.split(' ')[0];
   }, []);
 
-  const getCountryFlag = useCallback((region: string) => {
-    const flagMap: { [key: string]: string } = {
-      'Saudi Arabia': '🇸🇦',
-      'United States': '🇺🇸',
-      'United Kingdom': '🇬🇧',
-      'Japan': '🇯🇵',
-      'France': '🇫🇷',
-      'Germany': '🇩🇪',
-      'Italy': '🇮🇹',
-      'Spain': '🇪🇸',
-      'Canada': '🇨🇦',
-      'Australia': '🇦🇺',
-      'UAE': '🇦🇪',
-      'Turkey': '🇹🇷',
-      'Thailand': '🇹🇭',
-      'Singapore': '🇸🇬',
-      'South Korea': '🇰🇷',
-      'China': '🇨🇳',
-      'India': '🇮🇳',
-      'Mexico': '🇲🇽',
-      'Brazil': '🇧🇷',
-    };
-    return flagMap[region] || '🌍';
+  // Get country/region flag SVG - uses region name or code
+  const getCountryFlag = useCallback((region: string, size: number = 32) => {
+    return getFlag(region, size);
   }, []);
 
   // Memoize CircularProgress component to prevent re-renders
-  const CircularProgress = memo(({ percentage, size, strokeWidth, flag }: { percentage: number; size?: number; strokeWidth?: number; flag: string }) => {
+  const CircularProgress = memo(({ percentage, size, strokeWidth, region }: { percentage: number; size?: number; strokeWidth?: number; region: string }) => {
     const responsiveSize = size || adaptiveScale(80);
     const responsiveStrokeWidth = strokeWidth || adaptiveScale(6);
     const radius = (responsiveSize - responsiveStrokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
     const progress = 100 - percentage; // Invert to show remaining
     const strokeDashoffset = (progress / 100) * circumference;
+    const flagSize = Math.floor(responsiveSize * 0.4); // Flag takes 40% of circle
 
     return (
       <View style={{ width: responsiveSize, height: responsiveSize, position: 'relative' }}>
@@ -157,7 +139,7 @@ export default function Dashboard() {
         </Svg>
         {/* Flag in center */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: getFontSize(32) }}>{flag}</Text>
+          {getFlag(region, flagSize)}
         </View>
       </View>
     );
@@ -202,7 +184,6 @@ export default function Dashboard() {
     const percentageUsed = actualTotalBytes > 0 ? (dataUsedBytes / actualTotalBytes) * 100 : 0;
 
     const expiryDate = getExpiryDate(order);
-    const flag = getCountryFlag(region);
     const hasUsage = dataUsedBytes > 0;
 
     // Format data remaining display
@@ -321,10 +302,10 @@ export default function Dashboard() {
                 borderWidth: 3,
                 borderColor: '#FDFD74'
               }}>
-                <Text style={{ fontSize: getFontSize(32) }}>{flag}</Text>
+                {getFlag(region, Math.floor(adaptiveScale(32)))}
               </View>
             ) : (
-              <CircularProgress percentage={percentageUsed} flag={flag} />
+              <CircularProgress percentage={percentageUsed} region={region} />
             )}
           </View>
         </TouchableOpacity>
@@ -427,17 +408,17 @@ export default function Dashboard() {
     <View className="flex-1" style={{ backgroundColor: '#FFFFFF' }}>
       {/* Enhanced Header */}
       <View style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#2EFECC',
         paddingHorizontal: getHorizontalPadding(),
         paddingTop: moderateScale(60),
-        paddingBottom: moderateScale(28),
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        paddingBottom: moderateScale(32),
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.03,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 8,
       }}>
         {/* Title Section with accent */}
         <View style={{marginBottom: moderateScale(20)}}>
@@ -445,7 +426,7 @@ export default function Dashboard() {
             <View style={{
               width: 4,
               height: getFontSize(isSmallDevice ? 32 : 36),
-              backgroundColor: '#2EFECC',
+              backgroundColor: '#1A1A1A',
               marginRight: moderateScale(12),
               borderRadius: 2,
             }} />
@@ -461,17 +442,19 @@ export default function Dashboard() {
 
         {/* Enhanced Tabs */}
         <View style={{
-          backgroundColor: '#F5F5F5',
-          borderRadius: 14,
-          padding: 3,
+          backgroundColor: 'rgba(26, 26, 26, 0.1)',
+          borderRadius: 18,
+          padding: 4,
         }}>
           <View className="flex-row">
             <TouchableOpacity
               className="flex-1"
               style={{
                 paddingVertical: moderateScale(12),
-                borderRadius: 11,
-                backgroundColor: activeTab === 'active' ? '#2EFECC' : 'transparent',
+                borderRadius: 14,
+                backgroundColor: activeTab === 'active' ? '#1A1A1A' : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               onPress={() => setActiveTab('active')}
               activeOpacity={0.8}
@@ -479,7 +462,7 @@ export default function Dashboard() {
               <Text
                 className="text-center font-bold tracking-wide"
                 style={{
-                  color: activeTab === 'active' ? '#1A1A1A' : '#666666',
+                  color: activeTab === 'active' ? '#2EFECC' : '#1A1A1A',
                   fontSize: getFontSize(14),
                   letterSpacing: 0.5,
                 }}
@@ -492,8 +475,10 @@ export default function Dashboard() {
               className="flex-1"
               style={{
                 paddingVertical: moderateScale(12),
-                borderRadius: 11,
-                backgroundColor: activeTab === 'expired' ? '#2EFECC' : 'transparent',
+                borderRadius: 14,
+                backgroundColor: activeTab === 'expired' ? '#1A1A1A' : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               onPress={() => setActiveTab('expired')}
               activeOpacity={0.8}
@@ -501,7 +486,7 @@ export default function Dashboard() {
               <Text
                 className="text-center font-bold tracking-wide"
                 style={{
-                  color: activeTab === 'expired' ? '#1A1A1A' : '#666666',
+                  color: activeTab === 'expired' ? '#2EFECC' : '#1A1A1A',
                   fontSize: getFontSize(14),
                   letterSpacing: 0.5,
                 }}

@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, P
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { validatePassword, isValidEmail } from '../../lib/validation';
-import { signInWithApple, signInWithGoogle, isAppleSignInAvailable, handleSocialAuthError } from '../../lib/auth/socialAuth';
+import { signInWithApple, signInWithGoogle, isAppleSignInAvailable, handleSocialAuthError, sendWelcomeEmail } from '../../lib/auth/socialAuth';
 import { AppleLogo } from '../../components/icons/AppleLogo';
 import { GoogleLogo } from '../../components/icons/GoogleLogo';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
@@ -148,6 +148,11 @@ export default function Signup() {
     // Reset on success
     setFailedAttempts(0);
     setLockoutUntil(null);
+
+    // Send welcome email for new users (fire-and-forget)
+    if (data.user) {
+      sendWelcomeEmail(data.user);
+    }
 
     // Link referral code if present
     if (data.user && referralCode) {
@@ -404,16 +409,6 @@ export default function Signup() {
               <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
                 <Text className="font-black" style={{color: '#2EFECC', fontSize: getFontSize(14)}}>SIGN IN</Text>
               </TouchableOpacity>
-            </View>
-
-            {/* Trust Badge */}
-            <View className="items-center" style={{marginTop: moderateScale(16)}}>
-              <View className="flex-row items-center rounded-full" style={{backgroundColor: '#FDFD74', paddingHorizontal: scale(14), paddingVertical: moderateScale(6), gap: scale(6)}}>
-                <Text style={{fontSize: getFontSize(16)}}>🌍</Text>
-                <Text className="font-bold uppercase" style={{color: '#1A1A1A', fontSize: getFontSize(11)}}>
-                  Join 50,000+ Users
-                </Text>
-              </View>
             </View>
           </View>
         </View>

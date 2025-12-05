@@ -3,6 +3,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../hooks/useResponsive';
+import { WorldMapIcon, CreditCardIcon, GlobeIcon, MobilePhoneIcon, CheckmarkIcon } from '../components/icons/flags';
+import { AppleLogo } from '../components/icons/AppleLogo';
+import { GoogleLogo } from '../components/icons/GoogleLogo';
 
 const COLORS = {
   primary: '#2EFECC',
@@ -21,11 +24,11 @@ interface OnboardingScreen {
     backgroundColor: string;
     number: string;
   };
-  emoji?: string;
+  iconType?: 'map' | 'card' | 'globe' | 'phone';
   useLogo?: boolean;
   title: string;
   description: string;
-  features: Array<{ icon: string; text: string }>;
+  features: Array<{ text: string }>;
   exampleCard?: any;
 }
 
@@ -40,9 +43,9 @@ const screens: OnboardingScreen[] = [
     title: 'WELCOME TO LUMBUS',
     description: 'Stay connected anywhere in the world with instant eSIM activation. No physical SIM cards, no hassle.',
     features: [
-      { icon: '✓', text: 'Instant eSIM delivery' },
-      { icon: '✓', text: 'Coverage in 150+ countries' },
-      { icon: '✓', text: 'Connect in under 5 minutes' },
+      { text: 'Instant eSIM delivery' },
+      { text: 'Coverage in 150+ countries' },
+      { text: 'Connect in under 5 minutes' },
     ],
   },
   {
@@ -51,13 +54,13 @@ const screens: OnboardingScreen[] = [
       backgroundColor: COLORS.yellow,
       number: '1',
     },
-    emoji: '🗺️',
+    iconType: 'map',
     title: 'CHOOSE YOUR PLAN',
     description: 'Select the perfect data plan for your destination. We offer plans for 150+ countries with flexible data options and durations.',
     features: [
-      { icon: '✓', text: 'Pick your destination' },
-      { icon: '✓', text: 'Choose data amount (1GB - 20GB)' },
-      { icon: '✓', text: 'Select validity period (7-30 days)' },
+      { text: 'Pick your destination' },
+      { text: 'Choose data amount (1GB - 20GB)' },
+      { text: 'Select validity period (7-30 days)' },
     ],
     exampleCard: {
       backgroundColor: COLORS.yellow,
@@ -76,20 +79,20 @@ const screens: OnboardingScreen[] = [
       backgroundColor: COLORS.purple,
       number: '2',
     },
-    emoji: '💳',
+    iconType: 'card',
     title: 'PAY INSTANTLY',
     description: 'Complete your purchase with Apple Pay, Google Pay, or any major credit card. Secure checkout powered by Stripe.',
     features: [
-      { icon: '✓', text: 'Apple Pay & Google Pay supported' },
-      { icon: '✓', text: 'All major credit cards accepted' },
-      { icon: '✓', text: 'Secure encrypted payment' },
+      { text: 'Apple Pay & Google Pay supported' },
+      { text: 'All major credit cards accepted' },
+      { text: 'Secure encrypted payment' },
     ],
     exampleCard: {
       backgroundColor: COLORS.purple,
       paymentMethods: [
-        { type: 'apple', icon: '📱', label: 'Apple Pay' },
-        { type: 'google', icon: 'G', label: 'Google Pay' },
-        { type: 'card', label: '•••• •••• •••• 4242' },
+        { type: 'apple', iconComponent: 'apple', label: 'Apple Pay' },
+        { type: 'google', iconComponent: 'google', label: 'Google Pay' },
+        { type: 'card', iconComponent: 'card', label: '•••• •••• •••• 4242' },
       ],
     },
   },
@@ -99,17 +102,17 @@ const screens: OnboardingScreen[] = [
       backgroundColor: COLORS.cyan,
       number: '3',
     },
-    emoji: '🌐',
+    iconType: 'globe',
     title: 'GET CONNECTED',
     description: 'Receive your eSIM instantly. Activate it by scanning the QR code or using the one-tap installation on iOS 17.4+.',
     features: [
-      { icon: '✓', text: 'Instant eSIM delivery' },
-      { icon: '✓', text: 'QR code or one-tap activation' },
-      { icon: '✓', text: 'Online in less than 5 minutes' },
+      { text: 'Instant eSIM delivery' },
+      { text: 'QR code or one-tap activation' },
+      { text: 'Online in less than 5 minutes' },
     ],
     exampleCard: {
       backgroundColor: COLORS.cyan,
-      icon: '📲',
+      iconType: 'phone',
       title: 'YOUR eSIM IS READY!',
       subtitle: 'Scan QR code or tap to install',
     },
@@ -175,7 +178,7 @@ export default function Onboarding() {
                   key={index}
                   style={{ alignItems: 'center' }}
                 >
-                  {/* Logo or Emoji */}
+                  {/* Logo or Icon */}
                   {screen.useLogo ? (
                     <Image
                       source={require('../assets/logotrans.png')}
@@ -187,12 +190,12 @@ export default function Onboarding() {
                       }}
                     />
                   ) : (
-                    <Text style={{
-                      fontSize: getFontSize(isTablet ? 80 : 56),
-                      marginBottom: moderateScale(20),
-                    }}>
-                      {screen.emoji}
-                    </Text>
+                    <View style={{ marginBottom: moderateScale(20) }}>
+                      {screen.iconType === 'map' && <WorldMapIcon size={getFontSize(isTablet ? 80 : 56)} />}
+                      {screen.iconType === 'card' && <CreditCardIcon size={getFontSize(isTablet ? 80 : 56)} />}
+                      {screen.iconType === 'globe' && <GlobeIcon size={getFontSize(isTablet ? 80 : 56)} />}
+                      {screen.iconType === 'phone' && <MobilePhoneIcon size={getFontSize(isTablet ? 80 : 56)} />}
+                    </View>
                   )}
 
                   {/* Title */}
@@ -255,23 +258,12 @@ export default function Onboarding() {
                             justifyContent: 'center',
                             marginRight: moderateScale(10),
                           }}>
-                            <Text style={{
-                              fontSize: getFontSize(14),
-                              color: COLORS.yellow,
-                              fontWeight: '900',
-                            }}>
-                              {feature.icon}
-                            </Text>
+                            <CheckmarkIcon size={getFontSize(14)} color={COLORS.yellow} />
                           </View>
                         ) : (
-                          <Text style={{
-                            fontSize: getFontSize(16),
-                            color: COLORS.primary,
-                            marginRight: moderateScale(10),
-                            fontWeight: '900',
-                          }}>
-                            {feature.icon}
-                          </Text>
+                          <View style={{ marginRight: moderateScale(10) }}>
+                            <CheckmarkIcon size={getFontSize(16)} color={COLORS.primary} />
+                          </View>
                         )}
                         <Text style={{
                           fontSize: getFontSize(14),
@@ -364,12 +356,15 @@ export default function Onboarding() {
                               borderBottomWidth: idx < screen.exampleCard.paymentMethods.length - 1 ? 1 : 0,
                               borderBottomColor: '#E5E5E5',
                             }}>
-                              <Text style={{
-                                fontSize: getFontSize(20),
-                                marginRight: moderateScale(10),
-                              }}>
-                                {method.icon}
-                              </Text>
+                              <View style={{ marginRight: moderateScale(10) }}>
+                                {method.iconComponent === 'phone' && <MobilePhoneIcon size={getFontSize(20)} />}
+                                {method.iconComponent === 'card' && <CreditCardIcon size={getFontSize(20)} />}
+                                {method.iconComponent === 'apple' && <AppleLogo size={getFontSize(20)} color="#000000" />}
+                                {method.iconComponent === 'google' && <GoogleLogo size={getFontSize(20)} />}
+                                {method.icon && !method.iconComponent && (
+                                  <Text style={{ fontSize: getFontSize(20), fontWeight: '900' }}>{method.icon}</Text>
+                                )}
+                              </View>
                               <Text style={{
                                 fontSize: getFontSize(14),
                                 fontWeight: '700',
@@ -392,12 +387,9 @@ export default function Onboarding() {
                           borderColor: '#E5E5E5',
                           alignItems: 'center',
                         }}>
-                          <Text style={{
-                            fontSize: getFontSize(52),
-                            marginBottom: moderateScale(12),
-                          }}>
-                            {screen.exampleCard.icon}
-                          </Text>
+                          <View style={{ marginBottom: moderateScale(12) }}>
+                            {screen.exampleCard.iconType === 'phone' && <MobilePhoneIcon size={getFontSize(52)} />}
+                          </View>
                           <Text style={{
                             fontSize: getFontSize(16),
                             fontWeight: '900',

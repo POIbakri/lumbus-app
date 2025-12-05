@@ -10,6 +10,24 @@ import { logger } from '../logger';
 WebBrowser.maybeCompleteAuthSession();
 
 /**
+ * Send welcome email to new users (fire-and-forget)
+ * Safe to call multiple times - endpoint has duplicate prevention
+ */
+export function sendWelcomeEmail(user: { id: string; email?: string; user_metadata?: { full_name?: string; name?: string } }) {
+  if (!user.email) return;
+
+  fetch('https://getlumbus.com/api/user/welcome-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: user.id,
+      email: user.email,
+      userName: user.user_metadata?.full_name || user.user_metadata?.name
+    })
+  }).catch(() => {}); // Fire-and-forget, don't block auth flow
+}
+
+/**
  * Sign in with Apple (iOS only)
  */
 export async function signInWithApple(): Promise<{ success: boolean; error?: string }> {
@@ -60,6 +78,12 @@ export async function signInWithApple(): Promise<{ success: boolean; error?: str
     }
 
     logger.info('Apple Sign In successful:', data.user?.email);
+
+    // Send welcome email for new users (fire-and-forget)
+    if (data.user) {
+      sendWelcomeEmail(data.user);
+    }
+
     return { success: true };
 
   } catch (error: any) {
@@ -183,8 +207,8 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
         // Handle PKCE flow (recommended)
         // IMPORTANT: exchangeCodeForSession automatically retrieves the code_verifier
         // from the storage (SecureStore) where signInWithOAuth stored it.
-        const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
-        
+        const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+
         if (sessionError) {
           logger.error('Google Sign In - PKCE Session error:', sessionError);
           return {
@@ -194,12 +218,18 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
         }
 
         logger.info('Google Sign In successful (PKCE)');
+
+        // Send welcome email for new users (fire-and-forget)
+        if (sessionData.user) {
+          sendWelcomeEmail(sessionData.user);
+        }
+
         return { success: true };
       }
 
       if (accessToken && refreshToken) {
         // Handle Implicit flow (legacy)
-        const { error: sessionError } = await supabase.auth.setSession({
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
@@ -213,6 +243,12 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
         }
 
         logger.info('Google Sign In successful (Implicit)');
+
+        // Send welcome email for new users (fire-and-forget)
+        if (sessionData.user) {
+          sendWelcomeEmail(sessionData.user);
+        }
+
         return { success: true };
       }
     }

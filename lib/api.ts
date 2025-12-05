@@ -473,6 +473,43 @@ export async function linkReferralCode(params: LinkReferralCodeParams): Promise<
   }
 }
 
+// Validate Discount/Referral Code API
+export async function validateDiscountCode(params: import('../types').ValidateCodeParams): Promise<import('../types').ValidateCodeResponse> {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetchWithTimeout(`${API_URL}/validate-code`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+    }, 10000);
+
+    // Handle empty response or JSON parse errors gracefully
+    try {
+      const text = await response.text();
+      if (!text) {
+        return {
+          valid: false,
+          error: 'Empty response from server',
+        };
+      }
+      const data = JSON.parse(text);
+      return data;
+    } catch (e) {
+      logger.error('Error parsing validate code response:', e);
+      return {
+        valid: false,
+        error: 'Invalid server response',
+      };
+    }
+  } catch (error) {
+    logger.error('Error validating code:', error);
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : 'Failed to validate code',
+    };
+  }
+}
+
 // Region API
 export interface RegionCountry {
   code: string;

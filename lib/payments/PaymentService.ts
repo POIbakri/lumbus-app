@@ -24,6 +24,7 @@ export interface PurchaseParams {
   existingOrderId?: string;
   iccid?: string;
   referralCode?: string; // Optional referral code for discount
+  discountCode?: string; // Optional discount code
 }
 
 export interface PurchaseResult {

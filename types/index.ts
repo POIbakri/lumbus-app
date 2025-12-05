@@ -47,7 +47,25 @@ export interface CheckoutParams {
   isTopUp?: boolean;
   existingOrderId?: string;
   iccid?: string;
-  referralCode?: string; // Optional referral code for discount
+  referralCode?: string; // Optional referral code for discount (mutually exclusive with discountCode)
+  discountCode?: string; // Optional discount code (mutually exclusive with referralCode)
+}
+
+export interface ValidateCodeParams {
+  code: string;
+  planId: string;
+  email?: string;
+}
+
+export interface ValidateCodeResponse {
+  valid: boolean;
+  type?: 'discount' | 'referral';
+  code?: string;
+  discountType?: 'percentage' | 'fixed';
+  discountValue?: number;
+  bonusDataMB?: number;
+  message?: string;
+  error?: string;
 }
 
 export interface PaymentIntentResponse {

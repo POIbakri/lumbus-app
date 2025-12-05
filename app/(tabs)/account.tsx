@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import ReferAndEarn from '../components/ReferAndEarn';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
+import { LightningIcon } from '../../components/icons/flags';
 
 export default function Account() {
   const router = useRouter();
@@ -153,10 +154,16 @@ export default function Account() {
               }}>
                 Email Address
               </Text>
-              <Text className="font-black" style={{
-                color: '#1A1A1A',
-                fontSize: getFontSize(18),
-              }}>
+              <Text
+                className="font-black"
+                style={{
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(18),
+                }}
+                numberOfLines={1}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.7}
+              >
                 {email}
               </Text>
             </View>
@@ -320,12 +327,15 @@ export default function Account() {
             paddingVertical: moderateScale(8),
             borderRadius: getBorderRadius(999),
           }}>
-            <Text className="font-bold uppercase tracking-wide" style={{
-              color: '#666666',
-              fontSize: getFontSize(12),
-            }}>
-              ⚡ Lumbus v1.0.0
-            </Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+              <LightningIcon size={getFontSize(12)} color="#666666" />
+              <Text className="font-bold uppercase tracking-wide" style={{
+                color: '#666666',
+                fontSize: getFontSize(12),
+              }}>
+                Lumbus v1.0.0
+              </Text>
+            </View>
           </View>
         </View>
         </View>

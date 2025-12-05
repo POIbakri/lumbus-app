@@ -111,7 +111,7 @@ export function getPlanSections(plans: Plan[], userLocation: UserLocation | null
   );
   if (localPlans.length > 0) {
     sections.push({
-      title: `📍 Plans for ${userLocation.country_name}`,
+      title: `Plans for ${userLocation.country_name}`,
       data: localPlans,
     });
   }
@@ -123,7 +123,7 @@ export function getPlanSections(plans: Plan[], userLocation: UserLocation | null
   });
   if (regionalPlans.length > 0) {
     sections.push({
-      title: '🌍 Regional & Global Plans',
+      title: 'Regional & Global Plans',
       data: regionalPlans,
     });
   }
@@ -134,7 +134,7 @@ export function getPlanSections(plans: Plan[], userLocation: UserLocation | null
   );
   if (otherPlans.length > 0) {
     sections.push({
-      title: '🗺️ Other Destinations',
+      title: 'Other Destinations',
       data: otherPlans,
     });
   }

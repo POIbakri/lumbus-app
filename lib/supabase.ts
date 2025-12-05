@@ -19,7 +19,11 @@ const secureStorage = {
   },
   async setItem(key: string, value: string): Promise<void> {
     try {
-      await SecureStore.setItemAsync(key, value);
+      // Use AFTER_FIRST_UNLOCK to allow access when app is in background/locked
+      // This prevents "User interaction is not allowed" errors during background tasks
+      await SecureStore.setItemAsync(key, value, {
+        keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+      });
     } catch (error) {
       logger.error('SecureStore setItem error:', error);
       // Don't throw - allow auth to continue even if storage fails

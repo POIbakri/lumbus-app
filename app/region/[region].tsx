@@ -7,6 +7,7 @@ import { fetchPlans, fetchRegionInfo, RegionInfo } from '../../lib/api';
 import { Plan } from '../../types';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
+import { GlobeIcon, getFlag } from '../../components/icons/flags';
 
 export default function RegionPlans() {
   const router = useRouter();
@@ -93,12 +94,21 @@ export default function RegionPlans() {
       >
         <View className="flex-row justify-between items-start mb-4">
           <View className="flex-1">
-            <Text className="text-2xl font-black mb-2 uppercase tracking-tight" style={{color: '#1A1A1A'}}>
-              {extractRegion(plan.name)}
-            </Text>
-            <View className="flex-row items-center gap-1">
-              <Text className="text-base font-bold uppercase tracking-wide" style={{color: '#666666'}}>
-                🌍 {plan.region_code}
+            <View className="flex-row items-center" style={{gap: 8}}>
+              {getFlag(plan.region_code, isSmallDevice ? 20 : 24)}
+              <Text
+                className="font-black mb-1 uppercase tracking-tight"
+                style={{
+                  color: '#1A1A1A',
+                  flex: 1,
+                  fontSize: getFontSize(isSmallDevice ? 18 : 20), // Reduced size
+                  marginTop: 2
+                }}
+                numberOfLines={2}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.8}
+              >
+                {extractRegion(plan.name)}
               </Text>
             </View>
           </View>
@@ -207,13 +217,23 @@ export default function RegionPlans() {
               marginRight: moderateScale(12),
               borderRadius: 2,
             }} />
-            <Text className="font-black uppercase tracking-tight" style={{
-              color: '#1A1A1A',
-              fontSize: getFontSize(isSmallDevice ? 36 : 42),
-              letterSpacing: -0.5,
-            }}>
-              {region?.toUpperCase()}
-            </Text>
+            <View className="flex-row items-center" style={{gap: 8}}>
+              {region && getFlag(region, isSmallDevice ? 28 : 32)}
+              <Text
+                className="font-black uppercase tracking-tight"
+                style={{
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(isSmallDevice ? 28 : 34), // Reduced size
+                  letterSpacing: -0.5,
+                  flex: 1,
+                }}
+                numberOfLines={2} // Allow wrapping for long names
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.7}
+              >
+                {region?.toUpperCase()}
+              </Text>
+            </View>
           </View>
 
           {/* Plans Available Badge */}

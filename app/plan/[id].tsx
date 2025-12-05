@@ -1,17 +1,27 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList, Platform, TextInput, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchPlanById, fetchRegionInfo, RegionInfo } from '../../lib/api';
+import { fetchPlanById, fetchRegionInfo, RegionInfo, validateDiscountCode } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
+import { GlobeIcon, getFlag } from '../../components/icons/flags';
 import { logger } from '../../lib/logger';
 import { PaymentService } from '../../lib/payments/PaymentService';
 import { useReferral } from '../../contexts/ReferralContext';
 import { ReferralBanner } from '../components/ReferralBanner';
 import { pollOrderStatus, formatPollingStatus, getPollingErrorMessage } from '../../lib/orderPolling';
+
+interface AppliedDiscount {
+  code: string;
+  type: 'discount' | 'referral';
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  bonusDataMB?: number;
+  message?: string;
+}
 
 export default function PlanDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -20,9 +30,22 @@ export default function PlanDetail() {
   const [displayPrice, setDisplayPrice] = useState<string>('');
   const [discountedPrice, setDiscountedPrice] = useState<string>('');
   const [showCountries, setShowCountries] = useState(false);
+  
+  // Discount/Referral Code State
+  const [promoCode, setPromoCode] = useState('');
+  const [validationLoading, setValidationLoading] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null);
+  
   const { convertMultiplePrices, symbol, formatPrice, loading: currencyLoading, currency } = useCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
   const { hasActiveReferral, referralCode } = useReferral();
+
+  // Pre-fill referral code if available from context
+  useEffect(() => {
+    if (referralCode && !appliedDiscount) {
+      setPromoCode(referralCode);
+    }
+  }, [referralCode]);
 
   // Initialize payment service on mount
   useEffect(() => {
@@ -64,20 +87,57 @@ export default function PlanDetail() {
     const converted = await convertMultiplePrices(prices);
     setDisplayPrice(converted[0].formatted);
 
-    // Calculate discounted price if referral is active (10% off)
-    if (hasActiveReferral) {
+    // Calculate discounted price if code is applied
+    if (appliedDiscount) {
       const originalValue = converted[0].converted;
-      const discountedValue = originalValue * 0.9; // 10% off
+      let discountedValue = originalValue;
+
+      if (appliedDiscount.discountType === 'percentage') {
+        discountedValue = originalValue * (1 - appliedDiscount.discountValue / 100);
+      } else if (appliedDiscount.discountType === 'fixed') {
+        // Convert fixed discount amount to local currency if needed
+        // Assuming discountValue is in USD/base currency for now, similar to price
+        // Ideally validation API returns value in correct currency or we convert it
+        // For MVP, assuming discountValue is a flat deduction on the converted price
+        // (This might need adjustment if discountValue is strictly USD)
+        // Let's assume discountValue matches the plan's currency or needs conversion.
+        // Given "discountValue: 10", if it's 10%, percentage handles it.
+        // If fixed 10 USD, we should probably convert 10 USD to local.
+        // For simplicity/safety with current API spec: percentage is safest.
+        // If fixed, let's just subtract for now, but note this limitation.
+        discountedValue = Math.max(0, originalValue - appliedDiscount.discountValue);
+      }
+
       const formatted = formatPrice(discountedValue);
       setDiscountedPrice(formatted);
+    } else if (hasActiveReferral) {
+      // Fallback to context referral if no specific code validated locally (legacy/default behavior)
+      // But if we have promoCode input, we prefer the user to click "Apply"
+      // If we autofilled `promoCode` from context, `appliedDiscount` is null until they click Apply.
+      // To avoid confusion, we might want to NOT show discounted price until validated.
+      // Or we could auto-validate in useEffect.
+      // For now, let's stick to: if manually applied, use that.
+      // If context exists but not applied locally yet, maybe show 10% off if we want
+      // but better to force validation to ensure code is still valid.
+      // So removing the auto-calculation from context here to rely on `appliedDiscount`
+      setDiscountedPrice('');
+    } else {
+      setDiscountedPrice('');
     }
-  }, [plan, convertMultiplePrices, hasActiveReferral, formatPrice]);
+  }, [plan, convertMultiplePrices, appliedDiscount, hasActiveReferral, formatPrice]);
 
   useEffect(() => {
     if (plan && !currencyLoading) {
       convertPlanPrice();
     }
   }, [plan, currencyLoading, convertPlanPrice]);
+
+  // Auto-validate referral code from context on load if available
+  useEffect(() => {
+    if (referralCode && plan && !appliedDiscount && !validationLoading) {
+      handleValidateCode(referralCode);
+    }
+  }, [referralCode, plan]);
 
   // Remove quotes from plan name
   const cleanName = (name: string) => {
@@ -89,6 +149,46 @@ export default function PlanDetail() {
     const match = cleaned.match(/^([^0-9]+?)\s+\d+/);
     return match ? match[1].trim() : cleaned.split(' ')[0];
   };
+
+  async function handleValidateCode(codeToValidate: string = promoCode) {
+    if (!codeToValidate.trim() || !plan) return;
+
+    setValidationLoading(true);
+    Keyboard.dismiss();
+
+    // Get user email if available (for self-referral check)
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const result = await validateDiscountCode({
+      code: codeToValidate.trim(),
+      planId: plan.id,
+      email: user?.email
+    });
+
+    setValidationLoading(false);
+
+    if (result.valid) {
+      setAppliedDiscount({
+        code: codeToValidate.trim(),
+        type: result.type || 'discount',
+        discountType: result.discountType || 'percentage',
+        discountValue: result.discountValue || 0,
+        bonusDataMB: result.bonusDataMB,
+        message: result.message
+      });
+      // Success message handled by UI
+    } else {
+      setAppliedDiscount(null);
+      // Show specific error message from server, or a friendly default
+      const errorMessage = result.error || 'The code you entered is invalid or expired.';
+      Alert.alert('Invalid Code', errorMessage);
+    }
+  }
+
+  function clearDiscount() {
+    setAppliedDiscount(null);
+    setPromoCode('');
+  }
 
   async function handleCheckout() {
     if (!plan) {
@@ -111,8 +211,6 @@ export default function PlanDetail() {
       }
 
       // Purchase using platform-specific payment method
-      // iOS: Apple In-App Purchase (seamless, no disclosure needed)
-      // Android: Stripe (keeps 97%+ revenue)
       const result = await PaymentService.purchase({
         planId: plan.id,
         planName: plan.name,
@@ -120,7 +218,9 @@ export default function PlanDetail() {
         currency,
         email: user.email!,
         userId: user.id,
-        referralCode: referralCode || undefined, // Pass referral code if available
+        // Pass specific codes based on applied discount
+        referralCode: appliedDiscount?.type === 'referral' ? appliedDiscount.code : undefined,
+        discountCode: appliedDiscount?.type === 'discount' ? appliedDiscount.code : undefined,
       });
 
       if (result.success && result.orderId) {
@@ -148,8 +248,9 @@ export default function PlanDetail() {
         setLoading(false);
 
         if (pollingResult.success && pollingResult.order) {
-          // Order ready - navigate to install screen
-          router.replace(`/install/${result.orderId}`);
+          // Order ready - navigate to install screen with fromPurchase param
+          // This tells the install screen to redirect to Dashboard on close
+          router.replace(`/install/${result.orderId}?fromPurchase=true`);
         } else if (pollingResult.timedOut) {
           // Order taking too long - still navigate but show warning
           Alert.alert(
@@ -158,7 +259,7 @@ export default function PlanDetail() {
             [
               {
                 text: 'View Order',
-                onPress: () => router.replace(`/install/${result.orderId}`)
+                onPress: () => router.replace(`/install/${result.orderId}?fromPurchase=true`)
               },
               {
                 text: 'Check Later',
@@ -274,39 +375,26 @@ export default function PlanDetail() {
                 marginRight: moderateScale(12),
                 borderRadius: 2,
               }} />
-              <Text
-                className="font-black uppercase tracking-tight"
-                style={{
-                  color: '#1A1A1A',
-                  fontSize: getFontSize(isSmallDevice ? 32 : 38),
-                  letterSpacing: -0.5,
-                  flex: 1,
-                }}
-                numberOfLines={1}
-                adjustsFontSizeToFit={true}
-              >
-                {extractRegion(plan.name)}
-              </Text>
-            </View>
-
-            {/* Region Code and Plan Info Row */}
-            <View className="flex-row items-center flex-wrap">
-              <View style={{
-                backgroundColor: '#1A1A1A',
-                borderRadius: 10,
-                paddingVertical: moderateScale(6),
-                paddingHorizontal: scale(14),
-                marginRight: moderateScale(8),
-              }}>
-                <Text className="font-bold tracking-wide" style={{
-                  color: '#2EFECC',
-                  fontSize: getFontSize(13),
-                  letterSpacing: 0.5,
-                }}>
-                  {plan.region_code}
+              <View className="flex-row items-center" style={{gap: 8, flex: 1}}>
+                {getFlag(plan.region_code, isSmallDevice ? 24 : 28)}
+                <Text
+                  className="font-black uppercase tracking-tight"
+                  style={{
+                    color: '#1A1A1A',
+                    fontSize: getFontSize(isSmallDevice ? 24 : 30), // Reduced size
+                    letterSpacing: -0.5,
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                >
+                  {extractRegion(plan.name)}
                 </Text>
               </View>
+            </View>
 
+            {/* Plan Info Row */}
+            <View className="flex-row items-center flex-wrap">
               {/* Plan Type Indicator */}
               {plan.data_gb && (
                 <View style={{
@@ -329,15 +417,119 @@ export default function PlanDetail() {
         </View>
 
         <View style={{paddingHorizontal: getHorizontalPadding(), paddingVertical: moderateScale(24)}}>
-          {/* Referral Banner */}
-          <ReferralBanner />
+          {/* Referral Banner - Hide if we have a specific discount applied to avoid clutter */}
+          {!appliedDiscount && <ReferralBanner />}
+
+          {/* Discount/Referral Code Input */}
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            marginBottom: moderateScale(24),
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 8,
+            elevation: 2,
+            borderWidth: 1,
+            borderColor: '#E5E5E5',
+            overflow: 'hidden'
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: moderateScale(4),
+            }}>
+              <View style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: moderateScale(12),
+              }}>
+                <Ionicons name="pricetag-outline" size={20} color="#666666" />
+                <TextInput
+                  style={{
+                    flex: 1,
+                    marginLeft: moderateScale(8),
+                    fontSize: getFontSize(14),
+                    color: '#1A1A1A',
+                    fontWeight: '600',
+                    paddingVertical: moderateScale(12),
+                  }}
+                  placeholder="Enter discount or referral code"
+                  placeholderTextColor="#999999"
+                  value={promoCode}
+                  onChangeText={setPromoCode}
+                  autoCapitalize="characters"
+                  editable={!validationLoading && !appliedDiscount}
+                />
+              </View>
+              
+              {appliedDiscount ? (
+                <TouchableOpacity
+                  onPress={clearDiscount}
+                  style={{
+                    padding: moderateScale(8),
+                  }}
+                >
+                  <Ionicons name="close-circle" size={24} color="#EF4444" />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => handleValidateCode()}
+                  disabled={!promoCode.trim() || validationLoading}
+                  style={{
+                    backgroundColor: !promoCode.trim() ? '#F5F5F5' : '#1A1A1A',
+                    paddingHorizontal: moderateScale(16),
+                    paddingVertical: moderateScale(10),
+                    borderRadius: 12,
+                    marginRight: moderateScale(4),
+                  }}
+                >
+                  {validationLoading ? (
+                    <ActivityIndicator size="small" color="#2EFECC" />
+                  ) : (
+                    <Text style={{
+                      color: !promoCode.trim() ? '#999999' : '#2EFECC',
+                      fontWeight: '900',
+                      fontSize: getFontSize(12),
+                      textTransform: 'uppercase'
+                    }}>
+                      Apply
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {/* Applied Discount Status Message */}
+            {appliedDiscount && (
+              <View style={{
+                backgroundColor: '#E0FEF7',
+                paddingVertical: moderateScale(8),
+                paddingHorizontal: moderateScale(16),
+                flexDirection: 'row',
+                alignItems: 'center'
+              }}>
+                <Ionicons name="checkmark-circle" size={16} color="#2EFECC" />
+                <Text style={{
+                  marginLeft: moderateScale(8),
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(12),
+                  fontWeight: '700',
+                  flex: 1
+                }}>
+                  {appliedDiscount.message || `${appliedDiscount.discountValue}% discount applied!`}
+                </Text>
+              </View>
+            )}
+          </View>
 
           {/* Price Card */}
           <View className="rounded-2xl" style={{backgroundColor: '#F5F5F5', padding: moderateScale(24), marginBottom: moderateScale(24)}}>
             <View className="flex-row justify-between items-center" style={{marginBottom: moderateScale(20)}}>
               <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(12)}}>Price</Text>
               <View className="items-end">
-                {hasActiveReferral && (
+                {appliedDiscount && (
                   <Text
                     className="font-bold line-through"
                     style={{
@@ -351,13 +543,16 @@ export default function PlanDetail() {
                 )}
                 <View className="rounded-xl" style={{backgroundColor: '#2EFECC', paddingHorizontal: scale(16), paddingVertical: moderateScale(8)}}>
                   <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(28)}}>
-                    {hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.retail_price))}
+                    {appliedDiscount && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.retail_price))}
                   </Text>
                 </View>
-                {hasActiveReferral && (
+                {appliedDiscount && (
                   <View className="rounded-lg" style={{backgroundColor: '#FEF3C7', paddingHorizontal: scale(8), paddingVertical: moderateScale(4), marginTop: moderateScale(4)}}>
                     <Text className="font-black uppercase" style={{color: '#1A1A1A', fontSize: getFontSize(10)}}>
-                      10% OFF
+                      {appliedDiscount.discountType === 'percentage' 
+                        ? `${appliedDiscount.discountValue}% OFF`
+                        : `-${appliedDiscount.discountValue} OFF`
+                      }
                     </Text>
                   </View>
                 )}

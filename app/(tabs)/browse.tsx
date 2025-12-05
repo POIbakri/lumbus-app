@@ -8,6 +8,7 @@ import { Plan } from '../../types';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { useLocation } from '../../hooks/useLocation';
 import { useCurrency } from '../../hooks/useCurrency';
+import { getFlag, GlobeIcon, LocationPinIcon } from '../../components/icons/flags';
 
 type BrowseTab = 'country' | 'region';
 
@@ -162,7 +163,8 @@ export default function Browse() {
   }, []);
 
   const renderRegionCard = useCallback(({ item: group, index }: { item: RegionGroup; index: number }) => {
-    const icon = group.isMultiCountry ? '🌍' : '📍';
+    // Detect if the region name is multi-word to allow wrapping, otherwise force single line to ensure scaling works
+    const isMultiWord = group.region.trim().indexOf(' ') > 0;
 
     return (
       <TouchableOpacity
@@ -182,14 +184,25 @@ export default function Browse() {
       >
         <View className="flex-row justify-between items-start mb-3">
           <View className="flex-1">
-            <Text className="text-3xl font-black mb-2 uppercase tracking-tight" style={{color: '#1A1A1A'}}>
-              {group.region}
-            </Text>
-            <View className="flex-row items-center">
-              <Text className="text-base font-bold uppercase tracking-wide" style={{color: '#1A1A1A', opacity: 0.7}}>
-                {icon} {group.regionCode}
+            <View className="flex-row items-center" style={{gap: 8, flex: 1, marginRight: 8}}>
+              {getFlag(group.regionCode, isSmallDevice ? 24 : 28)}
+              <Text
+                className="font-black uppercase tracking-tight"
+                style={{
+                  color: '#1A1A1A',
+                  flex: 1,
+                  fontSize: getFontSize(isSmallDevice ? 20 : 24),
+                  marginTop: 4,
+                  marginBottom: 8
+                }}
+                numberOfLines={isMultiWord ? 2 : 1}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.5}
+              >
+                {group.region}
               </Text>
             </View>
+            {/* Removed country code subtitle as requested */}
           </View>
           <View className="px-4 py-2 rounded-xl" style={{backgroundColor: '#1A1A1A'}}>
             <Text className="font-black text-sm uppercase tracking-wide" style={{color: '#FFFFFF'}}>
@@ -426,7 +439,7 @@ export default function Browse() {
         ListEmptyComponent={
           <View className="items-center justify-center py-12">
             <View className="rounded-full p-6 mb-4" style={{backgroundColor: '#F5F5F5'}}>
-              <Text style={{fontSize: 64}}>{activeTab === 'country' ? '📍' : '🌍'}</Text>
+              {activeTab === 'country' ? <LocationPinIcon size={64} color="#666666" /> : <GlobeIcon size={64} color="#666666" />}
             </View>
             <Text className="text-xl font-black uppercase" style={{color: '#1A1A1A'}}>
               {searchQuery ? `No ${activeTab === 'country' ? 'countries' : 'regions'} found` : `No ${activeTab === 'country' ? 'countries' : 'regions'} available`}

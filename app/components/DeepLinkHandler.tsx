@@ -58,7 +58,7 @@ export function DeepLinkHandler() {
           const code = referralMatch[1].toUpperCase();
           setReferralCode(code);
           Alert.alert(
-            '🎉 Referral Code Applied!',
+            'Referral Code Applied!',
             "You'll get 10% OFF + 1GB FREE on your first purchase!",
             [{ text: 'Got it!' }]
           );
