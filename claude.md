@@ -210,8 +210,15 @@ lumbus-mobile/
 │   │   ├── IAPServiceV13.ios.ts    # iOS IAP (v13 API)
 │   │   ├── StripeService.ts        # Android Stripe
 │   │   └── PaymentService.ts       # Platform router
+│   ├── widget/                     # Home Screen Widget
+│   │   ├── types.ts               # Widget data types
+│   │   ├── WidgetService.ts       # Widget data management
+│   │   ├── WidgetBridge.ts        # Native bridge
+│   │   └── index.ts               # Exports
 │   ├── api.ts             # Supabase API calls
 │   └── logger.ts          # Logging utility
+├── widgets/LumbusWidget/  # iOS Widget (Swift/SwiftUI)
+├── android-widget/        # Android Widget (JSX)
 ├── ios/                   # Native iOS code
 ├── android/               # Native Android code
 └── CRITICAL_BUILD_CONFIG.md   # Detailed config docs
@@ -298,6 +305,54 @@ Before committing changes that affect builds:
 - **CRITICAL_BUILD_CONFIG.md** - Detailed build configuration
 - **IAP_QUICK_START.md** - iOS IAP setup guide
 - **PAYMENT_FLOW_REVIEW.md** - Payment flow documentation
+
+---
+
+## 📱 Home Screen Widget
+
+### Overview
+The Lumbus app includes home screen widgets for both iOS and Android that display eSIM data usage at a glance.
+
+### Widget Features
+- **Small Widget (2x2)**: Shows top eSIM with flag, data remaining, progress bar
+- **Medium Widget (4x2)**: Shows eSIM with plan name and detailed stats
+- **Large Widget (4x4)**: Shows up to 3 eSIMs with "Browse Plans" action
+
+### Widget Technology Stack
+- **iOS**: Swift/SwiftUI with WidgetKit (`react-native-widget-extension`)
+- **Android**: JSX with react-native-android-widget
+- **Data Sync**: Via AsyncStorage and Supabase
+
+### Widget Configuration (react-native.config.js)
+```javascript
+'react-native-widget-extension': {
+  platforms: { android: null }, // iOS only
+},
+'react-native-android-widget': {
+  platforms: { ios: null }, // Android only
+},
+```
+
+### Widget App Group (iOS)
+- Group ID: `group.com.lumbus.app.widget`
+- Required for data sharing between app and widget extension
+- Configured in app.config.ts entitlements
+
+### When Widget Updates
+1. On app launch
+2. When dashboard loads/refreshes
+3. When app returns to foreground (if stale)
+4. On logout (clears widget data)
+
+### Widget Files
+- `lib/widget/` - TypeScript service layer
+- `widgets/LumbusWidget/` - iOS Swift widget code
+- `android-widget/` - Android JSX widget code
+
+### NEVER:
+- ❌ Remove widget platform exclusions from react-native.config.js
+- ❌ Change App Group identifier without updating Swift code
+- ❌ Downgrade iOS deployment target below 16.2 (widgets need it)
 
 ---
 

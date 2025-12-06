@@ -11,6 +11,10 @@ module.exports = {
     'react-native-worklets': {
       platforms: { ios: null, android: null }, // Babel only, no native code
     },
+    // Note: react-native-widget-extension removed - using pure Swift widget
+    'react-native-android-widget': {
+      platforms: { ios: null }, // Android only - uses AppWidgetProvider
+    },
   },
 };
 

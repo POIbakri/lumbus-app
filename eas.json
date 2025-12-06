@@ -13,7 +13,8 @@
         "EXPO_NO_CAPABILITY_SYNC": "1"
       },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "macos-sonoma-14.5-xcode-15.4"
       }
     },
     "preview": {
@@ -25,7 +26,8 @@
       },
       "ios": {
         "simulator": false,
-        "resourceClass": "m1-medium"
+        "resourceClass": "m1-medium",
+        "image": "macos-sonoma-14.5-xcode-15.4"
       }
     },
     "production": {
@@ -36,7 +38,8 @@
         "EXPO_NO_CAPABILITY_SYNC": "1"
       },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "macos-sonoma-14.5-xcode-15.4"
       }
     }
   },

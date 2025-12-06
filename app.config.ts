@@ -6,6 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const googleServicesPath = path.join(__dirname, 'google-services.json');
   const hasGoogleServices = fs.existsSync(googleServicesPath);
   const isAndroidBuild = process.env.EAS_BUILD_PLATFORM === 'android' || process.env.EXPO_OS === 'android';
+  const isIOSBuild = process.env.EAS_BUILD_PLATFORM === 'ios' || process.env.EXPO_OS === 'ios';
 
   // Build plugins list
   const plugins: any[] = [
@@ -21,6 +22,36 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ],
   ];
 
+  // iOS Widget Extension - Pure Swift widget (no RN dependencies)
+  // Uses custom plugin to add widget target to Xcode project
+  if (isIOSBuild && !isAndroidBuild) {
+    plugins.push('./plugins/withIOSWidget');
+  }
+
+  // Android Widget (react-native-android-widget)
+  // Only add for Android builds - use explicit check to avoid adding both during local dev
+  if (isAndroidBuild && !isIOSBuild) {
+    plugins.push([
+      'react-native-android-widget',
+      {
+        widgets: [
+          {
+            name: 'LumbusEsimWidget',
+            label: 'Lumbus eSIM',
+            description: 'Track your eSIM data usage',
+            minWidth: '110dp',
+            minHeight: '110dp',
+            maxResizeWidth: '250dp',
+            maxResizeHeight: '250dp',
+            resizeMode: 'horizontal|vertical',
+            widgetFeatures: 'reconfigurable',
+            taskHandler: './android-widget/widget-task-handler',
+          },
+        ],
+      },
+    ]);
+  }
+
   // Add expo-notifications for both iOS and Android
   // Android gets custom icon/color, iOS uses default system appearance
   plugins.push([
@@ -35,13 +66,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
   ]);
 
-  // Force new build v1.0.13 - Updated UI, flags, and post-purchase flow
+  // Force new build v1.0.14 - Added home screen widgets for iOS and Android
   return {
     ...config,
     name: 'Lumbus',
     slug: 'lumbus',
     owner: 'lumbus',
-    version: '1.0.13',
+    version: '1.0.14',
     orientation: 'portrait',
     icon: './assets/iconlogotrans.png',
     userInterfaceStyle: 'light',
@@ -66,7 +97,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSUserNotificationsUsageDescription: 'We send notifications when your eSIM is ready to install and when you\'re running low on data.',
         ITSAppUsesNonExemptEncryption: false,
       },
-      buildNumber: '16',
+      buildNumber: '17',
+      // App Groups for widget data sharing (shared with pure Swift widget)
+      entitlements: {
+        'com.apple.security.application-groups': ['group.com.lumbus.shared'],
+      },
+      // Widget extension configuration for EAS Build credentials
+      appExtensions: [
+        {
+          targetName: 'LumbusWidget',
+          bundleIdentifier: 'com.lumbus.app.widget',
+          entitlements: {
+            'com.apple.security.application-groups': ['group.com.lumbus.shared'],
+          },
+        },
+      ],
     },
     android: {
       adaptiveIcon: {
@@ -74,7 +119,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: '#ffffff',
       },
       package: 'com.lumbus.app',
-      versionCode: 16,
+      versionCode: 17,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],
@@ -113,7 +158,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             newArchEnabled: false,
             useFrameworks: 'static',
             buildReactNativeFromSource: true,
-            deploymentTarget: '15.1',
+            deploymentTarget: '16.2', // Updated for WidgetKit support
           },
         },
       ],

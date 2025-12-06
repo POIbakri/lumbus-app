@@ -7,6 +7,7 @@ import ReferAndEarn from '../components/ReferAndEarn';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
 import { LightningIcon } from '../../components/icons/flags';
+import { WidgetService } from '../../lib/widget';
 
 export default function Account() {
   const router = useRouter();
@@ -38,6 +39,8 @@ export default function Account() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
+            // Clear widget data on logout
+            await WidgetService.clearWidget();
             await supabase.auth.signOut();
             router.replace('/(auth)/login');
           },

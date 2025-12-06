@@ -9,6 +9,7 @@ import { Order } from '../../types';
 import { Circle, Svg } from 'react-native-svg';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
 import { getFlag, GlobeIcon } from '../../components/icons/flags';
+import { WidgetService } from '../../lib/widget';
 
 type TabType = 'active' | 'expired';
 
@@ -56,6 +57,16 @@ export default function Dashboard() {
       });
     }
   }, [orders, queryClient]);
+
+  // Update home screen widget with latest eSIM data (including empty state)
+  useEffect(() => {
+    if (orders !== undefined) {
+      // Update widget regardless of order count - widget shows empty state when no orders
+      WidgetService.updateWidget().catch(() => {
+        // Widget update failures are non-critical, silently ignore
+      });
+    }
+  }, [orders]);
 
   async function onRefresh() {
     setRefreshing(true);

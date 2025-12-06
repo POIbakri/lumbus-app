@@ -83,6 +83,19 @@ function withRCTFollyFix(config) {
     script_path = File.join(scripts_dir, 'patch-rct-folly.rb')
     system('ruby', script_path) if File.exist?(script_path)
 
+    # Disable resource bundle signing for Xcode 14+
+    # This is the official Expo fix from: https://expo.fyi/r/disable-bundle-resource-signing
+    # Required because Xcode 14 signs resource bundles by default when building for devices
+    installer.target_installation_results.pod_target_installation_results
+      .each do |pod_name, target_installation_result|
+      target_installation_result.resource_bundle_targets.each do |resource_bundle_target|
+        resource_bundle_target.build_configurations.each do |config|
+          config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+        end
+      end
+    end
+    puts "✅ [Xcode 14 Fix] Disabled resource bundle signing"
+
     # Remove Stripe New Architecture sources to avoid FollyConvert.h include errors
     begin
       removed = 0

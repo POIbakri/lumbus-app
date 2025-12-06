@@ -1,7 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { Linking, Alert, Platform } from 'react-native';
+import { Linking, Alert, Platform, AppState } from 'react-native';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { config } from '../lib/config';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -10,6 +10,7 @@ import { isValidUUID } from '../lib/validation';
 import { logger } from '../lib/logger';
 import { ReferralProvider } from '../contexts/ReferralContext';
 import { DeepLinkHandler } from './components/DeepLinkHandler';
+import { WidgetService } from '../lib/widget';
 import "../global.css";
 
 const queryClient = new QueryClient({
@@ -78,7 +79,29 @@ function AppContent() {
       }
     }
 
+    // Initialize home screen widget
+    async function setupWidget() {
+      try {
+        await WidgetService.updateWidget();
+        logger.info('Widget initialized');
+      } catch (e) {
+        // Widget setup is non-critical, silently log
+        logger.warn('Widget init error:', e);
+      }
+    }
+
     setupNotifications();
+    setupWidget();
+
+    // Update widget when app comes to foreground
+    const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        // Refresh widget data when app becomes active
+        if (WidgetService.shouldRefresh()) {
+          WidgetService.updateWidget().catch(() => {});
+        }
+      }
+    });
 
     return () => {
       if (notificationListener.current) {
@@ -87,6 +110,7 @@ function AppContent() {
       if (responseListener.current) {
         responseListener.current.remove();
       }
+      appStateSubscription.remove();
     };
   }, []);
 
