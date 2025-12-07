@@ -65,9 +65,11 @@ export default function Dashboard() {
 
   // Memoize helper functions to prevent recreation on every render
   const getExpiryDate = useCallback((order: Order) => {
-    // Only use activate_before for expiry calculation
-    // Don't calculate from created_at + validity_days because eSIMs
-    // aren't activated until installed by the user
+    // Prioritize expires_at from API (server-calculated, most accurate)
+    if (order.expires_at) {
+      return new Date(order.expires_at);
+    }
+    // Fallback to activate_before for backward compatibility
     if (order.activate_before) {
       return new Date(order.activate_before);
     }
@@ -83,7 +85,12 @@ export default function Dashboard() {
       if (order.data_remaining_bytes === 0) return true;
     }
 
-    // Check date-based expiry for activate_before date
+    // Use time_remaining from API if available (more accurate, server-calculated)
+    if (order.time_remaining) {
+      return order.time_remaining.is_expired;
+    }
+
+    // Fallback: Check date-based expiry for activate_before date
     const expiryDate = getExpiryDate(order);
     if (expiryDate && new Date() > expiryDate) return true;
 
@@ -273,7 +280,14 @@ export default function Dashboard() {
                   {formatDataRemaining()}
                 </Text>
               )}
-              {expiryDate ? (
+              {order.time_remaining ? (
+                <Text className="font-bold" style={{
+                  color: order.time_remaining.is_expired ? '#EF4444' : '#666666',
+                  fontSize: getFontSize(14),
+                }}>
+                  {order.time_remaining.is_expired ? 'Expired' : `${order.time_remaining.formatted} remaining`}
+                </Text>
+              ) : expiryDate ? (
                 <Text className="font-bold" style={{
                   color: '#666666',
                   fontSize: getFontSize(14),

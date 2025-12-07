@@ -60,9 +60,12 @@ export default function EsimDetails() {
   function getExpiryDate() {
     if (!order) return null;
 
-    // Only use activate_before for expiry calculation
-    // Don't calculate from created_at + validity_days because eSIMs
-    // aren't activated until installed by the user
+    // Prioritize expires_at from API (server-calculated, most accurate)
+    if (order.expires_at) {
+      return new Date(order.expires_at);
+    }
+
+    // Fallback to activate_before for backward compatibility
     if (order.activate_before) {
       return new Date(order.activate_before);
     }
@@ -72,9 +75,14 @@ export default function EsimDetails() {
 
   function isExpired() {
     // Check backend status first
-    if (order?.status === 'depleted') return true;
+    if (order?.status === 'depleted' || order?.status === 'expired') return true;
 
-    // Then check date-based expiry if available
+    // Use time_remaining from API if available (more accurate, server-calculated)
+    if (order?.time_remaining) {
+      return order.time_remaining.is_expired;
+    }
+
+    // Fallback: Check date-based expiry if available
     const expiryDate = getExpiryDate();
     if (!expiryDate) return false;
     return new Date() > expiryDate;
@@ -284,23 +292,36 @@ export default function EsimDetails() {
         </View>
 
         {/* Validity Card */}
-        {expiryDate && (
+        {(expiryDate || order.time_remaining) && (
           <View className="rounded-2xl" style={{backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#E5E5E5', padding: moderateScale(24), marginBottom: moderateScale(24)}}>
             <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(12), marginBottom: moderateScale(12)}}>
               Validity
             </Text>
             <View className="flex-row items-center justify-between">
               <View>
-                <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14), marginBottom: moderateScale(4)}}>
-                  {expired ? 'Expired on' : 'Expires on'}
-                </Text>
-                <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(18)}}>
-                  {expiryDate.toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </Text>
+                {order.time_remaining ? (
+                  <>
+                    <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14), marginBottom: moderateScale(4)}}>
+                      {order.time_remaining.is_expired ? 'Status' : 'Time remaining'}
+                    </Text>
+                    <Text className="font-black" style={{color: order.time_remaining.is_expired ? '#EF4444' : '#1A1A1A', fontSize: getFontSize(18)}}>
+                      {order.time_remaining.formatted}
+                    </Text>
+                  </>
+                ) : expiryDate ? (
+                  <>
+                    <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14), marginBottom: moderateScale(4)}}>
+                      {expired ? 'Expired on' : 'Expires on'}
+                    </Text>
+                    <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(18)}}>
+                      {expiryDate.toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </>
+                ) : null}
               </View>
               <Ionicons
                 name={expired ? 'close-circle' : 'calendar-outline'}

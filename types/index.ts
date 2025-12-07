@@ -15,6 +15,15 @@ export interface Plan {
   convertedPrice?: number;
 }
 
+export interface TimeRemaining {
+  days: number;
+  hours: number;
+  minutes: number;
+  total_seconds: number;
+  is_expired: boolean;
+  formatted: string; // Pre-formatted: "5d", "18h", "45m", or "EXP"
+}
+
 export interface Order {
   id: string;
   user_id: string;
@@ -26,11 +35,13 @@ export interface Order {
   iccid: string | null;
   apn: string | null;
   activate_before: string | null;
+  expires_at: string | null; // ISO 8601 timestamp of exact expiration
   created_at: string;
   plan?: Plan;
   data_usage_bytes?: number;
   data_remaining_bytes?: number | null;
   last_usage_update?: string | null;
+  time_remaining?: TimeRemaining; // Pre-calculated time remaining from API
 }
 
 export interface User {
