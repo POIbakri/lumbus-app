@@ -299,13 +299,26 @@ export default function EsimDetails() {
             </Text>
             <View className="flex-row items-center justify-between">
               <View>
-                {order.time_remaining ? (
+                {order.time_remaining && !order.time_remaining.is_expired ? (
                   <>
                     <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14), marginBottom: moderateScale(4)}}>
-                      {order.time_remaining.is_expired ? 'Status' : 'Time remaining'}
+                      Time remaining
                     </Text>
-                    <Text className="font-black" style={{color: order.time_remaining.is_expired ? '#EF4444' : '#1A1A1A', fontSize: getFontSize(18)}}>
-                      {order.time_remaining.formatted}
+                    <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(18)}}>
+                      {order.time_remaining.days >= 1
+                        ? `${order.time_remaining.days} ${order.time_remaining.days === 1 ? 'day' : 'days'}`
+                        : order.time_remaining.hours >= 1
+                        ? `${order.time_remaining.hours} ${order.time_remaining.hours === 1 ? 'hour' : 'hours'}`
+                        : `${order.time_remaining.minutes} ${order.time_remaining.minutes === 1 ? 'min' : 'mins'}`}
+                    </Text>
+                  </>
+                ) : order.plan?.validity_days ? (
+                  <>
+                    <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14), marginBottom: moderateScale(4)}}>
+                      Validity period
+                    </Text>
+                    <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(18)}}>
+                      {order.plan.validity_days} {order.plan.validity_days === 1 ? 'day' : 'days'}
                     </Text>
                   </>
                 ) : expiryDate ? (

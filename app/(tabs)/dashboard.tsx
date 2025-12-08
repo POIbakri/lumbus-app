@@ -280,19 +280,16 @@ export default function Dashboard() {
                   {formatDataRemaining()}
                 </Text>
               )}
-              {order.time_remaining ? (
-                <Text className="font-bold" style={{
-                  color: order.time_remaining.is_expired ? '#EF4444' : '#666666',
-                  fontSize: getFontSize(14),
-                }}>
-                  {order.time_remaining.is_expired ? 'Expired' : `${order.time_remaining.formatted} remaining`}
-                </Text>
-              ) : expiryDate ? (
+              {order.time_remaining && !order.time_remaining.is_expired ? (
                 <Text className="font-bold" style={{
                   color: '#666666',
                   fontSize: getFontSize(14),
                 }}>
-                  Expires on {expiryDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
+                  {order.time_remaining.days >= 1
+                    ? `${order.time_remaining.days} ${order.time_remaining.days === 1 ? 'day' : 'days'} remaining`
+                    : order.time_remaining.hours >= 1
+                    ? `${order.time_remaining.hours} ${order.time_remaining.hours === 1 ? 'hour' : 'hours'} remaining`
+                    : `${order.time_remaining.minutes} ${order.time_remaining.minutes === 1 ? 'min' : 'mins'} remaining`}
                 </Text>
               ) : order.plan?.validity_days ? (
                 <Text className="font-bold" style={{
@@ -300,6 +297,13 @@ export default function Dashboard() {
                   fontSize: getFontSize(14),
                 }}>
                   Valid for {order.plan.validity_days} {order.plan.validity_days === 1 ? 'day' : 'days'}
+                </Text>
+              ) : expiryDate ? (
+                <Text className="font-bold" style={{
+                  color: '#666666',
+                  fontSize: getFontSize(14),
+                }}>
+                  Expires on {expiryDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
                 </Text>
               ) : null}
             </View>
