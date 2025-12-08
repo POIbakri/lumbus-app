@@ -7,6 +7,7 @@ import { isValidEmail } from '../../lib/validation';
 import { signInWithApple, signInWithGoogle, isAppleSignInAvailable, handleSocialAuthError } from '../../lib/auth/socialAuth';
 import { AppleLogo } from '../../components/icons/AppleLogo';
 import { GoogleLogo } from '../../components/icons/GoogleLogo';
+import { registerForPushNotifications, savePushToken } from '../../lib/notifications';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -100,6 +101,22 @@ export default function Login() {
     // Reset on success
     setFailedAttempts(0);
     setLockoutUntil(null);
+
+    // Register push token after successful login (fire-and-forget)
+    if (data.user) {
+      const userId = data.user.id;
+      (async () => {
+        try {
+          const token = await registerForPushNotifications();
+          if (token) {
+            await savePushToken(userId, token);
+          }
+        } catch {
+          // Silent fail - don't block user experience
+        }
+      })();
+    }
+
     router.replace('/(tabs)/browse');
   }
 
@@ -111,6 +128,20 @@ export default function Login() {
     setSocialLoading(false);
 
     if (result.success) {
+      // Register push token after successful social login (fire-and-forget)
+      (async () => {
+        try {
+          const { data, error } = await supabase.auth.getUser();
+          if (error || !data?.user) return;
+          const token = await registerForPushNotifications();
+          if (token) {
+            await savePushToken(data.user.id, token);
+          }
+        } catch {
+          // Silent fail - don't block user experience
+        }
+      })();
+
       router.replace('/(tabs)/browse');
     } else if (result.error && result.error !== 'canceled') {
       handleSocialAuthError(result.error, 'apple');
@@ -125,6 +156,20 @@ export default function Login() {
     setSocialLoading(false);
 
     if (result.success) {
+      // Register push token after successful social login (fire-and-forget)
+      (async () => {
+        try {
+          const { data, error } = await supabase.auth.getUser();
+          if (error || !data?.user) return;
+          const token = await registerForPushNotifications();
+          if (token) {
+            await savePushToken(data.user.id, token);
+          }
+        } catch {
+          // Silent fail - don't block user experience
+        }
+      })();
+
       router.replace('/(tabs)/browse');
     } else if (result.error && result.error !== 'canceled') {
       handleSocialAuthError(result.error, 'google');

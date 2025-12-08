@@ -10,6 +10,7 @@ import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/us
 import { useReferral } from '../../contexts/ReferralContext';
 import { linkReferralCode } from '../../lib/api';
 import { ReferralBadge } from '../components/ReferralBanner';
+import { registerForPushNotifications, savePushToken } from '../../lib/notifications';
 
 export default function Signup() {
   const router = useRouter();
@@ -153,6 +154,8 @@ export default function Signup() {
     if (data.user) {
       sendWelcomeEmail(data.user);
     }
+    // Note: Push token registration happens after login, not signup,
+    // since signup doesn't establish an authenticated session
 
     // Link referral code if present
     if (data.user && referralCode) {
@@ -193,6 +196,20 @@ export default function Signup() {
     setSocialLoading(false);
 
     if (result.success) {
+      // Register push token after successful social login (fire-and-forget)
+      (async () => {
+        try {
+          const { data, error } = await supabase.auth.getUser();
+          if (error || !data?.user) return;
+          const token = await registerForPushNotifications();
+          if (token) {
+            await savePushToken(data.user.id, token);
+          }
+        } catch {
+          // Silent fail - don't block user experience
+        }
+      })();
+
       router.replace('/(tabs)/browse');
     } else if (result.error && result.error !== 'canceled') {
       handleSocialAuthError(result.error, 'apple');
@@ -207,6 +224,20 @@ export default function Signup() {
     setSocialLoading(false);
 
     if (result.success) {
+      // Register push token after successful social login (fire-and-forget)
+      (async () => {
+        try {
+          const { data, error } = await supabase.auth.getUser();
+          if (error || !data?.user) return;
+          const token = await registerForPushNotifications();
+          if (token) {
+            await savePushToken(data.user.id, token);
+          }
+        } catch {
+          // Silent fail - don't block user experience
+        }
+      })();
+
       router.replace('/(tabs)/browse');
     } else if (result.error && result.error !== 'canceled') {
       handleSocialAuthError(result.error, 'google');
