@@ -23,6 +23,8 @@ export default function Signup() {
   const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [showAppleSignIn, setShowAppleSignIn] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [manualReferralCode, setManualReferralCode] = useState('');
   const [showReferralInput, setShowReferralInput] = useState(false);
   const { scale, moderateScale, isSmallDevice } = useResponsive();
@@ -311,32 +313,50 @@ export default function Signup() {
               <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginBottom: moderateScale(8)}}>
                 Password
               </Text>
-              <TextInput
-                className="rounded-2xl font-bold"
-                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A', paddingHorizontal: scale(20), paddingVertical: moderateScale(14), fontSize: getFontSize(16)}}
-                placeholder="••••••••"
-                placeholderTextColor="#666666"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                editable={!loading}
-              />
+              <View style={{position: 'relative'}}>
+                <TextInput
+                  className="rounded-2xl font-bold"
+                  style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A', paddingHorizontal: scale(20), paddingVertical: moderateScale(14), paddingRight: scale(50), fontSize: getFontSize(16)}}
+                  placeholder="••••••••"
+                  placeholderTextColor="#666666"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={{position: 'absolute', right: scale(16), top: 0, bottom: 0, justifyContent: 'center'}}
+                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                >
+                  <Text style={{fontSize: getFontSize(18)}}>{showPassword ? '🙈' : '👁️'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={{marginTop: moderateScale(12)}}>
               <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginBottom: moderateScale(8)}}>
                 Confirm Password
               </Text>
-              <TextInput
-                className="rounded-2xl font-bold"
-                style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A', paddingHorizontal: scale(20), paddingVertical: moderateScale(14), fontSize: getFontSize(16)}}
-                placeholder="••••••••"
-                placeholderTextColor="#666666"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                editable={!loading}
-              />
+              <View style={{position: 'relative'}}>
+                <TextInput
+                  className="rounded-2xl font-bold"
+                  style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: '#E5E5E5', color: '#1A1A1A', paddingHorizontal: scale(20), paddingVertical: moderateScale(14), paddingRight: scale(50), fontSize: getFontSize(16)}}
+                  placeholder="••••••••"
+                  placeholderTextColor="#666666"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{position: 'absolute', right: scale(16), top: 0, bottom: 0, justifyContent: 'center'}}
+                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                >
+                  <Text style={{fontSize: getFontSize(18)}}>{showConfirmPassword ? '🙈' : '👁️'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Referral Code Input */}
