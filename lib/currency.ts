@@ -122,7 +122,6 @@ export async function convertPrices(
     }
 
     const data = await response.json();
-    logger.log('💱 Currency conversion successful:', data.currency);
 
     // Backend returns: { currency, symbol, name, prices: [...] }
     if (data.prices && Array.isArray(data.prices)) {
