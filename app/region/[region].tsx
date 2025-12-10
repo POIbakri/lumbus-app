@@ -5,7 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchPlans, fetchRegionInfo, RegionInfo } from '../../lib/api';
 import { Plan } from '../../types';
-import { useCurrency } from '../../hooks/useCurrency';
+import { useLocationCurrency } from '../../hooks/useLocationCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { GlobeIcon, getFlag } from '../../components/icons/flags';
 
@@ -14,7 +14,8 @@ export default function RegionPlans() {
   const { region } = useLocalSearchParams<{ region: string }>();
   const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
   const [showCountries, setShowCountries] = useState(false);
-  const { convertMultiplePrices, symbol, loading: currencyLoading } = useCurrency();
+  // Use combined hook - single API call for both location and currency
+  const { convertMultiplePrices, symbol, loading: currencyLoading } = useLocationCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
   const { data: allPlans, isLoading, error } = useQuery({
@@ -114,7 +115,7 @@ export default function RegionPlans() {
           </View>
           <View className="px-4 py-3 rounded-xl" style={{backgroundColor: '#2EFECC'}}>
             <Text className="font-black text-xl" style={{color: '#1A1A1A'}}>
-              {plan.displayPrice || `${symbol}${plan.retail_price}`}
+              {plan.displayPrice || '...'}
             </Text>
           </View>
         </View>

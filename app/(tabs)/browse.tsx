@@ -1,13 +1,12 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Dimensions } from 'react-native';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchPlans } from '../../lib/api';
+import { fetchPlans, fetchRegionInfo } from '../../lib/api';
 import { Plan } from '../../types';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
-import { useLocation } from '../../hooks/useLocation';
-import { useCurrency } from '../../hooks/useCurrency';
+import { useLocationCurrency } from '../../hooks/useLocationCurrency';
 import { getFlag, GlobeIcon, LocationPinIcon } from '../../components/icons/flags';
 
 type BrowseTab = 'country' | 'region';
@@ -23,12 +22,13 @@ interface RegionGroup {
 
 export default function Browse() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<BrowseTab>('country');
   const [regionsWithPrices, setRegionsWithPrices] = useState<RegionGroup[]>([]);
   const { scale, moderateScale, isSmallDevice } = useResponsive();
-  const { location, loading: locationLoading } = useLocation();
-  const { convertMultiplePrices, symbol, formatPrice, loading: currencyLoading } = useCurrency();
+  // Use combined hook - single API call for both location and currency
+  const { location, locationLoading, convertMultiplePrices, symbol, formatPrice, loading: currencyLoading } = useLocationCurrency();
 
   const { data: plans, isLoading, isFetching, error } = useQuery({
     queryKey: ['plans'],
@@ -107,7 +107,23 @@ export default function Browse() {
     });
   }, [plans, location]);
 
+  // Prefetch region info for top regions to speed up navigation
+  useEffect(() => {
+    if (regionGroups.length > 0) {
+      // Prefetch region info for the first 5 regions (most likely to be clicked)
+      const topRegions = regionGroups.slice(0, 5);
+      topRegions.forEach(group => {
+        queryClient.prefetchQuery({
+          queryKey: ['region', group.regionCode],
+          queryFn: () => fetchRegionInfo(group.regionCode),
+          staleTime: 1800000, // 30 minutes
+        });
+      });
+    }
+  }, [regionGroups, queryClient]);
+
   // Convert prices for region groups - memoized
+  // This should be instant if prices were pre-converted during splash
   const convertRegionPrices = useCallback(async () => {
     if (regionGroups.length === 0) return;
 
@@ -122,11 +138,13 @@ export default function Browse() {
     setRegionsWithPrices(updatedRegions);
   }, [regionGroups, convertMultiplePrices]);
 
+  // Run price conversion when we have region groups and currency is ready
+  // Prices should already be cached from splash screen
   useEffect(() => {
     if (regionGroups.length > 0 && !currencyLoading) {
       convertRegionPrices();
     }
-  }, [regionGroups.length, currencyLoading, convertRegionPrices]);
+  }, [regionGroups, convertRegionPrices, currencyLoading]);
 
   // Use regions with converted prices if available - memoized
   const displayRegions = useMemo(() =>
@@ -212,9 +230,13 @@ export default function Browse() {
         </View>
 
         <View className="flex-row items-center justify-between pt-3" style={{borderTopWidth: 2, borderTopColor: 'rgba(0,0,0,0.1)'}}>
-          <Text className="text-base font-bold uppercase" style={{color: '#1A1A1A', opacity: 0.7}}>
-            From {formatPrice(group.convertedMinPrice || group.minPrice)}
-          </Text>
+          {group.convertedMinPrice ? (
+            <Text className="text-base font-bold uppercase" style={{color: '#1A1A1A', opacity: 0.7}}>
+              From {formatPrice(group.convertedMinPrice)}
+            </Text>
+          ) : (
+            <View style={{width: 80, height: 20, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 4}} />
+          )}
           <View className="flex-row items-center">
             <Text className="text-base font-black uppercase mr-2" style={{color: '#1A1A1A'}}>
               VIEW PLANS

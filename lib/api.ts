@@ -76,10 +76,11 @@ export async function fetchPlans(): Promise<Plan[]> {
     logger.error('Error fetching plans from API:', error);
 
     // Fallback to direct Supabase query with pagination if API fails
+    // Using larger batch size (5000) for fewer round trips
     logger.info('Fetching plans from Supabase with pagination...');
     let allPlans: Plan[] = [];
     let from = 0;
-    const limit = 1000;
+    const limit = 5000; // Increased from 1000 for better performance
 
     while (true) {
       const { data, error: supabaseError } = await supabase

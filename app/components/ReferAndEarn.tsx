@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchReferralInfo, ReferralData } from '../../lib/api';
@@ -16,26 +17,18 @@ import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/us
 import { logger } from '../../lib/logger';
 
 export default function ReferAndEarn() {
-  const [referralData, setReferralData] = useState<ReferralData | null>(null);
-  const [loading, setLoading] = useState(true);
   const { scale, moderateScale } = useResponsive();
 
-  useEffect(() => {
-    loadReferralData();
-  }, []);
-
-  const loadReferralData = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchReferralInfo();
-      setReferralData(data);
-    } catch (error) {
-      logger.error('Error loading referral data:', error);
-      Alert.alert('Error', 'Failed to load referral information');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use React Query for caching and better performance
+  const { data: referralData, isLoading: loading } = useQuery({
+    queryKey: ['referralInfo'],
+    queryFn: fetchReferralInfo,
+    staleTime: 300000, // 5 minutes - referral stats don't change often
+    gcTime: 1800000, // 30 minutes cache
+    retry: 2,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   const copyToClipboard = async () => {
     if (!referralData) return;

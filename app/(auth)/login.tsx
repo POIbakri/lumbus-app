@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { fetchUserOrders } from '../../lib/api';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { isValidEmail } from '../../lib/validation';
 import { signInWithApple, signInWithGoogle, isAppleSignInAvailable, handleSocialAuthError } from '../../lib/auth/socialAuth';
@@ -13,9 +16,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function Login() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [signInSuccess, setSignInSuccess] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null);
@@ -23,6 +28,20 @@ export default function Login() {
   const [showAppleSignIn, setShowAppleSignIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { scale, moderateScale, isSmallDevice } = useResponsive();
+
+  // Pre-populate cache with user data and prefetch orders for instant Dashboard
+  const preCacheUserData = async (userId: string, userEmail: string) => {
+    // Set user data in cache immediately
+    queryClient.setQueryData(['userId'], userId);
+    queryClient.setQueryData(['userEmail'], userEmail);
+
+    // Prefetch orders - await to ensure data is ready before Dashboard loads
+    await queryClient.prefetchQuery({
+      queryKey: ['orders', userId],
+      queryFn: () => fetchUserOrders(userId),
+      staleTime: 600000, // 10 minutes
+    });
+  };
 
   // Check if Apple Sign In is available
   useEffect(() => {
@@ -76,9 +95,8 @@ export default function Login() {
       password,
     });
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       // Increment failed attempts
       const newFailedAttempts = failedAttempts + 1;
       setFailedAttempts(newFailedAttempts);
@@ -99,13 +117,25 @@ export default function Login() {
       return;
     }
 
-    // Reset on success
+    // Reset on success and show success state
+    setLoading(false);
     setFailedAttempts(0);
     setLockoutUntil(null);
+    setSignInSuccess(true);
 
-    // Register push token after successful login (fire-and-forget)
+    // Pre-cache user data and prefetch orders for instant Dashboard
     if (data.user) {
       const userId = data.user.id;
+      const userEmail = data.user.email || '';
+
+      // Await prefetch to ensure Dashboard has data ready
+      try {
+        await preCacheUserData(userId, userEmail);
+      } catch {
+        // Silent fail - still navigate even if prefetch fails
+      }
+
+      // Register push token (fire-and-forget - don't block navigation)
       (async () => {
         try {
           const token = await registerForPushNotifications();
@@ -126,26 +156,38 @@ export default function Login() {
 
     setSocialLoading(true);
     const result = await signInWithApple();
-    setSocialLoading(false);
 
     if (result.success) {
-      // Register push token after successful social login (fire-and-forget)
-      (async () => {
-        try {
-          const { data, error } = await supabase.auth.getUser();
-          if (error || !data?.user) return;
-          const token = await registerForPushNotifications();
-          if (token) {
-            await savePushToken(data.user.id, token);
-          }
-        } catch {
-          // Silent fail - don't block user experience
-        }
-      })();
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user) {
+          // Await prefetch to ensure Dashboard has data ready
+          await preCacheUserData(data.user.id, data.user.email || '');
 
+          // Register push token (fire-and-forget - don't block navigation)
+          (async () => {
+            try {
+              const token = await registerForPushNotifications();
+              if (token) {
+                await savePushToken(data.user.id, token);
+              }
+            } catch {
+              // Silent fail
+            }
+          })();
+        }
+      } catch {
+        // Silent fail - still navigate
+      }
+
+      setSocialLoading(false);
+      setSignInSuccess(true);
       router.replace('/(tabs)/browse');
-    } else if (result.error && result.error !== 'canceled') {
-      handleSocialAuthError(result.error, 'apple');
+    } else {
+      setSocialLoading(false);
+      if (result.error && result.error !== 'canceled') {
+        handleSocialAuthError(result.error, 'apple');
+      }
     }
   }
 
@@ -154,26 +196,38 @@ export default function Login() {
 
     setSocialLoading(true);
     const result = await signInWithGoogle();
-    setSocialLoading(false);
 
     if (result.success) {
-      // Register push token after successful social login (fire-and-forget)
-      (async () => {
-        try {
-          const { data, error } = await supabase.auth.getUser();
-          if (error || !data?.user) return;
-          const token = await registerForPushNotifications();
-          if (token) {
-            await savePushToken(data.user.id, token);
-          }
-        } catch {
-          // Silent fail - don't block user experience
-        }
-      })();
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user) {
+          // Await prefetch to ensure Dashboard has data ready
+          await preCacheUserData(data.user.id, data.user.email || '');
 
+          // Register push token (fire-and-forget - don't block navigation)
+          (async () => {
+            try {
+              const token = await registerForPushNotifications();
+              if (token) {
+                await savePushToken(data.user.id, token);
+              }
+            } catch {
+              // Silent fail
+            }
+          })();
+        }
+      } catch {
+        // Silent fail - still navigate
+      }
+
+      setSocialLoading(false);
+      setSignInSuccess(true);
       router.replace('/(tabs)/browse');
-    } else if (result.error && result.error !== 'canceled') {
-      handleSocialAuthError(result.error, 'google');
+    } else {
+      setSocialLoading(false);
+      if (result.error && result.error !== 'canceled') {
+        handleSocialAuthError(result.error, 'google');
+      }
     }
   }
 
@@ -254,7 +308,7 @@ export default function Login() {
                   style={{position: 'absolute', right: scale(16), top: 0, bottom: 0, justifyContent: 'center'}}
                   hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
                 >
-                  <Text style={{fontSize: getFontSize(18)}}>{showPassword ? '🙈' : '👁️'}</Text>
+                  <Ionicons name={showPassword ? "eye-off" : "eye"} size={getFontSize(20)} color="#666666" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -264,11 +318,11 @@ export default function Login() {
               className="rounded-2xl"
               style={{backgroundColor: lockoutSeconds > 0 ? '#E5E5E5' : '#2EFECC', shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8, marginTop: moderateScale(20), paddingVertical: moderateScale(16)}}
               onPress={handleLogin}
-              disabled={loading || lockoutSeconds > 0}
+              disabled={loading || signInSuccess || lockoutSeconds > 0}
               activeOpacity={0.8}
             >
               <Text className="text-center font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(15)}}>
-                {loading ? 'SIGNING IN...' : lockoutSeconds > 0 ? `WAIT ${lockoutSeconds}S` : 'SIGN IN →'}
+                {loading || signInSuccess ? 'SIGNING IN...' : lockoutSeconds > 0 ? `WAIT ${lockoutSeconds}S` : 'SIGN IN'}
               </Text>
             </TouchableOpacity>
 
@@ -289,7 +343,7 @@ export default function Login() {
                   className="rounded-2xl flex-row items-center justify-center"
                   style={{backgroundColor: '#000000', paddingVertical: moderateScale(14), borderWidth: 2, borderColor: '#000000'}}
                   onPress={handleAppleSignIn}
-                  disabled={socialLoading || loading}
+                  disabled={socialLoading || loading || signInSuccess}
                   activeOpacity={0.8}
                 >
                   <AppleLogo size={scale(18)} color="#FFFFFF" />
@@ -304,7 +358,7 @@ export default function Login() {
                 className="rounded-2xl flex-row items-center justify-center"
                 style={{backgroundColor: '#FFFFFF', paddingVertical: moderateScale(14), borderWidth: 2, borderColor: '#E5E5E5'}}
                 onPress={handleGoogleSignIn}
-                disabled={socialLoading || loading}
+                disabled={socialLoading || loading || signInSuccess}
                 activeOpacity={0.8}
               >
                 <GoogleLogo size={scale(18)} />

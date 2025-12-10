@@ -1,8 +1,10 @@
 import { View, Text, TouchableOpacity, Alert, Linking, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { fetchReferralInfo } from '../../lib/api';
 import ReferAndEarn from '../components/ReferAndEarn';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
@@ -10,20 +12,28 @@ import { LightningIcon } from '../../components/icons/flags';
 
 export default function Account() {
   const router = useRouter();
-  const [email, setEmail] = useState<string>('');
+  const queryClient = useQueryClient();
   const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
   const { moderateScale, adaptiveScale, isTablet, isSmallDevice } = useResponsive();
 
-  const getUserEmail = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setEmail(user.email || '');
-    }
-  }, []);
+  // Use React Query for user email - shares cache with Dashboard's userId query
+  const { data: email = '' } = useQuery({
+    queryKey: ['userEmail'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.email || '';
+    },
+    staleTime: Infinity, // Email doesn't change during session
+    gcTime: Infinity,
+  });
 
-  useEffect(() => {
-    getUserEmail();
-  }, [getUserEmail]);
+  // Prefetch referral info when account page loads (ReferAndEarn will use cached data)
+  useQuery({
+    queryKey: ['referralInfo'],
+    queryFn: fetchReferralInfo,
+    staleTime: 300000, // 5 minutes
+    gcTime: 1800000, // 30 minutes
+  });
 
   const handleSignOut = useCallback(async () => {
     Alert.alert(
@@ -333,7 +343,7 @@ export default function Account() {
                 color: '#666666',
                 fontSize: getFontSize(12),
               }}>
-                Lumbus v1.0.0
+                Lumbus v1.0.15
               </Text>
             </View>
           </View>

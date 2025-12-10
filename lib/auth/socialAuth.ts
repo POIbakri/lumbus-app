@@ -69,6 +69,18 @@ export async function signInWithApple(): Promise<{ success: boolean; error?: str
       nonce: rawNonce,
     });
 
+    // Set signup_source metadata for new users after successful auth
+    if (!error && data.user) {
+      // Update user metadata to include signup_source (for new users, this sets it; for existing, it's a no-op)
+      try {
+        await supabase.auth.updateUser({
+          data: { signup_source: 'mobile' },
+        });
+      } catch {
+        // Non-critical - don't fail sign-in if metadata update fails
+      }
+    }
+
     if (error) {
       logger.error('Apple Sign In - Supabase error:', error);
       return {
@@ -145,6 +157,7 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
+          signup_source: 'mobile',
         },
       },
     });
@@ -219,8 +232,15 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
 
         logger.info('Google Sign In successful (PKCE)');
 
-        // Send welcome email for new users (fire-and-forget)
+        // Set signup_source metadata and send welcome email for new users
         if (sessionData.user) {
+          try {
+            await supabase.auth.updateUser({
+              data: { signup_source: 'mobile' },
+            });
+          } catch {
+            // Non-critical - don't fail sign-in if metadata update fails
+          }
           sendWelcomeEmail(sessionData.user);
         }
 
@@ -244,8 +264,15 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
 
         logger.info('Google Sign In successful (Implicit)');
 
-        // Send welcome email for new users (fire-and-forget)
+        // Set signup_source metadata and send welcome email for new users
         if (sessionData.user) {
+          try {
+            await supabase.auth.updateUser({
+              data: { signup_source: 'mobile' },
+            });
+          } catch {
+            // Non-critical - don't fail sign-in if metadata update fails
+          }
           sendWelcomeEmail(sessionData.user);
         }
 

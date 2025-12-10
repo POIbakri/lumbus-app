@@ -37,8 +37,8 @@ export async function pollOrderStatus(
   options: PollingOptions = {}
 ): Promise<PollingResult> {
   const {
-    maxAttempts = 10,
-    initialDelay = 2000,
+    maxAttempts = 7,      // Reduced from 10 for faster feedback
+    initialDelay = 1000,  // Reduced from 2000ms for faster initial check
     maxDelay = 30000,
     onStatusUpdate,
     onError

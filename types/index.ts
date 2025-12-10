@@ -42,6 +42,7 @@ export interface Order {
   data_remaining_bytes?: number | null;
   last_usage_update?: string | null;
   time_remaining?: TimeRemaining; // Pre-calculated time remaining from API
+  is_topup?: boolean; // Whether this order is a top-up (from backend)
 }
 
 export interface User {

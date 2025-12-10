@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { fetchUserOrders } from '../../lib/api';
 import { validatePassword, isValidEmail } from '../../lib/validation';
 import { signInWithApple, signInWithGoogle, isAppleSignInAvailable, handleSocialAuthError, sendWelcomeEmail } from '../../lib/auth/socialAuth';
 import { AppleLogo } from '../../components/icons/AppleLogo';
@@ -14,6 +17,7 @@ import { registerForPushNotifications, savePushToken } from '../../lib/notificat
 
 export default function Signup() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,6 +34,17 @@ export default function Signup() {
   const { scale, moderateScale, isSmallDevice } = useResponsive();
   const { referralCode, setReferralCode: setGlobalReferralCode, clearReferralCode } = useReferral();
   const hasSyncedRef = useRef(false);
+
+  // Pre-populate cache with user data and prefetch orders for instant Dashboard
+  const preCacheUserData = async (userId: string, userEmail: string) => {
+    queryClient.setQueryData(['userId'], userId);
+    queryClient.setQueryData(['userEmail'], userEmail);
+    await queryClient.prefetchQuery({
+      queryKey: ['orders', userId],
+      queryFn: () => fetchUserOrders(userId),
+      staleTime: 600000,
+    });
+  };
 
   // Check if Apple Sign In is available
   useEffect(() => {
@@ -123,6 +138,11 @@ export default function Signup() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          signup_source: 'mobile',
+        },
+      },
     });
 
     setLoading(false);
@@ -195,26 +215,37 @@ export default function Signup() {
 
     setSocialLoading(true);
     const result = await signInWithApple();
-    setSocialLoading(false);
 
     if (result.success) {
-      // Register push token after successful social login (fire-and-forget)
-      (async () => {
-        try {
-          const { data, error } = await supabase.auth.getUser();
-          if (error || !data?.user) return;
-          const token = await registerForPushNotifications();
-          if (token) {
-            await savePushToken(data.user.id, token);
-          }
-        } catch {
-          // Silent fail - don't block user experience
-        }
-      })();
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user) {
+          // Await prefetch to ensure Dashboard has data ready
+          await preCacheUserData(data.user.id, data.user.email || '');
 
+          // Register push token (fire-and-forget)
+          (async () => {
+            try {
+              const token = await registerForPushNotifications();
+              if (token) {
+                await savePushToken(data.user.id, token);
+              }
+            } catch {
+              // Silent fail
+            }
+          })();
+        }
+      } catch {
+        // Silent fail - still navigate
+      }
+
+      setSocialLoading(false);
       router.replace('/(tabs)/browse');
-    } else if (result.error && result.error !== 'canceled') {
-      handleSocialAuthError(result.error, 'apple');
+    } else {
+      setSocialLoading(false);
+      if (result.error && result.error !== 'canceled') {
+        handleSocialAuthError(result.error, 'apple');
+      }
     }
   }
 
@@ -223,26 +254,37 @@ export default function Signup() {
 
     setSocialLoading(true);
     const result = await signInWithGoogle();
-    setSocialLoading(false);
 
     if (result.success) {
-      // Register push token after successful social login (fire-and-forget)
-      (async () => {
-        try {
-          const { data, error } = await supabase.auth.getUser();
-          if (error || !data?.user) return;
-          const token = await registerForPushNotifications();
-          if (token) {
-            await savePushToken(data.user.id, token);
-          }
-        } catch {
-          // Silent fail - don't block user experience
-        }
-      })();
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user) {
+          // Await prefetch to ensure Dashboard has data ready
+          await preCacheUserData(data.user.id, data.user.email || '');
 
+          // Register push token (fire-and-forget)
+          (async () => {
+            try {
+              const token = await registerForPushNotifications();
+              if (token) {
+                await savePushToken(data.user.id, token);
+              }
+            } catch {
+              // Silent fail
+            }
+          })();
+        }
+      } catch {
+        // Silent fail - still navigate
+      }
+
+      setSocialLoading(false);
       router.replace('/(tabs)/browse');
-    } else if (result.error && result.error !== 'canceled') {
-      handleSocialAuthError(result.error, 'google');
+    } else {
+      setSocialLoading(false);
+      if (result.error && result.error !== 'canceled') {
+        handleSocialAuthError(result.error, 'google');
+      }
     }
   }
 
@@ -329,7 +371,7 @@ export default function Signup() {
                   style={{position: 'absolute', right: scale(16), top: 0, bottom: 0, justifyContent: 'center'}}
                   hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
                 >
-                  <Text style={{fontSize: getFontSize(18)}}>{showPassword ? '🙈' : '👁️'}</Text>
+                  <Ionicons name={showPassword ? "eye-off" : "eye"} size={getFontSize(20)} color="#666666" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -354,7 +396,7 @@ export default function Signup() {
                   style={{position: 'absolute', right: scale(16), top: 0, bottom: 0, justifyContent: 'center'}}
                   hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
                 >
-                  <Text style={{fontSize: getFontSize(18)}}>{showConfirmPassword ? '🙈' : '👁️'}</Text>
+                  <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={getFontSize(20)} color="#666666" />
                 </TouchableOpacity>
               </View>
             </View>

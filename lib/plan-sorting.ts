@@ -4,7 +4,7 @@
  */
 
 import { Plan } from '../types';
-import { UserLocation } from '../hooks/useLocation';
+import { UserLocation } from '../hooks/useLocationCurrency';
 
 // Continent code mappings
 const CONTINENT_REGIONS: Record<string, string[]> = {

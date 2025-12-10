@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchOrderById, fetchPlans } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
-import { useCurrency } from '../../hooks/useCurrency';
+import { useLocationCurrency } from '../../hooks/useLocationCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { Plan } from '../../types';
 import { logger } from '../../lib/logger';
@@ -17,7 +17,8 @@ export default function TopUpScreen() {
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
-  const { convertMultiplePrices, symbol, formatPrice, loading: currencyLoading, currency } = useCurrency();
+  // Use combined hook - single API call for both location and currency
+  const { convertMultiplePrices, loading: currencyLoading, currency } = useLocationCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
   // Initialize payment service on mount
@@ -139,8 +140,8 @@ export default function TopUpScreen() {
           'Data has been added to your eSIM.',
           [
             {
-              text: 'View eSIM',
-              onPress: () => router.replace(`/esim-details/${orderId}`),
+              text: 'Go to Dashboard',
+              onPress: () => router.replace('/(tabs)/dashboard'),
             },
           ]
         );
@@ -259,7 +260,6 @@ export default function TopUpScreen() {
 
           {plansToDisplay.map((plan, index) => {
             const isSelected = selectedPlan?.id === plan.id;
-            const priceDisplay = plan.displayPrice || formatPrice(plan.retail_price);
 
             return (
               <TouchableOpacity
@@ -288,7 +288,7 @@ export default function TopUpScreen() {
                   </View>
                   <View className="px-4 py-3 rounded-xl" style={{backgroundColor: '#2EFECC'}}>
                     <Text className="font-black text-xl" style={{color: '#1A1A1A'}}>
-                      {priceDisplay}
+                      {plan.displayPrice || '...'}
                     </Text>
                   </View>
                 </View>
@@ -332,7 +332,7 @@ export default function TopUpScreen() {
               <Ionicons name="logo-apple" size={getFontSize(20)} color="#1A1A1A" style={{marginRight: scale(8)}} />
             )}
             <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {loading ? 'Processing...' : (selectedPlan ? `Buy now for ${selectedPlan.displayPrice || formatPrice(selectedPlan.retail_price)} →` : 'Select a plan')}
+              {loading ? 'Processing...' : (selectedPlan ? `Buy now for ${selectedPlan.displayPrice || '...'} →` : 'Select a plan')}
             </Text>
           </View>
         </TouchableOpacity>

@@ -1,11 +1,11 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList, Platform, TextInput, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchPlanById, fetchRegionInfo, RegionInfo, validateDiscountCode } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
-import { useCurrency } from '../../hooks/useCurrency';
+import { useLocationCurrency } from '../../hooks/useLocationCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { GlobeIcon, getFlag } from '../../components/icons/flags';
 import { logger } from '../../lib/logger';
@@ -26,17 +26,19 @@ interface AppliedDiscount {
 export default function PlanDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [displayPrice, setDisplayPrice] = useState<string>('');
   const [discountedPrice, setDiscountedPrice] = useState<string>('');
   const [showCountries, setShowCountries] = useState(false);
-  
+
   // Discount/Referral Code State
   const [promoCode, setPromoCode] = useState('');
   const [validationLoading, setValidationLoading] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null);
-  
-  const { convertMultiplePrices, symbol, formatPrice, loading: currencyLoading, currency } = useCurrency();
+
+  // Use combined hook - single API call for both location and currency
+  const { convertMultiplePrices, symbol, formatPrice, loading: currencyLoading, currency } = useLocationCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
   const { hasActiveReferral, referralCode } = useReferral();
 
@@ -235,10 +237,10 @@ export default function PlanDetail() {
         );
 
         // Poll for order completion with exponential backoff
+        // Using longer timeout for checkout flow (10 attempts, 2s start = ~3min max)
         const pollingResult = await pollOrderStatus(result.orderId, {
           maxAttempts: 10,
           initialDelay: 2000,
-          maxDelay: 30000,
           onStatusUpdate: (order, currentAttempt, maxAttempts) => {
             // Order status update - could show progress if needed
           }
@@ -258,11 +260,7 @@ export default function PlanDetail() {
             'Your eSIM is taking longer than expected to process. You can check the status in a moment.',
             [
               {
-                text: 'View Order',
-                onPress: () => router.replace(`/install/${result.orderId}?fromPurchase=true`)
-              },
-              {
-                text: 'Check Later',
+                text: 'Go to Dashboard',
                 onPress: () => router.replace('/(tabs)/dashboard')
               }
             ]
@@ -538,12 +536,12 @@ export default function PlanDetail() {
                       marginBottom: moderateScale(4),
                     }}
                   >
-                    {displayPrice || formatPrice(plan.retail_price)}
+                    {displayPrice || '...'}
                   </Text>
                 )}
                 <View className="rounded-xl" style={{backgroundColor: '#2EFECC', paddingHorizontal: scale(16), paddingVertical: moderateScale(8)}}>
                   <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(28)}}>
-                    {appliedDiscount && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.retail_price))}
+                    {appliedDiscount && discountedPrice ? discountedPrice : (displayPrice || '...')}
                   </Text>
                 </View>
                 {appliedDiscount && (
@@ -701,7 +699,7 @@ export default function PlanDetail() {
               <Ionicons name="logo-apple" size={getFontSize(20)} color="#1A1A1A" style={{marginRight: scale(8)}} />
             )}
             <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {loading ? 'Processing...' : `Buy now for ${hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || formatPrice(plan.retail_price))} →`}
+              {loading ? 'Processing...' : `Buy now for ${hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || '...')} →`}
             </Text>
           </View>
         </TouchableOpacity>

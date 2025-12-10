@@ -35,13 +35,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
   ]);
 
-  // Force new build v1.0.14
+  // Force new build v1.0.15
   return {
     ...config,
     name: 'Lumbus',
     slug: 'lumbus',
     owner: 'lumbus',
-    version: '1.0.14',
+    version: '1.0.15',
     orientation: 'portrait',
     icon: './assets/iconlogotrans.png',
     userInterfaceStyle: 'light',
@@ -66,7 +66,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSUserNotificationsUsageDescription: 'We send notifications when your eSIM is ready to install and when you\'re running low on data.',
         ITSAppUsesNonExemptEncryption: false,
       },
-      buildNumber: '17',
+      buildNumber: '18',
     },
     android: {
       adaptiveIcon: {
@@ -74,7 +74,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: '#ffffff',
       },
       package: 'com.lumbus.app',
-      versionCode: 17,
+      versionCode: 18,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'],

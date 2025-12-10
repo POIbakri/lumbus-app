@@ -15,31 +15,38 @@ type TabType = 'active' | 'expired';
 export default function Dashboard() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [userId, setUserId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const { moderateScale, adaptiveScale, isTablet, screenWidth, isSmallDevice } = useResponsive();
 
-  // Get user ID on mount
-  useEffect(() => {
-    getUserId();
-  }, []);
+  // Check cache synchronously for userId (set during login)
+  const cachedUserId = queryClient.getQueryData<string | null>(['userId']);
 
-  async function getUserId() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setUserId(user.id);
-    }
-  }
+  // Fetch user ID - use cached value as initial data for instant load
+  const { data: userId } = useQuery({
+    queryKey: ['userId'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.id || null;
+    },
+    initialData: cachedUserId ?? undefined,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
 
+  // Check cache synchronously for orders (prefetched during login)
+  const cachedOrders = userId ? queryClient.getQueryData<Order[]>(['orders', userId]) : undefined;
+
+  // Fetch orders - use cached value as initial data for instant load
   const { data: orders, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['orders', userId],
     queryFn: () => fetchUserOrders(userId!),
     enabled: !!userId,
-    staleTime: 600000, // 10 minutes - orders don't change frequently
-    gcTime: 1800000, // 30 minutes - keep in cache longer
-    refetchOnMount: false, // Don't refetch on mount, use cache
-    refetchOnWindowFocus: false, // Don't refetch when app comes to foreground
+    initialData: cachedOrders,
+    staleTime: 600000, // 10 minutes
+    gcTime: 1800000, // 30 minutes
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     retry: 2,
   });
 
@@ -257,6 +264,24 @@ export default function Dashboard() {
             </View>
           )}
 
+          {/* Topped Up Badge */}
+          {order.is_topup && !isProvisioning && (
+            <View className="flex-row items-center mb-3" style={{
+              backgroundColor: '#F0FBFF',
+              borderWidth: 2,
+              borderColor: '#87EFFF',
+              alignSelf: 'flex-start',
+              paddingHorizontal: moderateScale(12),
+              paddingVertical: moderateScale(8),
+              borderRadius: getBorderRadius(12),
+            }}>
+              <Ionicons name="add-circle" size={getIconSize(16)} color="#1A1A1A" />
+              <Text className="ml-1 font-black uppercase tracking-wide" style={{ color: '#1A1A1A', fontSize: getFontSize(11) }}>
+                Topped Up
+              </Text>
+            </View>
+          )}
+
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
               <Text className="font-black mb-2" style={{
@@ -398,8 +423,11 @@ export default function Dashboard() {
     });
   }, [orders, isExpired]);
 
-  // Only show full loading on initial load, not when refetching cached data
-  if (isLoading && !orders) {
+  // Only show full loading spinner if we have NO data at all (no cache, no orders)
+  // If we have cached data from login prefetch, show it immediately
+  const hasAnyData = orders !== undefined || cachedOrders !== undefined;
+
+  if (!hasAnyData && (isLoading || !userId)) {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: '#FFFFFF' }}>
         <ActivityIndicator size={isTablet ? 'large' : 'large'} color="#2EFECC" />
