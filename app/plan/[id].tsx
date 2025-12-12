@@ -694,19 +694,14 @@ export default function PlanDetail() {
           disabled={loading}
           activeOpacity={0.8}
         >
-          <View className="flex-row items-center justify-center">
-            {Platform.OS === 'ios' && (
-              <Ionicons name="logo-apple" size={getFontSize(20)} color="#1A1A1A" style={{marginRight: scale(8)}} />
-            )}
-            <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {loading ? 'Processing...' : `Buy now for ${hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || '...')} →`}
-            </Text>
-          </View>
+          <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
+            {loading ? 'Processing...' : `Buy now for ${hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || '...')} →`}
+          </Text>
         </TouchableOpacity>
 
         {/* Payment method indicator */}
         <Text className="text-center font-bold" style={{color: '#999999', fontSize: getFontSize(12), marginTop: moderateScale(8)}}>
-          {Platform.OS === 'ios' ? 'Pay securely with Apple Pay or card' : 'Pay securely with Google Pay or card'}
+          Pay securely with card
         </Text>
         <Text className="text-center font-semibold" style={{color: '#B0B0B0', fontSize: getFontSize(11), marginTop: moderateScale(4)}}>
           Payments are securely processed by Stripe. We never store your card details.
