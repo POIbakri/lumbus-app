@@ -9,6 +9,7 @@ import ReferAndEarn from '../components/ReferAndEarn';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
 import { LightningIcon } from '../../components/icons/flags';
+import { deletePushToken } from '../../lib/notifications';
 
 export default function Account() {
   const router = useRouter();
@@ -48,6 +49,8 @@ export default function Account() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
+            // Delete push token before signing out
+            await deletePushToken();
             await supabase.auth.signOut();
             router.replace('/(auth)/login');
           },

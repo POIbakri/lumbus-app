@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { logger } from './logger';
+import { config } from './config';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -124,25 +125,63 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 }
 
-// Save push token to database
+// Save push token via backend API
 export async function savePushToken(userId: string, token: string) {
   try {
-    const { error } = await supabase
-      .from('user_push_tokens')
-      .upsert({
-        user_id: userId,
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      logger.error('No session for saving push token');
+      return;
+    }
+
+    const response = await fetch(`${config.apiUrl}/user/push-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
         push_token: token,
         platform: Platform.OS,
-        updated_at: new Date().toISOString(),
-      } as any, {
-        onConflict: 'user_id',
-      });
+      }),
+    });
 
-    if (error) {
+    if (!response.ok) {
+      const error = await response.json().catch(() => null);
       logger.error('Error saving push token:', error);
+    } else {
+      logger.log('✅ Push token registered successfully');
     }
   } catch (error) {
     logger.error('Error saving push token:', error);
+  }
+}
+
+// Delete push token on logout
+export async function deletePushToken() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      return;
+    }
+
+    const response = await fetch(`${config.apiUrl}/user/push-token`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => null);
+      logger.error('Error deleting push token:', error);
+    } else {
+      logger.log('✅ Push token deleted successfully');
+    }
+  } catch (error) {
+    logger.error('Error deleting push token:', error);
   }
 }
 
