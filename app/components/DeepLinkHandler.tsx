@@ -4,6 +4,9 @@ import { useRouter } from 'expo-router';
 import { useReferral } from '../../contexts/ReferralContext';
 import { isValidUUID } from '../../lib/validation';
 import { logger } from '../../lib/logger';
+import { getPendingPayment, clearPendingPayment } from '../../lib/payments/pendingPayment';
+import { fetchOrderById } from '../../lib/api';
+import { pollOrderStatus } from '../../lib/orderPolling';
 
 /**
  * Deep Link Handler Component
@@ -46,7 +49,7 @@ export function DeepLinkHandler() {
       }
     };
 
-    const handleDeepLink = (event: { url: string }) => {
+    const handleDeepLink = async (event: { url: string }) => {
       try {
         const { path, queryParams } = parseUrl(event.url);
 
@@ -68,10 +71,131 @@ export function DeepLinkHandler() {
 
         // Handle payment completion (Stripe 3DS return URL)
         if (path === 'payment-complete') {
-          logger.log('✅ Payment completed via 3DS redirect');
-          // Stripe handles the payment completion automatically
-          // Just navigate to dashboard to show the new order
-          router.push('/(tabs)/dashboard');
+          logger.log('🔄 Returned from 3DS authentication');
+
+          // Check if there's a pending payment we need to complete
+          const pendingPayment = await getPendingPayment();
+
+          if (pendingPayment) {
+            logger.log('📋 Found pending payment:', pendingPayment.orderId);
+
+            // Check order status to see if payment succeeded
+            try {
+              const order = await fetchOrderById(pendingPayment.orderId);
+
+              if (!order) {
+                // Order not found - clear pending payment and notify user
+                logger.warn('Order not found after 3DS:', pendingPayment.orderId);
+                await clearPendingPayment();
+                Alert.alert(
+                  'Order Not Found',
+                  'We couldn\'t find your order. Please check your dashboard or contact support.',
+                  [{ text: 'OK', onPress: () => router.replace('/(tabs)/dashboard') }]
+                );
+                return;
+              }
+
+              // Check if payment was successful (order status should be 'paid' or later)
+              const paidStatuses = ['paid', 'provisioning', 'completed', 'active'];
+
+              if (paidStatuses.includes(order.status)) {
+                logger.log('✅ Payment confirmed, order status:', order.status);
+
+                // Clear pending payment only after successful verification
+                await clearPendingPayment();
+
+                // Payment succeeded - poll for completion and navigate
+                if (pendingPayment.isTopUp) {
+                  // Top-up flow
+                  Alert.alert(
+                    'Top-Up Successful!',
+                    'Data has been added to your eSIM.',
+                    [
+                      {
+                        text: 'Go to Dashboard',
+                        onPress: () => router.replace('/(tabs)/dashboard'),
+                      },
+                    ]
+                  );
+                } else {
+                  // New purchase flow - check if eSIM is ready
+                  if (order.status === 'completed' && order.activation_code && order.smdp) {
+                    // eSIM ready - go to install
+                    router.replace(`/install/${pendingPayment.orderId}?fromPurchase=true`);
+                  } else {
+                    // eSIM still processing - show message and go to dashboard
+                    Alert.alert(
+                      'Payment Successful!',
+                      'Your eSIM is being prepared. You can view the status in your dashboard.',
+                      [
+                        {
+                          text: 'Go to Dashboard',
+                          onPress: () => router.replace('/(tabs)/dashboard'),
+                        },
+                      ]
+                    );
+                  }
+                }
+                return;
+              } else if (order.status === 'pending') {
+                // Payment might still be processing
+                logger.log('⏳ Payment still processing, polling...');
+
+                // Quick poll to check if payment completes
+                const result = await pollOrderStatus(pendingPayment.orderId, {
+                  maxAttempts: 5,
+                  initialDelay: 1000,
+                });
+
+                if (result.success && result.order) {
+                  await clearPendingPayment();
+                  if (pendingPayment.isTopUp) {
+                    Alert.alert(
+                      'Top-Up Successful!',
+                      'Data has been added to your eSIM.',
+                      [{ text: 'Go to Dashboard', onPress: () => router.replace('/(tabs)/dashboard') }]
+                    );
+                  } else {
+                    router.replace(`/install/${pendingPayment.orderId}?fromPurchase=true`);
+                  }
+                  return;
+                }
+
+                // Still pending - clear and let user check dashboard
+                await clearPendingPayment();
+                Alert.alert(
+                  'Processing',
+                  'Your payment is still being processed. Please check your dashboard in a moment.',
+                  [{ text: 'OK', onPress: () => router.replace('/(tabs)/dashboard') }]
+                );
+                return;
+              } else {
+                // Order in unexpected state (failed, cancelled, etc) - clear it
+                await clearPendingPayment();
+                logger.warn('Order in unexpected status:', order.status);
+                Alert.alert(
+                  'Payment Issue',
+                  'There was an issue with your payment. Please check your dashboard or try again.',
+                  [{ text: 'OK', onPress: () => router.replace('/(tabs)/dashboard') }]
+                );
+                return;
+              }
+            } catch (error) {
+              logger.error('Error checking order status after 3DS:', error);
+              // Clear stale pending payment and navigate to dashboard
+              await clearPendingPayment();
+              Alert.alert(
+                'Unable to Verify Payment',
+                'Please check your dashboard to see your order status.',
+                [{ text: 'OK', onPress: () => router.replace('/(tabs)/dashboard') }]
+              );
+              return;
+            }
+          }
+
+          // No pending payment - just go to dashboard
+          logger.log('No pending payment found, navigating to dashboard');
+          router.replace('/(tabs)/dashboard');
           return;
         }
 

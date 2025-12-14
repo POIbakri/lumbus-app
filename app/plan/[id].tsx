@@ -28,6 +28,7 @@ export default function PlanDetail() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<string>('');
   const [displayPrice, setDisplayPrice] = useState<string>('');
   const [discountedPrice, setDiscountedPrice] = useState<string>('');
   const [showCountries, setShowCountries] = useState(false);
@@ -226,38 +227,36 @@ export default function PlanDetail() {
       });
 
       if (result.success && result.orderId) {
-        // Payment successful - poll for order completion
+        // Payment successful - show progress in button while polling
+        setProcessingStatus('Preparing eSIM...');
 
-        // Show loading alert while polling
-        Alert.alert(
-          'Processing Your eSIM',
-          'Your payment was successful! Preparing your eSIM...',
-          [],
-          { cancelable: false }
-        );
-
-        // Poll for order completion with exponential backoff
-        // Using longer timeout for checkout flow (10 attempts, 2s start = ~3min max)
+        // Poll for order completion with quick initial check
+        // Using faster polling for better UX (5 attempts, 1.5s start = ~30s max)
         const pollingResult = await pollOrderStatus(result.orderId, {
-          maxAttempts: 10,
-          initialDelay: 2000,
+          maxAttempts: 5,
+          initialDelay: 1500,
           onStatusUpdate: (order, currentAttempt, maxAttempts) => {
-            // Order status update - could show progress if needed
+            if (currentAttempt <= 2) {
+              setProcessingStatus('Preparing eSIM...');
+            } else {
+              setProcessingStatus('Almost ready...');
+            }
           }
         });
 
         // Always reset loading state before navigating or showing alerts
         setLoading(false);
+        setProcessingStatus('');
 
         if (pollingResult.success && pollingResult.order) {
           // Order ready - navigate to install screen with fromPurchase param
           // This tells the install screen to redirect to Dashboard on close
           router.replace(`/install/${result.orderId}?fromPurchase=true`);
         } else if (pollingResult.timedOut) {
-          // Order taking too long - still navigate but show warning
+          // Order taking too long - go to dashboard, it will finish in background
           Alert.alert(
-            'eSIM Processing',
-            'Your eSIM is taking longer than expected to process. You can check the status in a moment.',
+            'Purchase Successful!',
+            'Your eSIM is being prepared and will be ready shortly. Check your dashboard to view it.',
             [
               {
                 text: 'Go to Dashboard',
@@ -694,9 +693,18 @@ export default function PlanDetail() {
           disabled={loading}
           activeOpacity={0.8}
         >
-          <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-            {loading ? 'Processing...' : `Buy now for ${hasActiveReferral && discountedPrice ? discountedPrice : (displayPrice || '...')} →`}
-          </Text>
+          {loading ? (
+            <View className="flex-row items-center justify-center">
+              <ActivityIndicator size="small" color="#1A1A1A" style={{marginRight: 8}} />
+              <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
+                {processingStatus || 'Processing...'}
+              </Text>
+            </View>
+          ) : (
+            <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
+              {`Buy now for ${appliedDiscount && discountedPrice ? discountedPrice : (displayPrice || '...')} →`}
+            </Text>
+          )}
         </TouchableOpacity>
 
         {/* Payment method indicator */}

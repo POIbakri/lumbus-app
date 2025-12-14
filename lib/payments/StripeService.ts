@@ -3,6 +3,7 @@ import { logger } from '../logger';
 import { PurchaseParams, PurchaseResult } from './PaymentService';
 import { createCheckout } from '../api';
 import { config } from '../config';
+import { storePendingPayment, clearPendingPayment } from './pendingPayment';
 
 // Dynamically load stripe module only when needed (Android) to avoid iOS native initialization
 let stripeModule: any | null = null;
@@ -170,6 +171,14 @@ export class StripeService {
         throw new Error(initError.message);
       }
 
+      // Store pending payment state before presenting sheet (for 3DS return handling)
+      await storePendingPayment({
+        orderId,
+        planId: params.planId,
+        planName: params.planName,
+        isTopUp: params.isTopUp || false,
+      });
+
       // Step 3: Present payment sheet to user
       logger.log('🔄 Presenting payment sheet...');
       const { presentPaymentSheet } = await getStripeModule();
@@ -178,6 +187,7 @@ export class StripeService {
       if (paymentError) {
         // User cancelled - not an error, just return
         if (paymentError.code === 'Canceled') {
+          await clearPendingPayment();
           return {
             success: false,
             error: 'Payment cancelled',
@@ -185,10 +195,12 @@ export class StripeService {
         }
 
         logger.error('❌ Payment error:', paymentError);
+        await clearPendingPayment();
         throw new Error(paymentError.message);
       }
 
-      // Payment successful!
+      // Payment successful - clear pending state
+      await clearPendingPayment();
       logger.log('✅ Payment successful');
       return {
         success: true,
@@ -197,6 +209,7 @@ export class StripeService {
       };
     } catch (error: any) {
       logger.error('❌ Stripe purchase failed:', error);
+      await clearPendingPayment();
 
       // Handle specific error messages
       if (error.message?.includes('network')) {

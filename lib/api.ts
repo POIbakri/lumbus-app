@@ -475,40 +475,122 @@ export async function linkReferralCode(params: LinkReferralCodeParams): Promise<
 }
 
 // Validate Discount/Referral Code API
+// Tries referral code endpoint first, then discount code endpoint
 export async function validateDiscountCode(params: import('../types').ValidateCodeParams): Promise<import('../types').ValidateCodeResponse> {
+  const headers = await getAuthHeaders();
+
+  // Get user ID for discount code validation
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+
+  let referralError: string | null = null;
+
+  // Try referral code endpoint first
   try {
-    const headers = await getAuthHeaders();
-    const response = await fetchWithTimeout(`${API_URL}/validate-code`, {
+    const referralResponse = await fetchWithTimeout(`${API_URL}/referral-codes/validate`, {
       method: 'POST',
       headers,
-      body: JSON.stringify(params),
+      body: JSON.stringify({
+        code: params.code,
+        email: params.email,
+        userId: userId,
+      }),
     }, 10000);
 
-    // Handle empty response or JSON parse errors gracefully
-    try {
-      const text = await response.text();
-      if (!text) {
+    const text = await referralResponse.text();
+
+    if (referralResponse.ok && text) {
+      const data = JSON.parse(text);
+      if (data.valid) {
+        // Map referral response to expected format
         return {
-          valid: false,
-          error: 'Empty response from server',
+          valid: true,
+          type: 'referral',
+          code: params.code,
+          discountType: 'percentage',
+          discountValue: data.benefits?.discount || 10,
+          bonusDataMB: data.benefits?.freeDataMB || 1024,
+          message: data.benefits?.message || '10% discount + 1GB bonus applied!',
         };
       }
-      const data = JSON.parse(text);
-      return data;
-    } catch (e) {
-      logger.error('Error parsing validate code response:', e);
+      // Save referral error for later (in case discount also fails)
+      if (data.error) {
+        referralError = data.error;
+
+        // Return early for user-specific errors (not format/validation errors)
+        const isUserSpecificError =
+          data.error.toLowerCase().includes('your own') ||
+          data.error.toLowerCase().includes('first-time') ||
+          data.error.toLowerCase().includes('already');
+
+        if (isUserSpecificError) {
+          return {
+            valid: false,
+            error: data.error,
+          };
+        }
+      }
+    }
+  } catch (e) {
+    // Silently continue to discount endpoint
+  }
+
+  // Try discount code endpoint
+  try {
+    if (!userId) {
       return {
         valid: false,
-        error: 'Invalid server response',
+        error: 'Please log in to use discount codes',
       };
     }
-  } catch (error) {
-    logger.error('Error validating code:', error);
-    return {
-      valid: false,
-      error: error instanceof Error ? error.message : 'Failed to validate code',
-    };
+
+    const discountResponse = await fetchWithTimeout(`${API_URL}/discount-codes/validate`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        code: params.code,
+        userId: userId,
+      }),
+    }, 10000);
+
+    const text = await discountResponse.text();
+
+    if (discountResponse.ok && text) {
+      const data = JSON.parse(text);
+      if (data.valid) {
+        // Map discount response to expected format
+        // Backend returns: { valid: true, discountPercent: 100 }
+        const discountValue = data.discountPercent || data.discountValue || data.discount || 0;
+        return {
+          valid: true,
+          type: 'discount',
+          code: params.code,
+          discountType: data.discountType || 'percentage',
+          discountValue: discountValue,
+          message: data.message || `${discountValue}% discount applied!`,
+        };
+      }
+      // Return specific error from discount endpoint
+      if (data.error) {
+        return {
+          valid: false,
+          error: data.error,
+        };
+      }
+    }
+  } catch (e) {
+    // Silently fail
   }
+
+  // Both failed - show appropriate error
+  // If referral error is a format error (8 chars), show generic since user might have entered discount code
+  const isReferralFormatError = referralError && referralError.toLowerCase().includes('8 character');
+  const errorToShow = isReferralFormatError ? 'Invalid code. Please check and try again.' : (referralError || 'Invalid code. Please check and try again.');
+
+  return {
+    valid: false,
+    error: errorToShow,
+  };
 }
 
 // Region API

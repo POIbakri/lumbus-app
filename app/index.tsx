@@ -26,10 +26,6 @@ export default function Index() {
   // This caches the result so Browse page loads with prices ready
   useLocationCurrency();
 
-  // Responsive sizing using our utilities
-  const logoWidth = adaptiveScale(isTablet ? 350 : 240);
-  const logoHeight = logoWidth * 0.8; // Maintain aspect ratio
-
   // Safe navigation helper - prevents double navigation
   const safeNavigate = (route: '/(tabs)/browse' | '/onboarding') => {
     if (hasNavigated.current) return;
@@ -171,38 +167,6 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      {/* Decorative Blobs */}
-      <View style={{
-        position: 'absolute',
-        top: -getSpacing(50),
-        right: -getSpacing(50),
-        width: adaptiveScale(300),
-        height: adaptiveScale(300),
-        backgroundColor: '#FDFD74',
-        borderRadius: adaptiveScale(150),
-        opacity: 0.3,
-      }} />
-      <View style={{
-        position: 'absolute',
-        bottom: -getSpacing(80),
-        left: -getSpacing(80),
-        width: adaptiveScale(350),
-        height: adaptiveScale(350),
-        backgroundColor: '#F7E2FB',
-        borderRadius: adaptiveScale(175),
-        opacity: 0.4,
-      }} />
-      <View style={{
-        position: 'absolute',
-        top: '40%',
-        right: -getSpacing(100),
-        width: adaptiveScale(280),
-        height: adaptiveScale(280),
-        backgroundColor: '#87EFFF',
-        borderRadius: adaptiveScale(140),
-        opacity: 0.35,
-      }} />
-
       <Animated.View
         style={{
           opacity: fadeAnim,
@@ -210,13 +174,13 @@ export default function Index() {
           alignItems: 'center',
         }}
       >
-        {/* Main Logo */}
-        <View style={[styles.logoContainer, { marginBottom: getSpacing(48) }]}>
+        {/* Icon Logo */}
+        <View style={styles.logoContainer}>
           <Image
-            source={require('../assets/logotrans.png')}
+            source={require('../assets/iconlogotrans.png')}
             style={{
-              width: logoWidth,
-              height: logoHeight,
+              width: adaptiveScale(isTablet ? 180 : 120),
+              height: adaptiveScale(isTablet ? 180 : 120),
               resizeMode: 'contain',
             }}
           />
@@ -226,34 +190,28 @@ export default function Index() {
         <View style={[styles.loadingContainer, { marginTop: getSpacing(48), gap: getSpacing(12) }]}>
           <Animated.View
             style={{
-              width: adaptiveScale(16),
-              height: adaptiveScale(16),
+              width: adaptiveScale(12),
+              height: adaptiveScale(12),
               backgroundColor: '#2EFECC',
-              borderRadius: adaptiveScale(8),
-              borderWidth: 2,
-              borderColor: '#1A1A1A',
+              borderRadius: adaptiveScale(6),
               opacity: pulseAnim1,
             }}
           />
           <Animated.View
             style={{
-              width: adaptiveScale(16),
-              height: adaptiveScale(16),
+              width: adaptiveScale(12),
+              height: adaptiveScale(12),
               backgroundColor: '#2EFECC',
-              borderRadius: adaptiveScale(8),
-              borderWidth: 2,
-              borderColor: '#1A1A1A',
+              borderRadius: adaptiveScale(6),
               opacity: pulseAnim2,
             }}
           />
           <Animated.View
             style={{
-              width: adaptiveScale(16),
-              height: adaptiveScale(16),
+              width: adaptiveScale(12),
+              height: adaptiveScale(12),
               backgroundColor: '#2EFECC',
-              borderRadius: adaptiveScale(8),
-              borderWidth: 2,
-              borderColor: '#1A1A1A',
+              borderRadius: adaptiveScale(6),
               opacity: pulseAnim3,
             }}
           />
@@ -268,14 +226,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#E0FEF7',
   },
   logoContainer: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
   },
   loadingContainer: {
     flexDirection: 'row',

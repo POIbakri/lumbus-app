@@ -15,6 +15,7 @@ export default function TopUpScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<string>('');
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
   // Use combined hook - single API call for both location and currency
@@ -103,6 +104,7 @@ export default function TopUpScreen() {
     if (loading) return; // Prevent double-tap
 
     setLoading(true);
+    setProcessingStatus('');
 
     try {
       // Get current user - should always exist due to auth guard
@@ -129,11 +131,17 @@ export default function TopUpScreen() {
         iccid: order.iccid,
       });
 
-      // Always reset loading state after purchase completes
-      setLoading(false);
-
       if (result.success) {
-        // Top-up successful
+        // Top-up successful - show status update
+        setProcessingStatus('Adding data...');
+
+        // Short delay for better UX feedback
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Reset loading state
+        setLoading(false);
+        setProcessingStatus('');
+
         logger.log('✅ Top-up successful');
         Alert.alert(
           'Top-Up Successful!',
@@ -145,19 +153,26 @@ export default function TopUpScreen() {
             },
           ]
         );
-      } else if (result.error) {
-        // Only show alert if it's not a cancellation
-        if (result.error !== 'Purchase cancelled' && result.error !== 'Payment cancelled') {
-          Alert.alert(
-            'Top-Up Failed',
-            result.error,
-            [{ text: 'OK' }]
-          );
+      } else {
+        // Reset loading state on failure
+        setLoading(false);
+        setProcessingStatus('');
+
+        if (result.error) {
+          // Only show alert if it's not a cancellation
+          if (result.error !== 'Purchase cancelled' && result.error !== 'Payment cancelled') {
+            Alert.alert(
+              'Top-Up Failed',
+              result.error,
+              [{ text: 'OK' }]
+            );
+          }
         }
       }
     } catch (error: any) {
       logger.error('Top-up error:', error);
       setLoading(false);
+      setProcessingStatus('');
       Alert.alert(
         'Top-Up Error',
         error.message || 'Failed to process top-up. Please try again.',
@@ -327,9 +342,18 @@ export default function TopUpScreen() {
           disabled={!selectedPlan || loading}
           activeOpacity={0.8}
         >
-          <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-            {loading ? 'Processing...' : (selectedPlan ? `Buy now for ${selectedPlan.displayPrice || '...'} →` : 'Select a plan')}
-          </Text>
+          {loading ? (
+            <View className="flex-row items-center justify-center">
+              <ActivityIndicator size="small" color="#1A1A1A" style={{marginRight: 8}} />
+              <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
+                {processingStatus || 'Processing...'}
+              </Text>
+            </View>
+          ) : (
+            <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
+              {selectedPlan ? `Buy now for ${selectedPlan.displayPrice || '...'} →` : 'Select a plan'}
+            </Text>
+          )}
         </TouchableOpacity>
 
         {/* Payment method indicator */}
