@@ -127,10 +127,13 @@ export default function Browse() {
   const convertRegionPrices = useCallback(async () => {
     if (regionGroups.length === 0) return;
 
-    const prices = regionGroups.map(g => g.minPrice);
+    // Capture current groups to avoid race condition if regionGroups changes during await
+    const currentGroups = [...regionGroups];
+    const prices = currentGroups.map(g => g.minPrice);
     const converted = await convertMultiplePrices(prices);
 
-    const updatedRegions = regionGroups.map((group, index) => ({
+    // Use captured groups for mapping to ensure indices align
+    const updatedRegions = currentGroups.map((group, index) => ({
       ...group,
       convertedMinPrice: converted[index].converted,
     }));

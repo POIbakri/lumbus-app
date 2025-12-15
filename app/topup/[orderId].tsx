@@ -1,113 +1,136 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchOrderById, fetchPlans } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useLocationCurrency } from '../../hooks/useLocationCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
-import { Plan } from '../../types';
 import { logger } from '../../lib/logger';
 import { PaymentService } from '../../lib/payments/PaymentService';
+import { getFlag } from '../../components/icons/flags';
+
+interface TopUpPackage {
+  id: string;
+  name: string;
+  dataGb: number;
+  validityDays: number;
+  price: number;
+}
 
 export default function TopUpScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string>('');
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [plansWithPrices, setPlansWithPrices] = useState<Plan[]>([]);
-  // Use combined hook - single API call for both location and currency
+  const [selectedPackage, setSelectedPackage] = useState<TopUpPackage | null>(null);
+  const [displayPrices, setDisplayPrices] = useState<Record<string, string>>({});
+
+  // Use combined hook - same as Plan Detail
   const { convertMultiplePrices, loading: currencyLoading, currency } = useLocationCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
-  // Initialize payment service on mount
+  // Initialize payment service on mount - same as Plan Detail
   useEffect(() => {
     PaymentService.initialize().catch(error => {
       logger.error('Failed to initialize payment service:', error);
     });
 
     return () => {
-      // Clean up loading state on unmount to prevent stale state
       setLoading(false);
       PaymentService.cleanup();
     };
   }, []);
 
+  // Fetch order details
   const { data: order, isLoading: orderLoading } = useQuery({
     queryKey: ['order', orderId],
     queryFn: () => fetchOrderById(orderId!),
     enabled: !!orderId,
-  });
-
-  const { data: allPlans, isLoading: plansLoading } = useQuery({
-    queryKey: ['plans'],
-    queryFn: fetchPlans,
     staleTime: 300000,
     gcTime: 600000,
   });
 
-  // Helper function to extract region from plan name
-  const extractRegion = React.useCallback((name: string) => {
+  // Fetch plans - same query as Browse, cached from splash
+  const { data: plans, isLoading: plansLoading } = useQuery({
+    queryKey: ['plans'],
+    queryFn: fetchPlans,
+    staleTime: 600000,
+    gcTime: 1800000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+
+  // Filter plans by region - case-insensitive to handle inconsistent backend data
+  const packages: TopUpPackage[] = React.useMemo(() => {
+    if (!plans || !order?.plan?.region_code) return [];
+
+    const regionCode = order.plan.region_code.toLowerCase().trim();
+    return plans
+      .filter(plan => {
+        const planRegion = plan.region_code?.toLowerCase().trim() || '';
+        // Match exact or if one contains the other (e.g., 'US' vs 'USA')
+        return (planRegion === regionCode ||
+                planRegion.includes(regionCode) ||
+                regionCode.includes(planRegion)) &&
+               plan.is_active !== false;
+      })
+      .sort((a, b) => a.data_gb - b.data_gb)
+      .map(plan => ({
+        id: plan.id,
+        name: plan.name,
+        dataGb: plan.data_gb,
+        validityDays: plan.validity_days,
+        price: plan.retail_price,
+      }));
+  }, [plans, order?.plan?.region_code]);
+
+  // Convert prices - capture packages at start to avoid race condition
+  const convertPrices = React.useCallback(async () => {
+    if (packages.length === 0) return;
+
+    // Capture current packages to avoid race condition if packages changes during await
+    const currentPackages = [...packages];
+    const prices = currentPackages.map(p => p.price);
+    const converted = await convertMultiplePrices(prices);
+
+    // Use captured packages for mapping to ensure indices align
+    const priceMap: Record<string, string> = {};
+    currentPackages.forEach((pkg, index) => {
+      priceMap[pkg.id] = converted[index].formatted;
+    });
+
+    setDisplayPrices(priceMap);
+  }, [packages, convertMultiplePrices]);
+
+  // Run price conversion when packages or currency changes - same as Plan Detail
+  useEffect(() => {
+    if (packages.length > 0 && !currencyLoading) {
+      convertPrices();
+    }
+  }, [packages, currencyLoading, convertPrices]);
+
+  // Extract region from plan name
+  const extractRegion = (name: string) => {
     const cleaned = name.replace(/['"]+/g, '').trim();
     const match = cleaned.match(/^([^0-9]+?)\s+\d+/);
     return match ? match[1].trim() : cleaned.split(' ')[0];
-  }, []);
-
-  // Filter plans by region (same logic as region/[region].tsx)
-  const regionPlans = React.useMemo(() => {
-    if (!allPlans || !order?.plan?.name) return [];
-
-    const currentRegion = extractRegion(order.plan.name);
-
-    return allPlans.filter(plan => {
-      const planRegion = extractRegion(plan.name);
-      const matches = planRegion.toLowerCase() === currentRegion.toLowerCase() ||
-                     plan.region_code.toLowerCase().includes(currentRegion.toLowerCase()) ||
-                     plan.name.toLowerCase().includes(currentRegion.toLowerCase());
-
-      return matches;
-    });
-  }, [allPlans, order, extractRegion]);
-
-  // Convert prices (same logic as region/[region].tsx)
-  const convertPricesForPlans = React.useCallback(async () => {
-    if (!regionPlans || regionPlans.length === 0) return;
-
-    const prices = regionPlans.map(p => p.retail_price);
-    const converted = await convertMultiplePrices(prices);
-
-    const updatedPlans = regionPlans.map((plan, index) => ({
-      ...plan,
-      displayPrice: converted[index].formatted,
-      convertedPrice: converted[index].converted,
-    }));
-
-    setPlansWithPrices(updatedPlans);
-  }, [regionPlans, convertMultiplePrices]);
-
-  useEffect(() => {
-    if (regionPlans && regionPlans.length > 0 && !currencyLoading) {
-      convertPricesForPlans();
-    }
-  }, [regionPlans, currencyLoading, convertPricesForPlans]);
-
-  const plansToDisplay = plansWithPrices.length > 0 ? plansWithPrices : regionPlans;
+  };
 
   async function handlePurchase() {
-    if (!selectedPlan || !order?.iccid) {
+    if (!selectedPackage || !order?.iccid) {
       Alert.alert('Error', 'Cannot process top-up. Please try again.');
       return;
     }
 
-    if (loading) return; // Prevent double-tap
+    if (loading) return;
 
     setLoading(true);
     setProcessingStatus('');
 
     try {
-      // Get current user - should always exist due to auth guard
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         Alert.alert('Session Expired', 'Please log in again to continue.');
@@ -116,57 +139,45 @@ export default function TopUpScreen() {
         return;
       }
 
-      // Purchase using platform-specific payment method
-      // iOS: Apple In-App Purchase (seamless)
-      // Android: Stripe (keeps 97%+ revenue)
-      const result = await PaymentService.purchase({
-        planId: selectedPlan.id,
-        planName: selectedPlan.name,
-        price: selectedPlan.retail_price,
+      const purchaseParams = {
+        planId: selectedPackage.id,
+        planName: selectedPackage.name,
+        price: selectedPackage.price,
         currency,
         email: user.email!,
         userId: user.id,
         isTopUp: true,
         existingOrderId: orderId!,
         iccid: order.iccid,
-      });
+      };
+
+      const result = await PaymentService.purchase(purchaseParams);
 
       if (result.success) {
-        // Top-up successful - show status update
         setProcessingStatus('Adding data...');
 
-        // Short delay for better UX feedback
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Invalidate caches so fresh data is fetched
+        // Backend updates the original order with new data/validity
+        await queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+        await queryClient.invalidateQueries({ queryKey: ['orders'] });
 
-        // Reset loading state
+        // Small delay to allow backend to process the top-up
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         setLoading(false);
         setProcessingStatus('');
 
-        logger.log('✅ Top-up successful');
         Alert.alert(
           'Top-Up Successful!',
           'Data has been added to your eSIM.',
-          [
-            {
-              text: 'Go to Dashboard',
-              onPress: () => router.replace('/(tabs)/dashboard'),
-            },
-          ]
+          [{ text: 'Go to Dashboard', onPress: () => router.replace('/(tabs)/dashboard') }]
         );
       } else {
-        // Reset loading state on failure
         setLoading(false);
         setProcessingStatus('');
 
-        if (result.error) {
-          // Only show alert if it's not a cancellation
-          if (result.error !== 'Purchase cancelled' && result.error !== 'Payment cancelled') {
-            Alert.alert(
-              'Top-Up Failed',
-              result.error,
-              [{ text: 'OK' }]
-            );
-          }
+        if (result.error && result.error !== 'Purchase cancelled' && result.error !== 'Payment cancelled') {
+          Alert.alert('Top-Up Failed', result.error, [{ text: 'OK' }]);
         }
       }
     } catch (error: any) {
@@ -181,6 +192,7 @@ export default function TopUpScreen() {
     }
   }
 
+  // Loading state - SAME as Plan Detail: isLoading || currencyLoading
   if (orderLoading || plansLoading || currencyLoading) {
     return (
       <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
@@ -214,106 +226,223 @@ export default function TopUpScreen() {
     );
   }
 
-  if (!plansToDisplay || plansToDisplay.length === 0) {
+  if (packages.length === 0) {
     return (
       <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF', paddingHorizontal: getHorizontalPadding()}}>
         <Ionicons name="information-circle" size={64} color="#2EFECC" />
         <Text className="font-black uppercase tracking-tight text-center" style={{color: '#1A1A1A', fontSize: getFontSize(18), marginTop: moderateScale(16), marginBottom: moderateScale(8)}}>
-          No plans available
+          No packages available
         </Text>
         <Text className="font-bold text-center" style={{color: '#666666', fontSize: getFontSize(14)}}>
-          No top-up plans are currently available for this region.
+          No compatible packages available for this eSIM.
         </Text>
+        <TouchableOpacity
+          className="rounded-2xl mt-6"
+          style={{backgroundColor: '#FDFD74', paddingVertical: moderateScale(14), paddingHorizontal: moderateScale(24)}}
+          onPress={() => router.push('/(tabs)/browse')}
+          activeOpacity={0.8}
+        >
+          <Text className="font-black uppercase" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
+            Browse New eSIMs
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   const planName = order.plan?.name || 'Unknown Plan';
   const region = extractRegion(planName);
+  const regionCode = order.plan?.region_code || '';
+
+  // Calculate current eSIM data using total_bytes (includes previous top-ups)
+  const getCurrentTotalBytes = () => {
+    if (order.total_bytes !== null && order.total_bytes !== undefined && order.total_bytes > 0) {
+      return order.total_bytes;
+    }
+    const mbMatch = planName.match(/(\d+)\s*MB/i);
+    if (mbMatch) {
+      return parseInt(mbMatch[1]) * 1024 * 1024;
+    }
+    return (order.plan?.data_gb || 0) * 1024 * 1024 * 1024;
+  };
+  const currentTotalBytes = getCurrentTotalBytes();
+  const currentTotalGB = currentTotalBytes / (1024 * 1024 * 1024);
+  const currentTotalMB = currentTotalBytes / (1024 * 1024);
+  const currentDataDisplay = currentTotalGB < 1 ? `${Math.round(currentTotalMB)} MB` : `${currentTotalGB.toFixed(1)} GB`;
 
   return (
     <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
       <ScrollView>
-        {/* Header with brand turquoise */}
-        <View style={{backgroundColor: '#2EFECC', paddingHorizontal: getHorizontalPadding(), paddingTop: moderateScale(64), paddingBottom: moderateScale(32)}}>
-          <TouchableOpacity onPress={() => router.back()} style={{marginBottom: moderateScale(16)}}>
-            <Ionicons name="arrow-back" size={scale(24)} color="#1A1A1A" />
+        {/* Header - same as Plan Detail */}
+        <View style={{
+          backgroundColor: '#2EFECC',
+          paddingHorizontal: getHorizontalPadding(),
+          paddingTop: moderateScale(64),
+          paddingBottom: moderateScale(36),
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.12,
+          shadowRadius: 10,
+          elevation: 8,
+        }}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              marginBottom: moderateScale(24),
+              backgroundColor: 'rgba(26, 26, 26, 0.1)',
+              borderRadius: 50,
+              width: scale(40),
+              height: scale(40),
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="arrow-back" size={scale(22)} color="#1A1A1A" />
           </TouchableOpacity>
 
-          <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 32 : 40), lineHeight: getFontSize(isSmallDevice ? 36 : 44), marginBottom: moderateScale(8)}}>
-            Top Up {region}
-          </Text>
-          <Text className="font-bold" style={{color: '#1A1A1A', opacity: 0.8, fontSize: getFontSize(16)}}>
-            Add more data to your eSIM
-          </Text>
-        </View>
-
-        <View style={{paddingHorizontal: getHorizontalPadding(), paddingVertical: moderateScale(24)}}>
-          {/* Current eSIM Info Card */}
-          <View className="rounded-2xl" style={{backgroundColor: '#F5F5F5', padding: moderateScale(20), marginBottom: moderateScale(24)}}>
-            <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(12), marginBottom: moderateScale(12)}}>
-              Current eSIM
-            </Text>
-            <View className="flex-row justify-between items-center" style={{marginBottom: moderateScale(8)}}>
-              <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14)}}>Region</Text>
-              <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
-                {region}
-              </Text>
-            </View>
-            <View className="flex-row justify-between items-center">
-              <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14)}}>Current Plan</Text>
-              <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
-                {order.plan?.data_gb} GB • {order.plan?.validity_days} days
+          <View className="flex-row items-center" style={{marginBottom: moderateScale(16)}}>
+            <View style={{
+              width: 4,
+              height: getFontSize(isSmallDevice ? 32 : 38),
+              backgroundColor: '#1A1A1A',
+              marginRight: moderateScale(12),
+              borderRadius: 2,
+            }} />
+            <View className="flex-row items-center" style={{gap: 8, flex: 1}}>
+              {getFlag(regionCode, isSmallDevice ? 24 : 28)}
+              <Text
+                className="font-black uppercase tracking-tight"
+                style={{
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(isSmallDevice ? 24 : 30),
+                  letterSpacing: -0.5,
+                  flex: 1,
+                }}
+                numberOfLines={1}
+                adjustsFontSizeToFit={true}
+              >
+                Top Up {region}
               </Text>
             </View>
           </View>
 
-          {/* Top-up Plans */}
+          <View style={{
+            backgroundColor: 'rgba(26, 26, 26, 0.1)',
+            borderRadius: 10,
+            paddingVertical: moderateScale(6),
+            paddingHorizontal: scale(12),
+            alignSelf: 'flex-start',
+          }}>
+            <Text className="font-semibold" style={{
+              color: '#1A1A1A',
+              fontSize: getFontSize(12),
+              letterSpacing: 0.2,
+            }}>
+              Add more data to your eSIM
+            </Text>
+          </View>
+        </View>
+
+        <View style={{paddingHorizontal: getHorizontalPadding(), paddingVertical: moderateScale(24)}}>
+          {/* Current eSIM Info Card */}
+          <View className="rounded-2xl" style={{backgroundColor: '#E0FEF7', padding: moderateScale(20), marginBottom: moderateScale(24), borderWidth: 2, borderColor: '#2EFECC'}}>
+            <View className="flex-row items-center" style={{marginBottom: moderateScale(12)}}>
+              <Ionicons name="phone-portrait-outline" size={scale(20)} color="#2EFECC" />
+              <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginLeft: scale(8)}}>
+                Current eSIM
+              </Text>
+            </View>
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center" style={{gap: 8}}>
+                {getFlag(regionCode, isSmallDevice ? 20 : 24)}
+                <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>{region}</Text>
+              </View>
+              <View className="flex-row items-center" style={{gap: moderateScale(8)}}>
+                <View className="px-3 py-1 rounded-full" style={{backgroundColor: '#FFFFFF'}}>
+                  <Text className="font-bold" style={{color: '#1A1A1A', fontSize: getFontSize(12)}}>
+                    {currentDataDisplay}
+                  </Text>
+                </View>
+                <View className="px-3 py-1 rounded-full" style={{backgroundColor: '#FFFFFF'}}>
+                  <Text className="font-bold" style={{color: '#1A1A1A', fontSize: getFontSize(12)}}>
+                    {order.plan?.validity_days}d
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Top-up Packages */}
           <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(20), marginBottom: moderateScale(16)}}>
-            Select top-up plan
+            Select top-up package
           </Text>
 
-          {plansToDisplay.map((plan, index) => {
-            const isSelected = selectedPlan?.id === plan.id;
+          {packages.map((pkg) => {
+            const isSelected = selectedPackage?.id === pkg.id;
 
             return (
               <TouchableOpacity
-                key={plan.id}
-                className="rounded-2xl p-5 mb-4"
+                key={pkg.id}
+                className="bg-white rounded-2xl"
                 style={{
-                  backgroundColor: '#FFFFFF',
+                  padding: moderateScale(20),
+                  marginBottom: moderateScale(12),
                   shadowColor: '#000',
                   shadowOffset: {width: 0, height: 2},
                   shadowOpacity: 0.08,
                   shadowRadius: 8,
                   borderWidth: 2,
-                  borderColor: isSelected ? '#2EFECC' : '#E5E5E5',
+                  borderColor: isSelected ? '#FDFD74' : '#E5E5E5',
+                  backgroundColor: isSelected ? '#FFFEF0' : '#FFFFFF',
                 }}
-                onPress={() => setSelectedPlan(plan)}
+                onPress={() => setSelectedPackage(pkg)}
                 activeOpacity={0.8}
               >
-                <View className="flex-row justify-between items-start mb-4">
+                <View className="flex-row justify-between items-start" style={{marginBottom: moderateScale(16)}}>
                   <View className="flex-1">
-                    <Text className="text-2xl font-black mb-2 uppercase tracking-tight" style={{color: '#1A1A1A'}}>
-                      {plan.data_gb} GB
-                    </Text>
-                    <Text className="text-base font-bold" style={{color: '#666666'}}>
-                      Valid for {plan.validity_days} days
-                    </Text>
+                    <View className="flex-row items-center" style={{gap: 8, marginBottom: moderateScale(4)}}>
+                      {getFlag(regionCode, isSmallDevice ? 18 : 20)}
+                      <Text
+                        className="font-black uppercase tracking-tight"
+                        style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 18 : 20)}}
+                      >
+                        {region}
+                      </Text>
+                    </View>
                   </View>
                   <View className="px-4 py-3 rounded-xl" style={{backgroundColor: '#2EFECC'}}>
-                    <Text className="font-black text-xl" style={{color: '#1A1A1A'}}>
-                      {plan.displayPrice || '...'}
+                    <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(18)}}>
+                      {displayPrices[pkg.id] || '...'}
                     </Text>
                   </View>
                 </View>
 
-                <View className="flex-row items-center">
-                  <Ionicons name="checkmark-circle" size={scale(18)} color="#2EFECC" />
-                  <Text className="ml-2 font-bold text-sm" style={{color: '#666666'}}>
-                    Instant data top-up for your eSIM
-                  </Text>
+                <View className="flex-row items-center" style={{gap: moderateScale(12)}}>
+                  <View className="flex-row items-center px-4 py-2 rounded-full" style={{backgroundColor: '#E0FEF7'}}>
+                    <Ionicons name="cellular" size={16} color="#2EFECC" />
+                    <Text className="ml-2 font-black text-sm uppercase" style={{color: '#1A1A1A'}}>
+                      {pkg.dataGb} GB
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center px-4 py-2 rounded-full" style={{backgroundColor: '#FFFEF0'}}>
+                    <Ionicons name="time" size={16} color="#1A1A1A" />
+                    <Text className="ml-2 font-black text-sm uppercase" style={{color: '#1A1A1A'}}>
+                      {pkg.validityDays} days
+                    </Text>
+                  </View>
                 </View>
+
+                {isSelected && (
+                  <View className="flex-row items-center" style={{marginTop: moderateScale(12)}}>
+                    <Ionicons name="checkmark-circle" size={scale(18)} color="#1A1A1A" />
+                    <Text className="font-bold" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginLeft: scale(8)}}>
+                      Selected
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -333,13 +462,20 @@ export default function TopUpScreen() {
         </View>
       </ScrollView>
 
-      {/* Fixed Bottom CTA */}
+      {/* Fixed Bottom CTA - same as Plan Detail */}
       <View style={{backgroundColor: '#FFFFFF', borderTopWidth: 2, borderColor: '#E5E5E5', paddingHorizontal: getHorizontalPadding(), paddingVertical: moderateScale(20)}}>
         <TouchableOpacity
           className="rounded-2xl"
-          style={{backgroundColor: loading ? '#87EFFF' : (selectedPlan ? '#2EFECC' : '#E5E5E5'), shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 8, paddingVertical: moderateScale(20)}}
+          style={{
+            backgroundColor: loading ? '#87EFFF' : (selectedPackage ? '#2EFECC' : '#E5E5E5'),
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: 4},
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            paddingVertical: moderateScale(20)
+          }}
           onPress={handlePurchase}
-          disabled={!selectedPlan || loading}
+          disabled={!selectedPackage || loading}
           activeOpacity={0.8}
         >
           {loading ? (
@@ -351,22 +487,18 @@ export default function TopUpScreen() {
             </View>
           ) : (
             <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {selectedPlan ? `Buy now for ${selectedPlan.displayPrice || '...'} →` : 'Select a plan'}
+              {selectedPackage ? `Buy now for ${displayPrices[selectedPackage.id] || '...'}` : 'Select a package'}
             </Text>
           )}
         </TouchableOpacity>
 
-        {/* Payment method indicator */}
-        {selectedPlan && (
-          <>
-            <Text className="text-center font-bold" style={{color: '#999999', fontSize: getFontSize(12), marginTop: moderateScale(8)}}>
-              Pay securely with card
-            </Text>
-            <Text className="text-center font-semibold" style={{color: '#B0B0B0', fontSize: getFontSize(11), marginTop: moderateScale(4)}}>
-              Top-up payments are securely processed by Stripe.
-            </Text>
-          </>
-        )}
+        {/* Payment method indicator - same as Plan Detail */}
+        <Text className="text-center font-bold" style={{color: '#999999', fontSize: getFontSize(12), marginTop: moderateScale(8)}}>
+          {Platform.OS === 'ios' ? 'Pay with Apple Pay or card' : 'Pay with Google Pay or card'}
+        </Text>
+        <Text className="text-center font-semibold" style={{color: '#B0B0B0', fontSize: getFontSize(11), marginTop: moderateScale(4)}}>
+          Payments are securely processed by Stripe. We never store your card details.
+        </Text>
       </View>
     </View>
   );

@@ -3,7 +3,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchOrderById, fetchUsageData, subscribeToOrderUpdates, UsageData } from '../../lib/api';
+import { fetchOrderById, fetchUsageData, subscribeToOrderUpdates, UsageData, fetchTopUpHistory } from '../../lib/api';
+import { Order } from '../../types';
 import { UsageBar } from '../components/UsageBar';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 
@@ -11,12 +12,15 @@ export default function EsimDetails() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const router = useRouter();
   const [usageData, setUsageData] = useState<UsageData | null>(null);
+  const [topUpHistory, setTopUpHistory] = useState<Order[]>([]);
   const { scale, moderateScale, isSmallDevice } = useResponsive();
 
   const { data: order, isLoading, refetch } = useQuery({
     queryKey: ['order', orderId],
     queryFn: () => fetchOrderById(orderId!),
     enabled: !!orderId,
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always', // Always refetch when screen is mounted
   });
 
   // Subscribe to real-time order updates
@@ -32,24 +36,55 @@ export default function EsimDetails() {
     };
   }, [orderId]);
 
-  // Fetch usage data
+  // Fetch usage data with cleanup to prevent memory leak
   useEffect(() => {
+    let isMounted = true;
+
+    async function loadUsageData() {
+      if (!orderId) return;
+      try {
+        const usage = await fetchUsageData(orderId);
+        if (isMounted && usage) {
+          setUsageData(usage);
+        }
+      } catch (error) {
+        // Silently fail - usage data is optional
+      }
+    }
+
     if (order && (order.status === 'active' || order.status === 'depleted')) {
       loadUsageData();
     }
-  }, [order]);
 
-  async function loadUsageData() {
-    if (!orderId) return;
-    try {
-      const usage = await fetchUsageData(orderId);
-      if (usage) {
-        setUsageData(usage);
+    return () => {
+      isMounted = false;
+    };
+  }, [order, orderId]);
+
+  // Fetch top-up history with cleanup to prevent memory leak
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadTopUpHistory() {
+      if (!order?.iccid) return;
+      try {
+        const history = await fetchTopUpHistory(order.iccid);
+        if (isMounted) {
+          setTopUpHistory(history);
+        }
+      } catch (error) {
+        // Silently fail - top-up history is optional
       }
-    } catch (error) {
-      // Silently fail - usage data is optional
     }
-  }
+
+    if (order?.iccid) {
+      loadTopUpHistory();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [order?.iccid]);
 
   function extractRegion(name: string) {
     const cleaned = name.replace(/['"]+/g, '').trim();
@@ -74,8 +109,9 @@ export default function EsimDetails() {
   }
 
   function isExpired() {
-    // Check backend status first
-    if (order?.status === 'depleted' || order?.status === 'expired') return true;
+    // Check if validity period has ended (not just data depleted)
+    // Depleted means data used up but validity may still be valid - can still top-up
+    if (order?.status === 'expired') return true;
 
     // Use time_remaining from API if available (more accurate, server-calculated)
     if (order?.time_remaining) {
@@ -110,34 +146,38 @@ export default function EsimDetails() {
   const planName = order.plan?.name || 'Unknown Plan';
   const region = extractRegion(planName);
 
-  // Parse actual data amount from plan name if it contains MB (e.g., "100MB", "500MB")
-  // Otherwise use data_gb from database
-  let totalDataGB = order.plan?.data_gb || 0;
-  const mbMatch = planName.match(/(\d+)\s*MB/i);
-  if (mbMatch) {
-    // Plan specifies MB directly (e.g., "100MB", "500MB")
-    // Use this as source of truth - convert to GB using decimal (1000 MB = 1 GB for display)
-    const mbValue = parseInt(mbMatch[1]);
-    totalDataGB = mbValue / 1024; // Convert to GB for consistency (100MB = 0.09765625 GB)
-  }
+  // Use total_bytes from backend (includes top-ups), fallback to plan.data_gb
+  const getTotalBytes = () => {
+    // Priority 1: Use total_bytes from backend if available
+    if (order.total_bytes !== null && order.total_bytes !== undefined && order.total_bytes > 0) {
+      return order.total_bytes;
+    }
+    // Priority 2: Parse MB from plan name if present
+    const mbMatch = planName.match(/(\d+)\s*MB/i);
+    if (mbMatch) {
+      return parseInt(mbMatch[1]) * 1024 * 1024; // Convert MB to bytes
+    }
+    // Priority 3: Use plan.data_gb
+    return (order.plan?.data_gb || 0) * 1024 * 1024 * 1024;
+  };
 
-  // Use data from order object directly
-  const dataUsedBytes = order.data_usage_bytes || 0;
+  // Use data_remaining_bytes from backend (most accurate)
   const dataRemainingBytes = order.data_remaining_bytes !== null && order.data_remaining_bytes !== undefined
     ? order.data_remaining_bytes
-    : (totalDataGB * 1024 * 1024 * 1024);
+    : getTotalBytes();
 
+  // Total bytes from backend
+  const actualTotalBytes = getTotalBytes();
+  const actualTotalGB = actualTotalBytes / (1024 * 1024 * 1024);
+  const actualTotalMB = actualTotalBytes / (1024 * 1024);
+
+  // Calculate used bytes from total - remaining (more accurate than data_usage_bytes which may lag)
+  const dataUsedBytes = Math.max(0, actualTotalBytes - dataRemainingBytes);
   const dataUsedGB = dataUsedBytes / (1024 * 1024 * 1024);
   const dataRemainingGB = Math.max(0, dataRemainingBytes / (1024 * 1024 * 1024));
   const dataRemainingMB = Math.max(0, dataRemainingBytes / (1024 * 1024));
 
-  // Calculate actual total from backend data
-  const actualTotalBytes = dataUsedBytes + dataRemainingBytes;
-  const actualTotalGB = actualTotalBytes / (1024 * 1024 * 1024);
-  const actualTotalMB = actualTotalBytes / (1024 * 1024);
-
-  // Use actual backend total for percentage calculation to avoid binary/decimal GB mismatch
-  // Backend might allocate 100 MB while plan shows 0.1 GB = 102.4 MB
+  // Calculate percentage used
   const percentageUsed = actualTotalBytes > 0 ? (dataUsedBytes / actualTotalBytes) * 100 : 0;
 
   const expiryDate = getExpiryDate();
@@ -229,7 +269,8 @@ export default function EsimDetails() {
                   fontSize: getFontSize(13),
                   letterSpacing: 0.5,
                 }}>
-                  {mbMatch ? `${mbMatch[1]} MB` : `${totalDataGB} GB`}
+                  {/* Show actual total data (includes top-ups) */}
+                  {actualTotalGB < 1 ? `${Math.round(actualTotalMB)} MB` : `${actualTotalGB.toFixed(1)} GB`}
                 </Text>
               </View>
 
@@ -244,7 +285,12 @@ export default function EsimDetails() {
                   fontSize: getFontSize(12),
                   letterSpacing: 0.2,
                 }}>
-                  {order.plan?.validity_days || 0} Days
+                  {/* Show actual remaining time, or "Was valid for" if expired */}
+                  {expired
+                    ? `Was ${order.plan?.validity_days || 0} Days`
+                    : order.time_remaining && !order.time_remaining.is_expired
+                    ? `${order.time_remaining.days}d ${order.time_remaining.hours}h left`
+                    : `${order.plan?.validity_days || 0} Days`}
                 </Text>
               </View>
             </View>
@@ -299,7 +345,16 @@ export default function EsimDetails() {
             </Text>
             <View className="flex-row items-center justify-between">
               <View>
-                {order.time_remaining && !order.time_remaining.is_expired ? (
+                {expired && order.plan?.validity_days ? (
+                  <>
+                    <Text className="font-bold" style={{color: '#999999', fontSize: getFontSize(14), marginBottom: moderateScale(4)}}>
+                      Was valid for
+                    </Text>
+                    <Text className="font-black" style={{color: '#666666', fontSize: getFontSize(18)}}>
+                      {order.plan.validity_days} {order.plan.validity_days === 1 ? 'day' : 'days'}
+                    </Text>
+                  </>
+                ) : order.time_remaining && !order.time_remaining.is_expired ? (
                   <>
                     <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14), marginBottom: moderateScale(4)}}>
                       Time remaining
@@ -383,7 +438,74 @@ export default function EsimDetails() {
           </View>
         </View>
 
-        {/* Top Up Button */}
+        {/* Top-Up History Card */}
+        {topUpHistory.length > 0 && (
+          <View className="rounded-2xl" style={{backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#E5E5E5', padding: moderateScale(24), marginBottom: moderateScale(24)}}>
+            <View className="flex-row items-center justify-between" style={{marginBottom: moderateScale(16)}}>
+              <Text className="font-black uppercase tracking-wide" style={{color: '#666666', fontSize: getFontSize(12)}}>
+                Top-Up History
+              </Text>
+              <View style={{
+                backgroundColor: '#2EFECC',
+                borderRadius: 12,
+                paddingVertical: moderateScale(4),
+                paddingHorizontal: moderateScale(10),
+              }}>
+                <Text className="font-bold" style={{color: '#1A1A1A', fontSize: getFontSize(11)}}>
+                  {topUpHistory.length} {topUpHistory.length === 1 ? 'top-up' : 'top-ups'}
+                </Text>
+              </View>
+            </View>
+
+            {topUpHistory.map((topUp, index) => (
+              <View
+                key={topUp.id}
+                style={{
+                  paddingVertical: moderateScale(12),
+                  borderTopWidth: index > 0 ? 1 : 0,
+                  borderTopColor: '#E5E5E5',
+                }}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1">
+                    <Text className="font-bold" style={{color: '#1A1A1A', fontSize: getFontSize(15)}}>
+                      +{topUp.plan?.data_gb || 0} GB
+                    </Text>
+                    <Text className="font-medium" style={{color: '#666666', fontSize: getFontSize(12), marginTop: moderateScale(2)}}>
+                      {topUp.plan?.validity_days || 0} days validity
+                    </Text>
+                  </View>
+                  <View style={{alignItems: 'flex-end'}}>
+                    <Text className="font-medium" style={{color: '#666666', fontSize: getFontSize(12)}}>
+                      {new Date(topUp.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                    <View style={{
+                      backgroundColor: topUp.status === 'active' ? '#E0FEF7' : '#F5F5F5',
+                      borderRadius: 8,
+                      paddingVertical: moderateScale(2),
+                      paddingHorizontal: moderateScale(8),
+                      marginTop: moderateScale(4),
+                    }}>
+                      <Text className="font-medium" style={{
+                        color: topUp.status === 'active' ? '#059669' : '#666666',
+                        fontSize: getFontSize(10),
+                        textTransform: 'uppercase',
+                      }}>
+                        {topUp.status}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Top Up Button - for active eSIMs */}
         {!expired && order.iccid && (
           <TouchableOpacity
             className="rounded-2xl"
@@ -401,6 +523,28 @@ export default function EsimDetails() {
                 </Text>
               </View>
               <Ionicons name="add-circle" size={scale(32)} color="#1A1A1A" />
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Buy Again Button - for expired eSIMs */}
+        {expired && (
+          <TouchableOpacity
+            className="rounded-2xl"
+            style={{backgroundColor: '#2EFECC', borderWidth: 2, borderColor: '#1A1A1A', padding: moderateScale(20), marginBottom: moderateScale(24), shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.08, shadowRadius: 8}}
+            onPress={() => router.push(`/region/${encodeURIComponent(region)}`)}
+            activeOpacity={0.8}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="font-black uppercase tracking-tight" style={{color: '#1A1A1A', fontSize: getFontSize(18), marginBottom: moderateScale(4)}}>
+                  Buy Again
+                </Text>
+                <Text className="font-bold" style={{color: '#1A1A1A', fontSize: getFontSize(14), opacity: 0.7}}>
+                  Get a new eSIM for {region}
+                </Text>
+              </View>
+              <Ionicons name="refresh-circle" size={scale(32)} color="#1A1A1A" />
             </View>
           </TouchableOpacity>
         )}

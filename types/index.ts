@@ -40,6 +40,7 @@ export interface Order {
   plan?: Plan;
   data_usage_bytes?: number;
   data_remaining_bytes?: number | null;
+  total_bytes?: number | null; // Total data allocation in bytes (includes top-ups)
   last_usage_update?: string | null;
   time_remaining?: TimeRemaining; // Pre-calculated time remaining from API
   is_topup?: boolean; // Whether this order is a top-up (from backend)

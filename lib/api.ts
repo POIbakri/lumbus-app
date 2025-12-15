@@ -238,6 +238,49 @@ export async function fetchOrderById(orderId: string): Promise<Order | null> {
   return order;
 }
 
+/**
+ * Fetch top-up history for an eSIM by ICCID
+ * Returns all successful top-up orders for the given ICCID
+ */
+export async function fetchTopUpHistory(iccid: string): Promise<Order[]> {
+  try {
+    const { data, error: supabaseError } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        plans (
+          id,
+          name,
+          region_code,
+          data_gb,
+          validity_days,
+          retail_price,
+          currency
+        )
+      `)
+      .eq('iccid', iccid)
+      .eq('is_topup', true)
+      .in('status', ['paid', 'completed', 'active', 'depleted', 'expired'])
+      .order('created_at', { ascending: false });
+
+    if (supabaseError) {
+      logger.error('Error fetching top-up history:', supabaseError);
+      return [];
+    }
+
+    if (!data) return [];
+
+    // Transform the data to handle array/object plan format
+    return data.map((item: any) => ({
+      ...item,
+      plan: Array.isArray(item.plans) ? item.plans[0] : item.plans,
+    })) as Order[];
+  } catch (error) {
+    logger.error('Error fetching top-up history:', error);
+    return [];
+  }
+}
+
 // Checkout API
 export async function createCheckout(params: CheckoutParams): Promise<PaymentIntentResponse> {
   try {
@@ -792,7 +835,98 @@ export async function validateAppleReceipt(params: ValidateReceiptParams): Promi
   }
 }
 
-// Top-Up API
+// Top-Up Packages API
+export interface TopUpPackage {
+  id: string;           // Plan UUID - use this for checkout
+  packageCode: string;
+  name: string;
+  data: string;         // e.g., "2GB"
+  dataGb: number;       // numeric GB value
+  validity: string;     // e.g., "1 Days"
+  validityDays: number; // numeric days value
+  price: number;        // Already in dollars (not cents)
+  currency: string;
+  locationCode: string;
+  // Client-side computed fields
+  displayPrice?: string;
+  convertedPrice?: number;
+}
+
+export interface TopUpPackagesResponse {
+  success: boolean;
+  region?: string;
+  packages: TopUpPackage[];
+  error?: string;
+}
+
+/**
+ * Fetch available top-up packages for an existing eSIM
+ * Returns only packages for the eSIM's region with correct pricing
+ * Falls back to local plans if backend returns invalid data
+ */
+export async function fetchTopUpPackages(orderId: string): Promise<TopUpPackagesResponse> {
+  try {
+    const headers = await getAuthHeaders();
+    const url = `${API_URL}/orders/${orderId}/packages`;
+
+    const response = await fetchWithTimeout(url, {
+      method: 'GET',
+      headers,
+    }, 15000);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.error || `Failed to fetch top-up packages: ${response.status}`;
+      return {
+        success: false,
+        packages: [],
+        error: errorMessage,
+      };
+    }
+
+    const data = await response.json();
+
+    if (data.success && Array.isArray(data.packages)) {
+      // Validate backend response - if region is undefined or too many packages,
+      // the backend fix isn't deployed yet
+      const isValidResponse = data.region && data.packages.length < 100 && data.packages[0]?.id;
+
+      if (!isValidResponse) {
+        return {
+          success: false,
+          packages: [],
+          error: 'FALLBACK_TO_LOCAL',
+        };
+      }
+
+      // Backend returns properly formatted packages with price in dollars
+      // Sort by dataGb ascending for consistent display
+      const sortedPackages = [...data.packages].sort((a: TopUpPackage, b: TopUpPackage) =>
+        (a.dataGb || 0) - (b.dataGb || 0)
+      );
+
+      return {
+        success: true,
+        region: data.region,
+        packages: sortedPackages,
+      };
+    }
+
+    return {
+      success: false,
+      packages: [],
+      error: 'Invalid response format',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      packages: [],
+      error: error instanceof Error ? error.message : 'Failed to fetch top-up packages',
+    };
+  }
+}
+
+// Top-Up Checkout API
 export async function createTopUpCheckout(params: TopUpCheckoutParams): Promise<TopUpCheckoutResponse> {
   try {
     const headers = await getAuthHeaders();

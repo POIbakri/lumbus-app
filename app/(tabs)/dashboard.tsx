@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform, Modal } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
@@ -17,6 +17,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('active');
+  const [showEsimPicker, setShowEsimPicker] = useState(false);
   const { moderateScale, adaptiveScale, isTablet, screenWidth, isSmallDevice } = useResponsive();
 
   // Check cache synchronously for userId (set during login)
@@ -84,13 +85,9 @@ export default function Dashboard() {
   }, []);
 
   const isExpired = useCallback((order: Order) => {
-    // Check if status is already depleted or expired
-    if (order.status === 'depleted' || order.status === 'expired') return true;
-
-    // Check if data is completely depleted (0 bytes remaining)
-    if (order.data_remaining_bytes !== null && order.data_remaining_bytes !== undefined) {
-      if (order.data_remaining_bytes === 0) return true;
-    }
+    // Only check if validity period has ended (time-expired)
+    // Depleted eSIMs (data used up) can still be topped up if validity remains
+    if (order.status === 'expired') return true;
 
     // Use time_remaining from API if available (more accurate, server-calculated)
     if (order.time_remaining) {
@@ -114,6 +111,18 @@ export default function Dashboard() {
   const getCountryFlag = useCallback((region: string, size: number = 32) => {
     return getFlag(region, size);
   }, []);
+
+  // Get set of ICCIDs that have been topped up - for showing "Topped Up" badge
+  const toppedUpIccids = useMemo(() => {
+    if (!orders) return new Set<string>();
+    const iccids = new Set<string>();
+    orders.forEach(order => {
+      if (order.is_topup === true && order.iccid) {
+        iccids.add(order.iccid);
+      }
+    });
+    return iccids;
+  }, [orders]);
 
   // Memoize CircularProgress component to prevent re-renders
   const CircularProgress = memo(({ percentage, size, strokeWidth, region }: { percentage: number; size?: number; strokeWidth?: number; region: string }) => {
@@ -164,41 +173,46 @@ export default function Dashboard() {
     const planName = order.plan?.name || 'Unknown Plan';
     const region = extractRegion(planName);
 
-    // Parse actual data amount from plan name if it contains MB (e.g., "100MB", "500MB")
-    // Otherwise use data_gb from database
-    let totalDataGB = order.plan?.data_gb || 0;
-    const mbMatch = planName.match(/(\d+)\s*MB/i);
-    if (mbMatch) {
-      // Plan specifies MB directly (e.g., "100MB", "500MB")
-      // Use this as source of truth - convert to GB
-      const mbValue = parseInt(mbMatch[1]);
-      totalDataGB = mbValue / 1024; // Convert to GB for consistency (100MB = 0.09765625 GB)
-    }
+    // Use total_bytes from backend (includes top-ups), fallback to plan.data_gb
+    const getTotalBytes = () => {
+      // Priority 1: Use total_bytes from backend if available
+      if (order.total_bytes !== null && order.total_bytes !== undefined && order.total_bytes > 0) {
+        return order.total_bytes;
+      }
+      // Priority 2: Parse MB from plan name if present
+      const mbMatch = planName.match(/(\d+)\s*MB/i);
+      if (mbMatch) {
+        return parseInt(mbMatch[1]) * 1024 * 1024; // Convert MB to bytes
+      }
+      // Priority 3: Use plan.data_gb
+      return (order.plan?.data_gb || 0) * 1024 * 1024 * 1024;
+    };
 
     const isProvisioning = order.status === 'provisioning' || order.status === 'completed';
     const isDepleted = order.status === 'depleted';
 
-    // Use data from order object directly if available, fallback to fetched usage data
-    const dataUsedBytes = order.data_usage_bytes || 0;
+    // Use data_remaining_bytes from backend (most accurate)
     const dataRemainingBytes = order.data_remaining_bytes !== null && order.data_remaining_bytes !== undefined
       ? order.data_remaining_bytes
-      : (totalDataGB * 1024 * 1024 * 1024);
+      : getTotalBytes();
 
+    // Total bytes from backend
+    const actualTotalBytes = getTotalBytes();
+    const actualTotalGB = actualTotalBytes / (1024 * 1024 * 1024);
+    const actualTotalMB = actualTotalBytes / (1024 * 1024);
+
+    // Calculate used bytes from total - remaining (more accurate than data_usage_bytes which may lag)
+    const dataUsedBytes = Math.max(0, actualTotalBytes - dataRemainingBytes);
     const dataUsedGB = dataUsedBytes / (1024 * 1024 * 1024);
     const dataRemainingGB = Math.max(0, dataRemainingBytes / (1024 * 1024 * 1024));
     const dataRemainingMB = Math.max(0, dataRemainingBytes / (1024 * 1024));
 
-    // Calculate actual total from backend data
-    const actualTotalBytes = dataUsedBytes + dataRemainingBytes;
-    const actualTotalGB = actualTotalBytes / (1024 * 1024 * 1024);
-    const actualTotalMB = actualTotalBytes / (1024 * 1024);
-
-    // Use actual backend total for percentage calculation to avoid binary/decimal GB mismatch
-    // Backend might allocate 100 MB while plan shows 0.1 GB = 102.4 MB
+    // Calculate percentage used
     const percentageUsed = actualTotalBytes > 0 ? (dataUsedBytes / actualTotalBytes) * 100 : 0;
 
     const expiryDate = getExpiryDate(order);
     const hasUsage = dataUsedBytes > 0;
+    const orderExpired = isExpired(order);
 
     // Format data remaining display
     const formatDataRemaining = () => {
@@ -264,19 +278,17 @@ export default function Dashboard() {
             </View>
           )}
 
-          {/* Topped Up Badge */}
-          {order.is_topup && !isProvisioning && (
-            <View className="flex-row items-center mb-3" style={{
-              backgroundColor: '#F0FBFF',
-              borderWidth: 2,
-              borderColor: '#87EFFF',
+          {/* Topped Up Badge - shows on original eSIMs that have received top-ups */}
+          {order.iccid && toppedUpIccids.has(order.iccid) && !isProvisioning && (
+            <View className="flex-row items-center mb-2" style={{
+              backgroundColor: '#E0FEF7',
               alignSelf: 'flex-start',
-              paddingHorizontal: moderateScale(12),
-              paddingVertical: moderateScale(8),
-              borderRadius: getBorderRadius(12),
+              paddingHorizontal: moderateScale(8),
+              paddingVertical: moderateScale(4),
+              borderRadius: getBorderRadius(8),
             }}>
-              <Ionicons name="add-circle" size={getIconSize(16)} color="#1A1A1A" />
-              <Text className="ml-1 font-black uppercase tracking-wide" style={{ color: '#1A1A1A', fontSize: getFontSize(11) }}>
+              <Ionicons name="add-circle" size={getIconSize(12)} color="#2EFECC" />
+              <Text className="ml-1 font-bold uppercase tracking-wide" style={{ color: '#1A1A1A', fontSize: getFontSize(9) }}>
                 Topped Up
               </Text>
             </View>
@@ -295,7 +307,7 @@ export default function Dashboard() {
                   color: '#1A1A1A',
                   fontSize: getFontSize(20),
                 }}>
-                  {mbMatch ? `${mbMatch[1]} MB plan` : `${totalDataGB} GB plan`}
+                  {actualTotalGB < 1 ? `${Math.round(actualTotalMB)} MB plan` : `${actualTotalGB.toFixed(1)} GB plan`}
                 </Text>
               ) : (
                 <Text className="font-bold mb-1" style={{
@@ -305,7 +317,14 @@ export default function Dashboard() {
                   {formatDataRemaining()}
                 </Text>
               )}
-              {order.time_remaining && !order.time_remaining.is_expired ? (
+              {orderExpired && order.plan?.validity_days ? (
+                <Text className="font-bold" style={{
+                  color: '#999999',
+                  fontSize: getFontSize(14),
+                }}>
+                  Was valid for {order.plan.validity_days} {order.plan.validity_days === 1 ? 'day' : 'days'}
+                </Text>
+              ) : order.time_remaining && !order.time_remaining.is_expired ? (
                 <Text className="font-bold" style={{
                   color: '#666666',
                   fontSize: getFontSize(14),
@@ -382,13 +401,18 @@ export default function Dashboard() {
         )}
       </View>
     );
-  }, [router, extractRegion, getExpiryDate, getCountryFlag, isExpired]);
+  }, [router, extractRegion, getExpiryDate, getCountryFlag, isExpired, toppedUpIccids]);
 
   // Memoize filtered orders to prevent recalculation
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
 
     return orders.filter(order => {
+      // Exclude top-up orders - they add data to existing eSIMs, not new eSIMs
+      if (order.is_topup === true) {
+        return false;
+      }
+
       // CRITICAL: Explicitly exclude invalid order statuses
       const invalidStatuses = ['cancelled', 'revoked', 'failed', 'unknown', 'pending', 'paid'];
       if (invalidStatuses.includes(order.status)) {
@@ -414,14 +438,26 @@ export default function Dashboard() {
     });
   }, [orders, activeTab, isExpired]);
 
-  // Get active eSIMs with ICCID (eligible for top-up) - memoized
+  // Get eSIMs eligible for top-up - memoized
+  // Valid states: New (completed with iccid), In Use (active), Depleted (but not time-expired)
+  // Excludes: Expired (validity ended), top-up orders
   const activeEsimsWithIccid = useMemo(() => {
     if (!orders) return [];
     return orders.filter(order => {
-      const expired = isExpired(order);
-      return (order.status === 'active' && !expired && order.iccid);
+      // Exclude top-up orders (they're not separate eSIMs)
+      if (order.is_topup === true) return false;
+      // Must have an ICCID to top-up
+      if (!order.iccid) return false;
+      // Check if validity period has ended (time-expired, not data-depleted)
+      if (order.status === 'expired') return false;
+      if (order.time_remaining?.is_expired) return false;
+      const expiryDate = getExpiryDate(order);
+      if (expiryDate && new Date() > expiryDate) return false;
+      // Valid statuses for top-up: completed (new), active (in use), depleted (data used up)
+      const validStatuses = ['completed', 'active', 'depleted'];
+      return validStatuses.includes(order.status);
     });
-  }, [orders, isExpired]);
+  }, [orders, getExpiryDate]);
 
   // Only show full loading spinner if we have NO data at all (no cache, no orders)
   // If we have cached data from login prefetch, show it immediately
@@ -438,15 +474,46 @@ export default function Dashboard() {
   // Handle "Add more data" button click
   function handleAddMoreData() {
     if (activeEsimsWithIccid.length === 0) {
-      // No active eSIMs with ICCID - go to browse
+      // No active eSIMs with ICCID - go to browse to get first eSIM
       router.push('/(tabs)/browse');
     } else if (activeEsimsWithIccid.length === 1) {
       // Single active eSIM - go directly to top-up
       router.push(`/topup/${activeEsimsWithIccid[0].id}`);
     } else {
-      // Multiple active eSIMs - show options via ActionSheet or alert
-      // For now, go to browse - user can also top up from eSIM details
-      router.push('/(tabs)/browse');
+      // Multiple active eSIMs - show picker
+      const esimOptions = activeEsimsWithIccid.map(esim => extractRegion(esim.plan?.name || 'Unknown'));
+
+      if (Platform.OS === 'ios') {
+        // iOS: Use ActionSheetIOS (supports unlimited options)
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            title: 'Select eSIM to Top Up',
+            message: 'Choose which eSIM you want to add data to:',
+            options: [...esimOptions, 'Cancel'],
+            cancelButtonIndex: esimOptions.length,
+          },
+          (buttonIndex) => {
+            if (buttonIndex < activeEsimsWithIccid.length) {
+              router.push(`/topup/${activeEsimsWithIccid[buttonIndex].id}`);
+            }
+          }
+        );
+      } else if (activeEsimsWithIccid.length <= 2) {
+        // Android with 2 or fewer eSIMs: Use Alert (max 3 buttons)
+        const esimButtons = activeEsimsWithIccid.map(esim => ({
+          text: extractRegion(esim.plan?.name || 'Unknown'),
+          onPress: () => router.push(`/topup/${esim.id}`),
+        }));
+
+        Alert.alert(
+          'Select eSIM to Top Up',
+          'Choose which eSIM you want to add data to:',
+          [...esimButtons, { text: 'Cancel', style: 'cancel' }]
+        );
+      } else {
+        // Android with 3+ eSIMs: Show modal picker
+        setShowEsimPicker(true);
+      }
     }
   }
 
@@ -634,6 +701,85 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* eSIM Picker Modal for Android with 3+ eSIMs */}
+      <Modal
+        visible={showEsimPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEsimPicker(false)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+          activeOpacity={1}
+          onPress={() => setShowEsimPicker(false)}
+        >
+          <View
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: getBorderRadius(16),
+              padding: getSpacing(24),
+              width: screenWidth * 0.85,
+              maxHeight: '70%',
+            }}
+            onStartShouldSetResponder={() => true}
+          >
+            <Text className="font-black" style={{
+              fontSize: getFontSize(20),
+              color: '#1A1A1A',
+              marginBottom: getSpacing(8),
+            }}>
+              Select eSIM to Top Up
+            </Text>
+            <Text style={{
+              fontSize: getFontSize(14),
+              color: '#666666',
+              marginBottom: getSpacing(16),
+            }}>
+              Choose which eSIM you want to add data to:
+            </Text>
+            <FlatList
+              data={activeEsimsWithIccid}
+              keyExtractor={(item) => item.id}
+              style={{ flexGrow: 0, maxHeight: 300 }}
+              showsVerticalScrollIndicator={true}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={{
+                    paddingVertical: getSpacing(14),
+                    paddingHorizontal: getSpacing(16),
+                    borderRadius: getBorderRadius(12),
+                    backgroundColor: '#F5F5F5',
+                    marginBottom: getSpacing(8),
+                  }}
+                  onPress={() => {
+                    setShowEsimPicker(false);
+                    router.push(`/topup/${item.id}`);
+                  }}
+                >
+                  <Text className="font-bold" style={{ fontSize: getFontSize(16), color: '#1A1A1A' }}>
+                    {extractRegion(item.plan?.name || 'Unknown')}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+            <TouchableOpacity
+              style={{
+                paddingVertical: getSpacing(14),
+                marginTop: getSpacing(8),
+                borderRadius: getBorderRadius(12),
+                borderWidth: 2,
+                borderColor: '#E0E0E0',
+              }}
+              onPress={() => setShowEsimPicker(false)}
+            >
+              <Text className="font-bold text-center" style={{ fontSize: getFontSize(16), color: '#666666' }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }

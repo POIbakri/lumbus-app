@@ -64,10 +64,13 @@ export default function RegionPlans() {
   const convertPricesForPlans = React.useCallback(async () => {
     if (!regionPlans || regionPlans.length === 0) return;
 
-    const prices = regionPlans.map(p => p.retail_price);
+    // Capture current plans to avoid race condition if regionPlans changes during await
+    const currentPlans = [...regionPlans];
+    const prices = currentPlans.map(p => p.retail_price);
     const converted = await convertMultiplePrices(prices);
 
-    const updatedPlans = regionPlans.map((plan, index) => ({
+    // Use captured plans for mapping to ensure indices align
+    const updatedPlans = currentPlans.map((plan, index) => ({
       ...plan,
       displayPrice: converted[index].formatted,
       convertedPrice: converted[index].converted,

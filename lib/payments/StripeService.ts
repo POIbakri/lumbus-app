@@ -79,7 +79,8 @@ export class StripeService {
     try {
       // Step 1: Create checkout session with your backend
       logger.log('🔄 Creating Stripe checkout...');
-      const { clientSecret, orderId, publishableKey } = await createCheckout({
+
+      const checkoutParams = {
         planId: params.planId,
         email: params.email,
         currency: params.currency,
@@ -89,7 +90,9 @@ export class StripeService {
         iccid: params.iccid,
         referralCode: params.referralCode, // Pass referral code for discount
         discountCode: params.discountCode, // Pass discount code
-      });
+      };
+
+      const { clientSecret, orderId, publishableKey } = await createCheckout(checkoutParams);
 
       if (!clientSecret || !orderId) {
         throw new Error('Invalid checkout response from server');
