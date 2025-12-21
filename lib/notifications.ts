@@ -127,6 +127,12 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
 // Save push token via backend API
 export async function savePushToken(userId: string, token: string) {
+  // Guard: Don't call API if token is missing or invalid
+  if (!token || typeof token !== 'string' || token.length === 0) {
+    logger.log('[Push] No valid push token available, skipping registration');
+    return;
+  }
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -142,7 +148,7 @@ export async function savePushToken(userId: string, token: string) {
         'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
-        push_token: token,
+        pushToken: token,
         platform: Platform.OS,
       }),
     });

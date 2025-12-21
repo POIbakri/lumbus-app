@@ -89,20 +89,46 @@ export default function Browse() {
 
     const regions = Array.from(groupMap.values());
 
-    // Sort: user's location first, then alphabetically
-    return regions.sort((a, b) => {
-      // If we have location data
-      if (location?.country_code) {
-        const userCountry = location.country_code.toUpperCase();
-        const aMatchesUser = a.regionCode.toUpperCase().includes(userCountry) || a.region.toUpperCase().includes(location.country_name?.toUpperCase() || '');
-        const bMatchesUser = b.regionCode.toUpperCase().includes(userCountry) || b.region.toUpperCase().includes(location.country_name?.toUpperCase() || '');
+    // Top 7 most popular destinations (by typical eSIM demand)
+    const popularRegions = ['US', 'GB', 'JP', 'TH', 'FR', 'DE', 'ES'];
 
-        // User's region goes first
-        if (aMatchesUser && !bMatchesUser) return -1;
-        if (!aMatchesUser && bMatchesUser) return 1;
+    // Sort: user's location first, then top 7 popular, then alphabetically
+    return regions.sort((a, b) => {
+      const aCode = a.regionCode.toUpperCase();
+      const bCode = b.regionCode.toUpperCase();
+
+      // Check if regions match user's location (exact code match or name contains)
+      const userCode = location?.country_code?.toUpperCase();
+      const userName = location?.country_name?.toUpperCase() || '';
+      const aMatchesUser = userCode && (
+        aCode === userCode ||
+        a.region.toUpperCase().includes(userName)
+      );
+      const bMatchesUser = userCode && (
+        bCode === userCode ||
+        b.region.toUpperCase().includes(userName)
+      );
+
+      // User's region goes first
+      if (aMatchesUser && !bMatchesUser) return -1;
+      if (!aMatchesUser && bMatchesUser) return 1;
+
+      // Check popularity ranking
+      const aPopularIndex = popularRegions.indexOf(aCode);
+      const bPopularIndex = popularRegions.indexOf(bCode);
+      const aIsPopular = aPopularIndex !== -1;
+      const bIsPopular = bPopularIndex !== -1;
+
+      // Popular regions come before non-popular
+      if (aIsPopular && !bIsPopular) return -1;
+      if (!aIsPopular && bIsPopular) return 1;
+
+      // Both popular: sort by popularity order
+      if (aIsPopular && bIsPopular) {
+        return aPopularIndex - bPopularIndex;
       }
 
-      // Otherwise alphabetical
+      // Neither popular: alphabetical
       return a.region.localeCompare(b.region);
     });
   }, [plans, location]);

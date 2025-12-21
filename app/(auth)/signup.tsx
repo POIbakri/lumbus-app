@@ -11,7 +11,7 @@ import { AppleLogo } from '../../components/icons/AppleLogo';
 import { GoogleLogo } from '../../components/icons/GoogleLogo';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { useReferral } from '../../contexts/ReferralContext';
-import { linkReferralCode } from '../../lib/api';
+import { linkReferralCode, validateReferralCode } from '../../lib/api';
 import { ReferralBadge } from '../components/ReferralBanner';
 import { registerForPushNotifications, savePushToken } from '../../lib/notifications';
 
@@ -31,6 +31,7 @@ export default function Signup() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [manualReferralCode, setManualReferralCode] = useState('');
   const [showReferralInput, setShowReferralInput] = useState(false);
+  const [referralValidating, setReferralValidating] = useState(false);
   const { scale, moderateScale, isSmallDevice } = useResponsive();
   const { referralCode, setReferralCode: setGlobalReferralCode, clearReferralCode } = useReferral();
   const hasSyncedRef = useRef(false);
@@ -82,7 +83,7 @@ export default function Signup() {
   }, [lockoutUntil]);
 
   // Handle manual referral code input with validation
-  const handleReferralCodeChange = (text: string) => {
+  const handleReferralCodeChange = async (text: string) => {
     // Frontend validation: uppercase, alphanumeric only, max 8 chars
     const filtered = text
       .toUpperCase()
@@ -91,14 +92,57 @@ export default function Signup() {
 
     setManualReferralCode(filtered);
 
-    // Auto-apply when 8 characters are entered
-    if (filtered.length === 8) {
-      setGlobalReferralCode(filtered);
-      Alert.alert(
-        'Referral Code Applied!',
-        "You'll get 10% OFF + 1GB FREE on your first purchase!",
-        [{ text: 'Got it!' }]
-      );
+    // Validate and apply when 8 characters are entered
+    if (filtered.length === 8 && !referralValidating) {
+      setReferralValidating(true);
+
+      try {
+        const result = await validateReferralCode({ code: filtered });
+
+        if (result.valid) {
+          setGlobalReferralCode(filtered);
+          Alert.alert(
+            'Referral Code Applied!',
+            result.benefits?.message || "You'll get 10% OFF + 1GB FREE on your first purchase!",
+            [{ text: 'Got it!' }]
+          );
+        } else {
+          // Check if it's a definitive "invalid code" error vs server/auth error
+          const errorLower = (result.error || '').toLowerCase();
+          const isDefinitelyInvalid = errorLower.includes('invalid') ||
+                                       errorLower.includes('expired') ||
+                                       errorLower.includes('not found') ||
+                                       errorLower.includes('already used');
+
+          if (isDefinitelyInvalid) {
+            // Code is definitely invalid - clear the input
+            setManualReferralCode('');
+            Alert.alert(
+              'Invalid Code',
+              result.error || 'This referral code is invalid or has expired.',
+              [{ text: 'OK' }]
+            );
+          } else {
+            // Server/auth error - save locally, validate at checkout
+            setGlobalReferralCode(filtered);
+            Alert.alert(
+              'Referral Code Saved',
+              "We'll validate this code when you make your first purchase.",
+              [{ text: 'OK' }]
+            );
+          }
+        }
+      } catch {
+        // Network error - still apply locally, will validate at checkout
+        setGlobalReferralCode(filtered);
+        Alert.alert(
+          'Referral Code Saved',
+          "We'll validate this code when you make your first purchase.",
+          [{ text: 'OK' }]
+        );
+      } finally {
+        setReferralValidating(false);
+      }
     }
   };
 
@@ -139,6 +183,7 @@ export default function Signup() {
       email,
       password,
       options: {
+        emailRedirectTo: 'https://getlumbus.com/auth/confirm',
         data: {
           signup_source: 'mobile',
         },
@@ -197,10 +242,10 @@ export default function Signup() {
     }
 
     Alert.alert(
-      'Success',
+      'Confirm Your Email',
       referralCode
-        ? 'Account created! Sign in to use your referral discount.'
-        : 'Account created successfully! Please sign in.',
+        ? 'Check your inbox (or junk folder) to verify your email and unlock your referral discount.'
+        : 'Check your inbox (or junk folder) to verify your email before signing in.',
       [
         {
           text: 'OK',
@@ -222,6 +267,16 @@ export default function Signup() {
         if (!error && data?.user) {
           // Await prefetch to ensure Dashboard has data ready
           await preCacheUserData(data.user.id, data.user.email || '');
+
+          // Link referral code if present (fire-and-forget)
+          if (referralCode) {
+            linkReferralCode({
+              userId: data.user.id,
+              referralCode: referralCode,
+            }).catch(() => {
+              // Silent fail - code will still be used at checkout
+            });
+          }
 
           // Register push token (fire-and-forget)
           (async () => {
@@ -261,6 +316,16 @@ export default function Signup() {
         if (!error && data?.user) {
           // Await prefetch to ensure Dashboard has data ready
           await preCacheUserData(data.user.id, data.user.email || '');
+
+          // Link referral code if present (fire-and-forget)
+          if (referralCode) {
+            linkReferralCode({
+              userId: data.user.id,
+              referralCode: referralCode,
+            }).catch(() => {
+              // Silent fail - code will still be used at checkout
+            });
+          }
 
           // Register push token (fire-and-forget)
           (async () => {
@@ -418,20 +483,32 @@ export default function Signup() {
                     <Text className="font-black uppercase tracking-wide" style={{color: '#1A1A1A', fontSize: getFontSize(12), marginBottom: moderateScale(8)}}>
                       Referral Code (Optional)
                     </Text>
-                    <TextInput
-                      className="rounded-2xl font-bold"
-                      style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: manualReferralCode.length === 8 ? '#2EFECC' : '#E5E5E5', color: '#1A1A1A', paddingHorizontal: scale(20), paddingVertical: moderateScale(14), fontSize: getFontSize(16)}}
-                      placeholder="Enter 8-character code"
-                      placeholderTextColor="#666666"
-                      value={manualReferralCode}
-                      onChangeText={handleReferralCodeChange}
-                      autoCapitalize="characters"
-                      maxLength={8}
-                      editable={!loading}
-                    />
-                    {manualReferralCode.length > 0 && manualReferralCode.length < 8 && (
+                    <View style={{position: 'relative'}}>
+                      <TextInput
+                        className="rounded-2xl font-bold"
+                        style={{backgroundColor: '#F5F5F5', borderWidth: 2, borderColor: manualReferralCode.length === 8 ? '#2EFECC' : '#E5E5E5', color: '#1A1A1A', paddingHorizontal: scale(20), paddingVertical: moderateScale(14), fontSize: getFontSize(16)}}
+                        placeholder="Enter 8-character code"
+                        placeholderTextColor="#666666"
+                        value={manualReferralCode}
+                        onChangeText={handleReferralCodeChange}
+                        autoCapitalize="characters"
+                        maxLength={8}
+                        editable={!loading && !referralValidating}
+                      />
+                      {referralValidating && (
+                        <View style={{position: 'absolute', right: scale(16), top: 0, bottom: 0, justifyContent: 'center'}}>
+                          <Ionicons name="hourglass-outline" size={getFontSize(20)} color="#2EFECC" />
+                        </View>
+                      )}
+                    </View>
+                    {manualReferralCode.length > 0 && manualReferralCode.length < 8 && !referralValidating && (
                       <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(11), marginTop: moderateScale(4)}}>
                         {8 - manualReferralCode.length} characters remaining
+                      </Text>
+                    )}
+                    {referralValidating && (
+                      <Text className="font-bold" style={{color: '#2EFECC', fontSize: getFontSize(11), marginTop: moderateScale(4)}}>
+                        Validating code...
                       </Text>
                     )}
                   </View>

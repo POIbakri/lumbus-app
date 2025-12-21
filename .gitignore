@@ -49,3 +49,13 @@ scripts/AuthKey_*.p8
 # generated native folders
 /ios
 /android
+
+# Marketing generated assets (can be regenerated with npm run marketing:*)
+marketing/output/
+marketing/scripts/output/
+marketing/v2/output/
+marketing/v3/output/
+marketing/v4/output/
+marketing/v5/output/
+marketing/v6/output/
+marketing/v7/output/

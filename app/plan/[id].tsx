@@ -13,6 +13,7 @@ import { PaymentService } from '../../lib/payments/PaymentService';
 import { useReferral } from '../../contexts/ReferralContext';
 import { ReferralBanner } from '../components/ReferralBanner';
 import { pollOrderStatus, formatPollingStatus, getPollingErrorMessage } from '../../lib/orderPolling';
+import { ProcessingOverlay } from '../../components/ProcessingOverlay';
 
 interface AppliedDiscount {
   code: string;
@@ -29,6 +30,7 @@ export default function PlanDetail() {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string>('');
+  const [showProcessing, setShowProcessing] = useState(false);
   const [displayPrice, setDisplayPrice] = useState<string>('');
   const [discountedPrice, setDiscountedPrice] = useState<string>('');
   const [showCountries, setShowCountries] = useState(false);
@@ -41,7 +43,7 @@ export default function PlanDetail() {
   // Use combined hook - single API call for both location and currency
   const { convertMultiplePrices, symbol, formatPrice, loading: currencyLoading, currency } = useLocationCurrency();
   const { scale, moderateScale, isSmallDevice } = useResponsive();
-  const { hasActiveReferral, referralCode } = useReferral();
+  const { hasActiveReferral, referralCode, clearReferralCode } = useReferral();
 
   // Pre-fill referral code if available from context
   useEffect(() => {
@@ -227,8 +229,10 @@ export default function PlanDetail() {
       });
 
       if (result.success && result.orderId) {
-        // Payment successful - show progress in button while polling
-        setProcessingStatus('Preparing eSIM...');
+        // Payment successful - show processing overlay
+        setLoading(false);
+        setShowProcessing(true);
+        setProcessingStatus('Preparing your eSIM');
 
         // Poll for order completion with quick initial check
         // Using faster polling for better UX (5 attempts, 1.5s start = ~30s max)
@@ -237,22 +241,30 @@ export default function PlanDetail() {
           initialDelay: 1500,
           onStatusUpdate: (order, currentAttempt, maxAttempts) => {
             if (currentAttempt <= 2) {
-              setProcessingStatus('Preparing eSIM...');
+              setProcessingStatus('Preparing your eSIM');
             } else {
-              setProcessingStatus('Almost ready...');
+              setProcessingStatus('Almost ready');
             }
           }
         });
 
-        // Always reset loading state before navigating or showing alerts
-        setLoading(false);
+        // Always reset overlay before navigating or showing alerts
+        setShowProcessing(false);
         setProcessingStatus('');
 
         if (pollingResult.success && pollingResult.order) {
+          // Clear referral code after successful first purchase (one-time use)
+          if (appliedDiscount?.type === 'referral') {
+            await clearReferralCode();
+          }
           // Order ready - navigate to install screen with fromPurchase param
           // This tells the install screen to redirect to Dashboard on close
           router.replace(`/install/${result.orderId}?fromPurchase=true`);
         } else if (pollingResult.timedOut) {
+          // Clear referral code after successful first purchase (one-time use)
+          if (appliedDiscount?.type === 'referral') {
+            await clearReferralCode();
+          }
           // Order taking too long - go to dashboard, it will finish in background
           Alert.alert(
             'Purchase Successful!',
@@ -300,6 +312,8 @@ export default function PlanDetail() {
     } catch (error: any) {
       logger.error('Checkout error:', error);
       setLoading(false);
+      setShowProcessing(false);
+      setProcessingStatus('');
       Alert.alert(
         'Purchase Error',
         error.message || 'Failed to process purchase. Please try again.',
@@ -329,6 +343,7 @@ export default function PlanDetail() {
 
   return (
     <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
+      <ProcessingOverlay visible={showProcessing} status={processingStatus} />
       <ScrollView>
         {/* Enhanced Header with gradient and modern design */}
         <View style={{

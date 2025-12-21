@@ -319,14 +319,13 @@ export async function createCheckout(params: CheckoutParams): Promise<PaymentInt
   }
 }
 
-// Usage Tracking API
+// Usage Tracking API - matches backend /api/orders/{orderId}/usage response
 export interface UsageData {
-  orderId: string;
-  dataUsed: number; // in MB
-  dataTotal: number; // in MB
-  dataRemaining: number; // in MB
-  percentageUsed: number;
-  lastUpdated: string;
+  realtime: boolean;
+  data_usage_bytes: number;
+  data_remaining_bytes: number;
+  usage_percent: number;
+  last_update: string;
 }
 
 export async function fetchUsageData(orderId: string): Promise<UsageData | null> {

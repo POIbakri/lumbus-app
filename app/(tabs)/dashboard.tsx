@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchUserOrders, fetchOrderById } from '../../lib/api';
+import { fetchUserOrders, fetchOrderById, fetchUsageData, UsageData } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { Order } from '../../types';
 import { Circle, Svg } from 'react-native-svg';
@@ -18,6 +18,8 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const [showEsimPicker, setShowEsimPicker] = useState(false);
+  // Live usage data fetched from real-time API (keyed by orderId)
+  const [liveUsageData, setLiveUsageData] = useState<Map<string, UsageData>>(new Map());
   const { moderateScale, adaptiveScale, isTablet, screenWidth, isSmallDevice } = useResponsive();
 
   // Check cache synchronously for userId (set during login)
@@ -65,9 +67,55 @@ export default function Dashboard() {
     }
   }, [orders, queryClient]);
 
+  // Fetch live usage data for active/depleted orders from real-time API
+  // Falls back to order.data_remaining_bytes if API fails
+  const fetchLiveUsageForOrders = useCallback(async (ordersToFetch: Order[]) => {
+    // Filter to only active/depleted orders that need live usage
+    const activeOrders = ordersToFetch.filter(order =>
+      order.status === 'active' || order.status === 'depleted'
+    );
+
+    if (activeOrders.length === 0) return;
+
+    // Fetch usage data for all active orders in parallel
+    const usagePromises = activeOrders.map(async (order) => {
+      try {
+        const usage = await fetchUsageData(order.id);
+        return { orderId: order.id, usage };
+      } catch {
+        // Silently fail - will use order.data_remaining_bytes as fallback
+        return { orderId: order.id, usage: null };
+      }
+    });
+
+    const results = await Promise.all(usagePromises);
+
+    // Update live usage state with successful fetches
+    setLiveUsageData(prev => {
+      const newMap = new Map(prev);
+      results.forEach(({ orderId, usage }) => {
+        if (usage) {
+          newMap.set(orderId, usage);
+        }
+      });
+      return newMap;
+    });
+  }, []);
+
+  // Fetch live usage when orders are loaded or updated
+  useEffect(() => {
+    if (orders && orders.length > 0) {
+      fetchLiveUsageForOrders(orders);
+    }
+  }, [orders, fetchLiveUsageForOrders]);
+
   async function onRefresh() {
     setRefreshing(true);
-    await refetch();
+    const result = await refetch();
+    // Also refresh live usage data for fresh real-time data
+    if (result.data) {
+      await fetchLiveUsageForOrders(result.data);
+    }
     setRefreshing(false);
   }
 
@@ -191,24 +239,38 @@ export default function Dashboard() {
     const isProvisioning = order.status === 'provisioning' || order.status === 'completed';
     const isDepleted = order.status === 'depleted';
 
-    // Use data_remaining_bytes from backend (most accurate)
-    const dataRemainingBytes = order.data_remaining_bytes !== null && order.data_remaining_bytes !== undefined
-      ? order.data_remaining_bytes
-      : getTotalBytes();
+    // Check for live usage data (real-time API) - prioritize over order fields
+    const liveUsage = liveUsageData.get(order.id);
 
-    // Total bytes from backend
-    const actualTotalBytes = getTotalBytes();
+    // Calculate usage: prefer live data, fallback to order fields
+    let dataRemainingBytes: number;
+    let actualTotalBytes: number;
+
+    if (liveUsage && typeof liveUsage.data_remaining_bytes === 'number' && typeof liveUsage.data_usage_bytes === 'number') {
+      // Use live usage data from real-time API (already in bytes)
+      dataRemainingBytes = liveUsage.data_remaining_bytes;
+      actualTotalBytes = liveUsage.data_remaining_bytes + liveUsage.data_usage_bytes;
+    } else {
+      // Fallback: use order.data_remaining_bytes (hourly cron updates)
+      actualTotalBytes = getTotalBytes();
+      dataRemainingBytes = order.data_remaining_bytes !== null && order.data_remaining_bytes !== undefined
+        ? order.data_remaining_bytes
+        : actualTotalBytes;
+    }
+
     const actualTotalGB = actualTotalBytes / (1024 * 1024 * 1024);
     const actualTotalMB = actualTotalBytes / (1024 * 1024);
 
-    // Calculate used bytes from total - remaining (more accurate than data_usage_bytes which may lag)
+    // Calculate used bytes from total - remaining
     const dataUsedBytes = Math.max(0, actualTotalBytes - dataRemainingBytes);
     const dataUsedGB = dataUsedBytes / (1024 * 1024 * 1024);
     const dataRemainingGB = Math.max(0, dataRemainingBytes / (1024 * 1024 * 1024));
     const dataRemainingMB = Math.max(0, dataRemainingBytes / (1024 * 1024));
 
-    // Calculate percentage used
-    const percentageUsed = actualTotalBytes > 0 ? (dataUsedBytes / actualTotalBytes) * 100 : 0;
+    // Calculate percentage used (use live percentage if available for consistency)
+    const percentageUsed = liveUsage && typeof liveUsage.usage_percent === 'number'
+      ? liveUsage.usage_percent
+      : (actualTotalBytes > 0 ? (dataUsedBytes / actualTotalBytes) * 100 : 0);
 
     const expiryDate = getExpiryDate(order);
     const hasUsage = dataUsedBytes > 0;
@@ -401,7 +463,7 @@ export default function Dashboard() {
         )}
       </View>
     );
-  }, [router, extractRegion, getExpiryDate, getCountryFlag, isExpired, toppedUpIccids]);
+  }, [router, extractRegion, getExpiryDate, getCountryFlag, isExpired, toppedUpIccids, liveUsageData]);
 
   // Memoize filtered orders to prevent recalculation
   const filteredOrders = useMemo(() => {

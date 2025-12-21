@@ -7,11 +7,13 @@ import { logger } from '../../lib/logger';
 import { getPendingPayment, clearPendingPayment } from '../../lib/payments/pendingPayment';
 import { fetchOrderById } from '../../lib/api';
 import { pollOrderStatus } from '../../lib/orderPolling';
+import { supabase } from '../../lib/supabase';
 
 /**
  * Deep Link Handler Component
  *
  * Handles incoming deep links for:
+ * - Email confirmation (lumbus://auth/confirm?token_hash=...&type=signup)
  * - Payment success redirects
  * - Referral code sharing (https://lumbus.com/r/ABC12345 or lumbus://ref/ABC12345)
  */
@@ -66,6 +68,63 @@ export function DeepLinkHandler() {
             [{ text: 'Got it!' }]
           );
           logger.log('✅ Referral code applied:', code);
+          return;
+        }
+
+        // Handle email confirmation deep link: lumbus://auth/confirm#access_token=...&refresh_token=...
+        // Supabase verifies the email and sends tokens in the URL hash fragment
+        if (path === 'auth/confirm' || event.url.includes('auth/confirm')) {
+          logger.log('🔐 Processing email confirmation...');
+
+          try {
+            // Extract tokens from URL hash fragment (after #)
+            const hashPart = event.url.split('#')[1];
+            if (hashPart) {
+              const hashParams = new URLSearchParams(hashPart);
+              const accessToken = hashParams.get('access_token');
+              const refreshToken = hashParams.get('refresh_token');
+
+              if (accessToken && refreshToken) {
+                // Set the session with tokens (email already verified by Supabase)
+                const { error } = await supabase.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken,
+                });
+
+                if (error) {
+                  logger.error('Failed to set session:', error);
+                  Alert.alert(
+                    'Confirmation Failed',
+                    'Unable to complete sign in. Please try logging in manually.',
+                    [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+                  );
+                } else {
+                  logger.log('✅ Email confirmed and signed in successfully');
+                  Alert.alert(
+                    'Email Confirmed!',
+                    'Your email has been verified and you are now signed in.',
+                    [{ text: 'Continue', onPress: () => router.replace('/(tabs)/browse') }]
+                  );
+                }
+                return;
+              }
+            }
+
+            // Fallback: No tokens in hash, show generic success
+            logger.log('No tokens in URL, redirecting to login');
+            Alert.alert(
+              'Email Confirmed!',
+              'Your email has been verified. Please sign in.',
+              [{ text: 'Sign In', onPress: () => router.replace('/(auth)/login') }]
+            );
+          } catch (error) {
+            logger.error('Error during email confirmation:', error);
+            Alert.alert(
+              'Error',
+              'Something went wrong. Please try signing in.',
+              [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+            );
+          }
           return;
         }
 

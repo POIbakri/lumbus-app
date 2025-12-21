@@ -10,7 +10,15 @@
     "audit": "npm audit --audit-level=moderate",
     "audit:fix": "npm audit fix",
     "audit:production": "npm audit --audit-level=high --production",
-    "eas-build-post-install": "node scripts/eas-build-post-install.js"
+    "eas-build-post-install": "node scripts/eas-build-post-install.js",
+    "marketing": "node marketing/scripts/generate.mjs",
+    "marketing:watch": "node --watch marketing/scripts/generate.mjs",
+    "marketing:v2": "node marketing/v2/generate.mjs",
+    "marketing:v3": "node marketing/v3/generate.mjs",
+    "marketing:v4": "node marketing/v4/generate.mjs",
+    "marketing:v5": "node marketing/v5/generate.mjs",
+    "marketing:v6": "node marketing/v6/generate.mjs",
+    "marketing:v7": "node marketing/v7/generate.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -49,9 +57,12 @@
     "tailwindcss": "~3.3.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/react": "~19.1.0",
     "babel-preset-expo": "~54.0.5",
     "react-native-worklets": "^0.5.1",
+    "satori": "^0.18.3",
+    "sharp": "^0.34.5",
     "typescript": "~5.9.2"
   },
   "overrides": {
