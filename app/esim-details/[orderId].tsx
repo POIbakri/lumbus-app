@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { EsimDetailsLoader } from '../../components/loaders';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -125,11 +126,7 @@ export default function EsimDetails() {
   }
 
   if (isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
-        <ActivityIndicator size="large" color="#2EFECC" />
-      </View>
-    );
+    return <EsimDetailsLoader />;
   }
 
   if (!order) {

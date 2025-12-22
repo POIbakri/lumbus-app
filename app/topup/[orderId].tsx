@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
+import { TopUpLoader } from '../../components/loaders';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
@@ -194,11 +195,7 @@ export default function TopUpScreen() {
 
   // Loading state - SAME as Plan Detail: isLoading || currencyLoading
   if (orderLoading || plansLoading || currencyLoading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
-        <ActivityIndicator size="large" color="#2EFECC" />
-      </View>
-    );
+    return <TopUpLoader />;
   }
 
   if (!order) {
@@ -401,17 +398,18 @@ export default function TopUpScreen() {
                 onPress={() => setSelectedPackage(pkg)}
                 activeOpacity={0.8}
               >
-                <View className="flex-row justify-between items-start" style={{marginBottom: moderateScale(16)}}>
-                  <View className="flex-1">
-                    <View className="flex-row items-center" style={{gap: 8, marginBottom: moderateScale(4)}}>
-                      {getFlag(regionCode, isSmallDevice ? 18 : 20)}
-                      <Text
-                        className="font-black uppercase tracking-tight"
-                        style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 18 : 20)}}
-                      >
-                        {region}
-                      </Text>
-                    </View>
+                <View className="flex-row justify-between items-center" style={{marginBottom: moderateScale(16), gap: 12}}>
+                  <View className="flex-row items-center flex-1" style={{gap: 8}}>
+                    {getFlag(regionCode, isSmallDevice ? 18 : 20)}
+                    <Text
+                      className="font-black uppercase tracking-tight"
+                      style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 16 : 18), flex: 1}}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit={true}
+                      minimumFontScale={0.7}
+                    >
+                      {region}
+                    </Text>
                   </View>
                   <View className="px-4 py-3 rounded-xl" style={{backgroundColor: '#2EFECC'}}>
                     <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(18)}}>

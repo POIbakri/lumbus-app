@@ -1,4 +1,5 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Dimensions } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, Dimensions } from 'react-native';
+import { BrowseLoader } from '../../components/loaders';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -279,11 +280,7 @@ export default function Browse() {
 
   // Only show full loading on initial load, not when refetching cached data
   if ((isLoading && !plans) || currencyLoading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
-        <ActivityIndicator size="large" color="#2EFECC" />
-      </View>
-    );
+    return <BrowseLoader />;
   }
 
   if (error) {

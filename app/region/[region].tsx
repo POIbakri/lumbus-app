@@ -1,4 +1,5 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { RegionLoader } from '../../components/loaders';
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -142,11 +143,7 @@ export default function RegionPlans() {
   }
 
   if (isLoading || currencyLoading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
-        <ActivityIndicator size="large" color="#2EFECC" />
-      </View>
-    );
+    return <RegionLoader />;
   }
 
   if (error) {

@@ -290,10 +290,19 @@ export async function createCheckout(params: CheckoutParams): Promise<PaymentInt
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
+    // Map client-side params to backend expected params
+    // Backend expects 'rfcd' for referral code, not 'referralCode'
+    const { referralCode, discountCode, ...restParams } = params;
+    const apiParams = {
+      ...restParams,
+      ...(referralCode && { rfcd: referralCode }),
+      ...(discountCode && { discountCode }),
+    };
+
     const response = await fetch(`${API_URL}/checkout`, {
       method: 'POST',
       headers,
-      body: JSON.stringify(params),
+      body: JSON.stringify(apiParams),
       signal: controller.signal,
     });
 
@@ -410,10 +419,14 @@ export interface ReferralData {
   referred_by_code: string | null;
   referral_link: string;
   stats: {
+    // Referrer stats (they shared their code)
     total_clicks: number;
     total_signups: number;
     pending_rewards: number;
     earned_rewards: number;
+    // Referee stats (they used someone's code)
+    referee_pending_rewards?: number;
+    referee_earned_rewards?: number;
   };
 }
 
@@ -744,11 +757,19 @@ export async function createIAPCheckout(params: IAPCheckoutParams): Promise<IAPC
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
+    // Map client-side params to backend expected params
+    // Backend expects 'rfcd' for referral code, not 'referralCode'
+    const { referralCode, ...restParams } = params;
+    const apiParams = {
+      ...restParams,
+      ...(referralCode && { rfcd: referralCode }),
+    };
+
     // Call dedicated IAP checkout endpoint
     const response = await fetch(`${API_URL}/checkout/iap`, {
       method: 'POST',
       headers,
-      body: JSON.stringify(params),
+      body: JSON.stringify(apiParams),
       signal: controller.signal,
     });
 

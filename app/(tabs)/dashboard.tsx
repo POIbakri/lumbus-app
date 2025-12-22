@@ -1,4 +1,5 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform, Modal } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, Alert, ActionSheetIOS, Platform, Modal } from 'react-native';
+import { DashboardLoader } from '../../components/loaders';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
@@ -526,11 +527,7 @@ export default function Dashboard() {
   const hasAnyData = orders !== undefined || cachedOrders !== undefined;
 
   if (!hasAnyData && (isLoading || !userId)) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size={isTablet ? 'large' : 'large'} color="#2EFECC" />
-      </View>
-    );
+    return <DashboardLoader />;
   }
 
   // Handle "Add more data" button click

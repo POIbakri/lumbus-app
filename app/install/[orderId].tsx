@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
+import { InstallLoader, ProvisioningLoader } from '../../components/loaders';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -216,11 +217,7 @@ export default function InstallEsim() {
   };
 
   if (isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
-        <ActivityIndicator size="large" color="#2EFECC" />
-      </View>
-    );
+    return <InstallLoader />;
   }
 
   if (!order) {
@@ -241,34 +238,12 @@ export default function InstallEsim() {
                   order.smdp;
   if (!isReady) {
     return (
-      <View className="flex-1" style={{backgroundColor: '#FFFFFF'}}>
-        <View style={{paddingHorizontal: getHorizontalPadding(), paddingTop: moderateScale(64), paddingBottom: moderateScale(32)}}>
-          <TouchableOpacity onPress={() => router.back()} style={{marginBottom: moderateScale(16)}}>
-            <Ionicons name="arrow-back" size={getIconSize(24)} color="#1A1A1A" />
-          </TouchableOpacity>
-        </View>
-
-        <View className="flex-1 items-center justify-center" style={{paddingHorizontal: getHorizontalPadding()}}>
-          <ActivityIndicator size="large" color="#2EFECC" style={{marginBottom: moderateScale(16)}} />
-          <Text className="font-black uppercase tracking-tight text-center mb-2" style={{color: '#1A1A1A', fontSize: getFontSize(24)}}>
-            {isPolling ? 'Processing Your Order' : 'Provisioning your eSIM'}
-          </Text>
-          <Text className="font-bold text-center" style={{color: '#666666', fontSize: getFontSize(14), marginBottom: moderateScale(20)}}>
-            {pollingStatus || "This usually takes 1-2 minutes. You'll receive an email when your eSIM is ready."}
-          </Text>
-          {!isPolling && (
-            <TouchableOpacity
-              onPress={() => refetch()}
-              className="rounded-2xl"
-              style={{backgroundColor: '#2EFECC', paddingVertical: moderateScale(12), paddingHorizontal: moderateScale(24)}}
-            >
-              <Text className="font-bold" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
-                Refresh Status
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      <ProvisioningLoader
+        isPolling={isPolling}
+        pollingStatus={pollingStatus}
+        onBack={() => router.back()}
+        onRefresh={() => refetch()}
+      />
     );
   }
 

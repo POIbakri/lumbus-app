@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList, Platform, TextInput, Keyboard } from 'react-native';
+import { PlanDetailLoader } from '../../components/loaders';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
@@ -323,11 +324,7 @@ export default function PlanDetail() {
   }
 
   if (isLoading || currencyLoading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{backgroundColor: '#FFFFFF'}}>
-        <ActivityIndicator size="large" color="#2EFECC" />
-      </View>
-    );
+    return <PlanDetailLoader />;
   }
 
   if (!plan) {

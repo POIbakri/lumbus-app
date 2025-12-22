@@ -1,10 +1,11 @@
 import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { fetchUserOrders, fetchReferralInfo } from '../../lib/api';
+import { AppLoader } from '../../components/loaders';
 
 export default function TabsLayout() {
   const router = useRouter();
@@ -54,11 +55,7 @@ export default function TabsLayout() {
   }
 
   if (isLoading || !isAuthenticated) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#2EFECC" />
-      </View>
-    );
+    return <AppLoader />;
   }
 
   return (

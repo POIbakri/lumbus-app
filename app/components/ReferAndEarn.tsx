@@ -6,7 +6,6 @@ import {
   Alert,
   Share,
   Linking,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { fetchReferralInfo, ReferralData } from '../../lib/api';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
 import { logger } from '../../lib/logger';
+import { ReferralLoader } from '../../components/loaders';
 
 export default function ReferAndEarn() {
   const { scale, moderateScale } = useResponsive();
@@ -97,11 +97,7 @@ export default function ReferAndEarn() {
   };
 
   if (loading) {
-    return (
-      <View className="items-center justify-center" style={{ padding: moderateScale(40) }}>
-        <ActivityIndicator size="large" color="#2EFECC" />
-      </View>
-    );
+    return <ReferralLoader />;
   }
 
   if (!referralData) {
@@ -252,6 +248,18 @@ export default function ReferAndEarn() {
           </Text>
         </View>
       </View>
+
+      {/* Referee Bonus - subtle inline tag when pending reward displays as >= 0.1GB (0.05 rounds to 0.1) */}
+      {((referralData.stats.referee_pending_rewards ?? 0) / 1024) >= 0.05 && (
+        <View className="flex-row items-center justify-center" style={{ marginBottom: moderateScale(12) }}>
+          <View className="flex-row items-center rounded-full" style={{ backgroundColor: '#E0FEF7', paddingVertical: 6, paddingHorizontal: 12 }}>
+            <Ionicons name="gift-outline" size={14} color="#2EFECC" />
+            <Text style={{ color: '#1A1A1A', fontSize: getFontSize(11), marginLeft: 6, fontWeight: '600' }}>
+              +{((referralData.stats.referee_pending_rewards ?? 0) / 1024).toFixed(1)}GB bonus pending
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Claim Rewards Notice - Always show */}
       <TouchableOpacity
