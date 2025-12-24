@@ -502,6 +502,34 @@ export default function EsimDetails() {
           </View>
         )}
 
+        {/* Installation Guide Button */}
+        <TouchableOpacity
+          className="rounded-2xl flex-row items-center justify-between"
+          style={{backgroundColor: '#E0FEF7', borderWidth: 2, borderColor: '#2EFECC', padding: moderateScale(20), marginBottom: moderateScale(24)}}
+          onPress={() => router.push(`/install/${order.id}`)}
+          activeOpacity={0.8}
+        >
+          <View className="flex-row items-center flex-1">
+            <View style={{
+              backgroundColor: '#2EFECC',
+              borderRadius: 12,
+              padding: moderateScale(10),
+              marginRight: moderateScale(12),
+            }}>
+              <Ionicons name="document-text-outline" size={scale(22)} color="#1A1A1A" />
+            </View>
+            <View className="flex-1">
+              <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
+                Installation Guide
+              </Text>
+              <Text className="font-medium" style={{color: '#666666', fontSize: getFontSize(12)}}>
+                QR code, activation details & setup help
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={scale(20)} color="#1A1A1A" />
+        </TouchableOpacity>
+
         {/* Top Up Button - for active eSIMs */}
         {!expired && order.iccid && (
           <TouchableOpacity

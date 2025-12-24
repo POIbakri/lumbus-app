@@ -1,5 +1,8 @@
 import { Stack, useRouter } from 'expo-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, Alert, Platform } from 'react-native';
 import { StripeProvider } from '@stripe/stripe-react-native';
@@ -8,15 +11,16 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { supabase } from '../lib/supabase';
 import { isValidUUID } from '../lib/validation';
 import { logger } from '../lib/logger';
-import { ReferralProvider } from '../contexts/ReferralContext';
+import { ReferralProvider, useReferral } from '../contexts/ReferralContext';
 import { DeepLinkHandler } from './components/DeepLinkHandler';
+import { fetchUserOrders } from '../lib/api';
 import "../global.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 300000, // 5 minutes default
-      gcTime: 600000, // 10 minutes default cache time
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours - persist cache for offline use
       refetchOnMount: false, // Use cached data by default
       refetchOnWindowFocus: false, // Don't refetch when app regains focus
       refetchOnReconnect: true, // Refetch when internet reconnects
@@ -25,13 +29,47 @@ const queryClient = new QueryClient({
   },
 });
 
+// AsyncStorage persister for offline cache
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: 'lumbus-query-cache',
+});
+
 function AppContent() {
   const router = useRouter();
   const notificationListener = useRef<any>(null);
   const responseListener = useRef<any>(null);
+  const { hasActiveReferral, clearReferralCode } = useReferral();
 
   // Stripe configuration for both iOS and Android
   const stripePublishableKey = config.stripePublishableKey || '';
+
+  // Clear referral code on app startup if user has already made a purchase
+  useEffect(() => {
+    async function checkAndClearReferral() {
+      if (!hasActiveReferral) return;
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const orders = await fetchUserOrders(user.id);
+        // Only count successful orders (not pending/failed)
+        const successfulOrders = orders?.filter(o =>
+          ['active', 'completed', 'provisioning', 'depleted', 'paid'].includes(o.status)
+        ) || [];
+
+        if (successfulOrders.length > 0) {
+          logger.log('🧹 Clearing referral code - user has existing orders');
+          await clearReferralCode();
+        }
+      } catch (error) {
+        // Silently fail - not critical
+      }
+    }
+
+    checkAndClearReferral();
+  }, [hasActiveReferral, clearReferralCode]);
 
   useEffect(() => {
     // Initialize notifications for both iOS and Android
@@ -117,11 +155,25 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister: asyncStoragePersister,
+          maxAge: 1000 * 60 * 60 * 24, // 24 hours
+          dehydrateOptions: {
+            shouldDehydrateQuery: (query) => {
+              // Only persist successful queries for orders and plans
+              const queryKey = query.queryKey[0] as string;
+              return query.state.status === 'success' &&
+                ['orders', 'plans', 'regions', 'userId'].includes(queryKey);
+            },
+          },
+        }}
+      >
         <ReferralProvider>
           <AppContent />
         </ReferralProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
   );
 }

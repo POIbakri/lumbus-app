@@ -10,12 +10,14 @@ import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSi
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
 import { LightningIcon } from '../../components/icons/flags';
 import { deletePushToken } from '../../lib/notifications';
+import { useReferral } from '../../contexts/ReferralContext';
 
 export default function Account() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
   const { moderateScale, adaptiveScale, isTablet, isSmallDevice } = useResponsive();
+  const { clearReferralCode } = useReferral();
 
   // Use React Query for user email - shares cache with Dashboard's userId query
   const { data: email = '' } = useQuery({
@@ -49,15 +51,16 @@ export default function Account() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            // Delete push token before signing out
+            // Clear user data before signing out
             await deletePushToken();
+            await clearReferralCode();
             await supabase.auth.signOut();
             router.replace('/(auth)/login');
           },
         },
       ]
     );
-  }, [router]);
+  }, [router, clearReferralCode]);
 
   const openHelpSupport = useCallback(async () => {
     const url = 'https://getlumbus.com/support';
@@ -346,7 +349,7 @@ export default function Account() {
                 color: '#666666',
                 fontSize: getFontSize(12),
               }}>
-                Lumbus v1.0.18
+                Lumbus v1.0.19
               </Text>
             </View>
           </View>

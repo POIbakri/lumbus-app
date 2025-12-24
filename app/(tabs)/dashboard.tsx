@@ -1,8 +1,8 @@
-import { View, Text, FlatList, TouchableOpacity, RefreshControl, Alert, ActionSheetIOS, Platform, Modal } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, Alert, ActionSheetIOS, Platform, Modal, Animated } from 'react-native';
 import { DashboardLoader } from '../../components/loaders';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchUserOrders, fetchOrderById, fetchUsageData, UsageData } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
@@ -10,6 +10,7 @@ import { Order } from '../../types';
 import { Circle, Svg } from 'react-native-svg';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
 import { getFlag, GlobeIcon } from '../../components/icons/flags';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 
 type TabType = 'active' | 'expired';
 
@@ -22,6 +23,10 @@ export default function Dashboard() {
   // Live usage data fetched from real-time API (keyed by orderId)
   const [liveUsageData, setLiveUsageData] = useState<Map<string, UsageData>>(new Map());
   const { moderateScale, adaptiveScale, isTablet, screenWidth, isSmallDevice } = useResponsive();
+  const { isConnected, isInternetReachable, isLoading: isNetworkLoading } = useNetworkStatus();
+
+  // Determine if we're truly offline
+  const isOffline = !isNetworkLoading && (!isConnected || isInternetReachable === false);
 
   // Check cache synchronously for userId (set during login)
   const cachedUserId = queryClient.getQueryData<string | null>(['userId']);
@@ -693,6 +698,95 @@ export default function Dashboard() {
         windowSize={5}
         initialNumToRender={5}
         updateCellsBatchingPeriod={50}
+        ListHeaderComponent={isOffline ? (
+          <View style={{
+            backgroundColor: '#F5F5F5',
+            borderRadius: getBorderRadius(20),
+            borderWidth: 3,
+            borderColor: '#FDFD74',
+            padding: moderateScale(16),
+            marginBottom: moderateScale(16),
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* Icon container */}
+              <View style={{
+                backgroundColor: '#FDFD74',
+                borderRadius: moderateScale(24),
+                width: moderateScale(48),
+                height: moderateScale(48),
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: moderateScale(14),
+              }}>
+                <Ionicons name="cloud-offline-outline" size={getIconSize(24)} color="#1A1A1A" />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(15),
+                  fontWeight: '900',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.3,
+                }}>
+                  You're Offline
+                </Text>
+                <Text style={{
+                  color: '#666666',
+                  fontSize: getFontSize(12),
+                  fontWeight: '600',
+                  marginTop: 2,
+                }}>
+                  Showing your cached eSIMs
+                </Text>
+              </View>
+            </View>
+
+            {/* Cheeky message card */}
+            <View style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: getBorderRadius(12),
+              borderWidth: 1,
+              borderColor: '#E5E5E5',
+              padding: moderateScale(12),
+              marginTop: moderateScale(12),
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+              <Ionicons name="chatbubble-ellipses-outline" size={getIconSize(18)} color="#1A1A1A" style={{ marginRight: moderateScale(10) }} />
+              <Text style={{
+                flex: 1,
+                color: '#666666',
+                fontSize: getFontSize(13),
+                fontWeight: '700',
+                fontStyle: 'italic',
+              }}>
+                psst... told you that you need data!
+              </Text>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#2EFECC',
+                  paddingHorizontal: moderateScale(14),
+                  paddingVertical: moderateScale(8),
+                  borderRadius: getBorderRadius(10),
+                  borderWidth: 2,
+                  borderColor: '#1A1A1A',
+                }}
+                onPress={() => router.push('/(tabs)/browse')}
+              >
+                <Text style={{
+                  color: '#1A1A1A',
+                  fontSize: getFontSize(11),
+                  fontWeight: '900',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}>
+                  Buy Data
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
         ListEmptyComponent={
           <View className="items-center justify-center" style={{ paddingVertical: moderateScale(48) }}>
             <View style={{

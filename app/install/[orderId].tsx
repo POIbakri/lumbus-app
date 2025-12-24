@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { fetchOrderById, subscribeToOrderUpdates } from '../../lib/api';
 import { logger } from '../../lib/logger';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
@@ -169,21 +170,53 @@ export default function InstallEsim() {
           ]
         );
       }
-      // Android: Open eSIM settings
+      // Android: Open eSIM settings with deep link
       else if (Platform.OS === 'android') {
         await Clipboard.setStringAsync(lpaString);
+
+        // Try to open Android eSIM settings directly
+        const openAndroidSimSettings = async () => {
+          // Try multiple intents in order of preference
+          const intentsToTry = [
+            // Direct eSIM management (Android 9+)
+            { action: 'android.telephony.euicc.action.MANAGE_EMBEDDED_SUBSCRIPTIONS' },
+            // Mobile network settings (most reliable)
+            { action: 'android.settings.NETWORK_OPERATOR_SETTINGS' },
+            // Wireless settings fallback
+            { action: 'android.settings.WIRELESS_SETTINGS' },
+            // Data roaming settings
+            { action: 'android.settings.DATA_ROAMING_SETTINGS' },
+          ];
+
+          for (const intent of intentsToTry) {
+            try {
+              await IntentLauncher.startActivityAsync(intent.action);
+              return true;
+            } catch (e) {
+              logger.log(`Intent ${intent.action} failed, trying next...`);
+            }
+          }
+
+          // Final fallback to general settings
+          try {
+            await Linking.openSettings();
+            return true;
+          } catch (e) {
+            return false;
+          }
+        };
+
         Alert.alert(
           'Code Copied!',
-          'The activation code has been copied to your clipboard.\n\nNext steps:\n\n1. Tap "Open Settings" below\n2. Search for "SIM" in Settings search bar\n3. Look for "Add eSIM", "Download SIM", or "SIM Manager"\n4. Select "Enter activation code" or "Enter manually"\n5. Long press in the code field and tap "Paste"\n6. Tap "Download" or "Add"\n\nNote: Steps may vary by device manufacturer.',
+          'The activation code has been copied to your clipboard.\n\nNext steps:\n\n1. Tap "Open SIM Settings" below\n2. Look for "Add eSIM", "Download SIM", or "+" button\n3. Select "Enter activation code" or "Scan QR code"\n4. If entering manually, long press and tap "Paste"\n5. Tap "Download" or "Add" to install\n\nNote: Menu names vary by device (Samsung, Pixel, etc.)',
           [
             { text: 'Cancel', style: 'cancel' },
             {
-              text: 'Open Settings',
+              text: 'Open SIM Settings',
               onPress: async () => {
-                try {
-                  await Linking.openSettings();
-                } catch (error) {
-                  Alert.alert('Error', 'Unable to open Settings. Please open Settings manually.');
+                const success = await openAndroidSimSettings();
+                if (!success) {
+                  Alert.alert('Error', 'Unable to open SIM Settings. Please go to Settings → Network & Internet → SIM manually.');
                 }
               }
             }
@@ -272,12 +305,27 @@ export default function InstallEsim() {
     }
   };
 
-  // Platform-specific Step 2 instructions
+  // Platform-specific Step 2 instructions - now returns structured data
   const getStep2Instructions = () => {
     if (Platform.OS === 'ios') {
-      return 'After installation, go to Settings → Cellular → [Your eSIM Name] and enable "Turn On This Line" and "Data Roaming".';
+      return {
+        intro: 'After installation, go to Settings → Cellular and select your new eSIM:',
+        steps: [
+          { text: 'Turn On This Line', description: 'Enable this toggle to activate the eSIM', critical: true },
+          { text: 'Data Roaming', description: 'Must be ON to use data abroad', critical: true },
+        ],
+        note: 'Your eSIM may appear as "Travel" or "Secondary" in Settings.'
+      };
     } else {
-      return 'After installation, go to Settings and make sure your new eSIM is enabled with "Mobile Data" and "Data Roaming" turned on.';
+      return {
+        intro: 'After installation, go to Settings → Network & Internet → SIMs:',
+        steps: [
+          { text: 'Select your new eSIM', description: 'It may be named "Downloaded SIM" or similar', critical: false },
+          { text: 'Enable Mobile Data', description: 'Turn on data for this SIM', critical: true },
+          { text: 'Enable Data Roaming', description: 'Must be ON to use data abroad', critical: true },
+        ],
+        note: 'Settings location may vary by device manufacturer.'
+      };
     }
   };
 
@@ -357,7 +405,7 @@ export default function InstallEsim() {
           </Text>
         </View>
 
-        {/* Step 2 Card */}
+        {/* Step 2 Card - Enhanced with clear sub-steps */}
         <View className="rounded-3xl mb-6" style={{backgroundColor: '#F5F5F5', padding: 24}}>
           <View className="flex-row items-center mb-4">
             <View className="rounded-full items-center justify-center mr-3" style={{backgroundColor: '#FDFD74', width: 40, height: 40}}>
@@ -367,8 +415,74 @@ export default function InstallEsim() {
               Turn on your eSIM
             </Text>
           </View>
-          <Text className="font-bold" style={{color: '#666666', fontSize: 14, lineHeight: 20}}>
-            {getStep2Instructions()}
+
+          {/* Introduction text */}
+          <Text className="font-bold mb-4" style={{color: '#666666', fontSize: 14, lineHeight: 20}}>
+            {getStep2Instructions().intro}
+          </Text>
+
+          {/* Step-by-step checklist */}
+          {getStep2Instructions().steps.map((step, index) => (
+            <View
+              key={index}
+              className="rounded-2xl mb-3 flex-row items-start"
+              style={{
+                backgroundColor: step.critical ? '#FFF9E6' : '#FFFFFF',
+                borderWidth: step.critical ? 2 : 1,
+                borderColor: step.critical ? '#FDFD74' : '#E5E5E5',
+                padding: 14
+              }}
+            >
+              <View
+                className="rounded-full items-center justify-center mr-3"
+                style={{
+                  backgroundColor: step.critical ? '#FDFD74' : '#E5E5E5',
+                  width: 24,
+                  height: 24,
+                  marginTop: 2
+                }}
+              >
+                {step.critical ? (
+                  <Ionicons name="alert" size={14} color="#1A1A1A" />
+                ) : (
+                  <Ionicons name="checkmark" size={14} color="#666666" />
+                )}
+              </View>
+              <View className="flex-1">
+                <Text className="font-black" style={{color: '#1A1A1A', fontSize: 14}}>
+                  {step.text}
+                </Text>
+                <Text className="font-bold mt-1" style={{color: step.critical ? '#996600' : '#666666', fontSize: 12}}>
+                  {step.description}
+                </Text>
+              </View>
+            </View>
+          ))}
+
+          {/* Data Roaming Critical Warning */}
+          <View
+            className="rounded-2xl mt-2 flex-row items-center"
+            style={{backgroundColor: '#FFE4E4', borderWidth: 2, borderColor: '#FF6B6B', padding: 14}}
+          >
+            <View
+              className="rounded-full items-center justify-center mr-3"
+              style={{backgroundColor: '#FF6B6B', width: 32, height: 32}}
+            >
+              <Ionicons name="warning" size={18} color="#FFFFFF" />
+            </View>
+            <View className="flex-1">
+              <Text className="font-black" style={{color: '#CC0000', fontSize: 13}}>
+                Data Roaming must be ON
+              </Text>
+              <Text className="font-bold mt-1" style={{color: '#992222', fontSize: 12}}>
+                Without this, your eSIM won't connect to networks abroad.
+              </Text>
+            </View>
+          </View>
+
+          {/* Note */}
+          <Text className="font-bold mt-4" style={{color: '#999999', fontSize: 12, fontStyle: 'italic'}}>
+            {getStep2Instructions().note}
           </Text>
         </View>
 
@@ -385,6 +499,29 @@ export default function InstallEsim() {
           <Text className="font-bold" style={{color: '#666666', fontSize: 14, lineHeight: 20}}>
             Your eSIM will activate automatically when you arrive in {region}. No further action needed!
           </Text>
+        </View>
+
+        {/* Important Warning - Do Not Delete eSIM */}
+        <View className="rounded-3xl mb-6 flex-row items-start" style={{backgroundColor: '#FFF4E6', borderWidth: 2, borderColor: '#FF9500', padding: 20}}>
+          <View
+            className="rounded-full items-center justify-center mr-3"
+            style={{backgroundColor: '#FF9500', width: 36, height: 36}}
+          >
+            <Ionicons name="information-circle" size={22} color="#FFFFFF" />
+          </View>
+          <View className="flex-1">
+            <Text className="font-black uppercase tracking-wide mb-2" style={{color: '#CC6600', fontSize: 13}}>
+              Important: Keep Your eSIM
+            </Text>
+            <Text className="font-bold mb-2" style={{color: '#996600', fontSize: 13, lineHeight: 19}}>
+              Do not delete this eSIM until you've finished your trip and used all your data.
+            </Text>
+            <View className="rounded-xl mt-1" style={{backgroundColor: '#FFE8CC', padding: 12}}>
+              <Text className="font-bold" style={{color: '#885500', fontSize: 12, lineHeight: 17}}>
+                Each eSIM can only be installed once. If you delete it, you won't be able to reinstall it and will need to purchase a new one.
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Manual Installation Details - Collapsible */}
