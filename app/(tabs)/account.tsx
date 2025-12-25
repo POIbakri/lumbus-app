@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { useState, useCallback } from 'react';
 import { fetchReferralInfo } from '../../lib/api';
 import ReferAndEarn from '../components/ReferAndEarn';
+import FreeDataWallet from '../components/FreeDataWallet';
 import { useResponsive, getFontSize, getHorizontalPadding, getSpacing, getIconSize, getBorderRadius } from '../../hooks/useResponsive';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
 import { LightningIcon } from '../../components/icons/flags';
@@ -188,6 +189,9 @@ export default function Account() {
 
         {/* Refer & Earn Section */}
         <ReferAndEarn />
+
+        {/* Rewards Wallet Section */}
+        <FreeDataWallet />
 
         {/* Menu Items */}
         <View className="bg-white overflow-hidden" style={{

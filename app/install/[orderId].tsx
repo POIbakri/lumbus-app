@@ -39,6 +39,18 @@ export default function InstallEsim() {
     };
   }, [orderId]);
 
+  // Redirect to esim-details if eSIM is already active (installed on device)
+  // Only redirect if coming from purchase flow, not from intentional navigation
+  useEffect(() => {
+    if (!order || !orderId) return;
+
+    // If eSIM is already active/installed and user came from purchase flow,
+    // redirect to details screen instead of showing install instructions
+    if (fromPurchase === 'true' && (order.status === 'active' || order.status === 'depleted')) {
+      router.replace(`/esim-details/${orderId}`);
+    }
+  }, [order, orderId, fromPurchase]);
+
   // Poll for order completion if needed
   useEffect(() => {
     if (!order || !orderId || isPolling) return;

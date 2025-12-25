@@ -40,6 +40,7 @@ export default function PlanDetail() {
   const [promoCode, setPromoCode] = useState('');
   const [validationLoading, setValidationLoading] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null);
+  const [isFreeOrder, setIsFreeOrder] = useState(false);
 
   // Use combined hook - single API call for both location and currency
   const { convertMultiplePrices, symbol, formatPrice, loading: currencyLoading, currency } = useLocationCurrency();
@@ -101,34 +102,27 @@ export default function PlanDetail() {
       if (appliedDiscount.discountType === 'percentage') {
         discountedValue = originalValue * (1 - appliedDiscount.discountValue / 100);
       } else if (appliedDiscount.discountType === 'fixed') {
-        // Convert fixed discount amount to local currency if needed
-        // Assuming discountValue is in USD/base currency for now, similar to price
-        // Ideally validation API returns value in correct currency or we convert it
-        // For MVP, assuming discountValue is a flat deduction on the converted price
-        // (This might need adjustment if discountValue is strictly USD)
-        // Let's assume discountValue matches the plan's currency or needs conversion.
-        // Given "discountValue: 10", if it's 10%, percentage handles it.
-        // If fixed 10 USD, we should probably convert 10 USD to local.
-        // For simplicity/safety with current API spec: percentage is safest.
-        // If fixed, let's just subtract for now, but note this limitation.
         discountedValue = Math.max(0, originalValue - appliedDiscount.discountValue);
       }
 
-      const formatted = formatPrice(discountedValue);
-      setDiscountedPrice(formatted);
+      // Check if this is a free order (price is 0 or very close to 0)
+      const isFree = discountedValue < 0.01;
+      setIsFreeOrder(isFree);
+
+      if (isFree) {
+        setDiscountedPrice('FREE');
+      } else {
+        const formatted = formatPrice(discountedValue);
+        setDiscountedPrice(formatted);
+      }
     } else if (hasActiveReferral) {
-      // Fallback to context referral if no specific code validated locally (legacy/default behavior)
-      // But if we have promoCode input, we prefer the user to click "Apply"
-      // If we autofilled `promoCode` from context, `appliedDiscount` is null until they click Apply.
-      // To avoid confusion, we might want to NOT show discounted price until validated.
-      // Or we could auto-validate in useEffect.
-      // For now, let's stick to: if manually applied, use that.
-      // If context exists but not applied locally yet, maybe show 10% off if we want
-      // but better to force validation to ensure code is still valid.
-      // So removing the auto-calculation from context here to rely on `appliedDiscount`
+      // Fallback to context referral if no specific code validated locally
+      // Force validation to ensure code is still valid
       setDiscountedPrice('');
+      setIsFreeOrder(false);
     } else {
       setDiscountedPrice('');
+      setIsFreeOrder(false);
     }
   }, [plan, convertMultiplePrices, appliedDiscount, hasActiveReferral, formatPrice]);
 
@@ -194,6 +188,7 @@ export default function PlanDetail() {
   function clearDiscount() {
     setAppliedDiscount(null);
     setPromoCode('');
+    setIsFreeOrder(false);
   }
 
   async function handleCheckout() {
@@ -258,9 +253,17 @@ export default function PlanDetail() {
           if (appliedDiscount?.type === 'referral') {
             await clearReferralCode();
           }
-          // Order ready - navigate to install screen with fromPurchase param
-          // This tells the install screen to redirect to Dashboard on close
-          router.replace(`/install/${result.orderId}?fromPurchase=true`);
+
+          const orderStatus = pollingResult.order.status;
+
+          // If eSIM is already installed and active, go to details screen
+          // Otherwise show install screen for user to install it
+          if (orderStatus === 'active' || orderStatus === 'depleted') {
+            router.replace(`/esim-details/${result.orderId}`);
+          } else {
+            // Order ready but not yet installed - show install screen
+            router.replace(`/install/${result.orderId}?fromPurchase=true`);
+          }
         } else if (pollingResult.timedOut) {
           // Clear referral code after successful first purchase (one-time use)
           if (appliedDiscount?.type === 'referral') {
@@ -714,18 +717,30 @@ export default function PlanDetail() {
             </View>
           ) : (
             <Text className="font-black uppercase tracking-wide text-center" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>
-              {`Buy now for ${appliedDiscount && discountedPrice ? discountedPrice : (displayPrice || '...')} →`}
+              {isFreeOrder
+                ? 'Get Free eSIM →'
+                : `Buy now for ${appliedDiscount && discountedPrice ? discountedPrice : (displayPrice || '...')} →`
+              }
             </Text>
           )}
         </TouchableOpacity>
 
-        {/* Payment method indicator */}
-        <Text className="text-center font-bold" style={{color: '#999999', fontSize: getFontSize(12), marginTop: moderateScale(8)}}>
-          Pay securely with card
-        </Text>
-        <Text className="text-center font-semibold" style={{color: '#B0B0B0', fontSize: getFontSize(11), marginTop: moderateScale(4)}}>
-          Payments are securely processed by Stripe. We never store your card details.
-        </Text>
+        {/* Payment method indicator - hide for free orders */}
+        {!isFreeOrder && (
+          <>
+            <Text className="text-center font-bold" style={{color: '#999999', fontSize: getFontSize(12), marginTop: moderateScale(8)}}>
+              Pay securely with card
+            </Text>
+            <Text className="text-center font-semibold" style={{color: '#B0B0B0', fontSize: getFontSize(11), marginTop: moderateScale(4)}}>
+              Payments are securely processed by Stripe. We never store your card details.
+            </Text>
+          </>
+        )}
+        {isFreeOrder && (
+          <Text className="text-center font-bold" style={{color: '#2EFECC', fontSize: getFontSize(12), marginTop: moderateScale(8)}}>
+            No payment required - 100% discount applied!
+          </Text>
+        )}
       </View>
     </View>
   );

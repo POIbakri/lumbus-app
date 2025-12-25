@@ -82,10 +82,11 @@ export interface ValidateCodeResponse {
 }
 
 export interface PaymentIntentResponse {
-  clientSecret: string;
+  clientSecret?: string;  // Optional - not present for free orders
   orderId: string;
   publishableKey?: string;
   stripeMode?: 'test' | 'live';
+  freeOrder?: boolean;    // True when order is free (100% discount)
 }
 
 export interface TopUpPackage {
@@ -125,4 +126,33 @@ export interface DeleteAccountResponse {
   success: boolean;
   message: string;
   scheduledDeletion?: string;
+}
+
+// Wallet / Free Data Rewards Types
+export interface WalletData {
+  balance_mb: number;
+  balance_gb: string;
+  active_esims: WalletActiveEsim[];
+}
+
+export interface WalletActiveEsim {
+  id: string;
+  plan_name: string;
+  data_remaining_bytes: number;
+  free_data_added_mb: number;
+  created_at: string;
+  expires_at: string | null;
+  region_code: string | null;
+}
+
+export interface ApplyDataParams {
+  orderId: string;
+  amountMB: number; // Multiple of 1024, min 1024, max 10240
+}
+
+export interface ApplyDataResponse {
+  success: boolean;
+  message: string;
+  newWalletBalance: number;
+  newWalletBalanceGB: string;
 }

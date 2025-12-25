@@ -261,8 +261,8 @@ export default function Login() {
 
           {/* Title */}
           <View style={{marginBottom: moderateScale(28)}}>
-            <Text className="font-black uppercase tracking-tight text-center" style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 32 : 40), lineHeight: getFontSize(isSmallDevice ? 36 : 44), marginBottom: moderateScale(8)}}>
-              WELCOME{'\n'}BACK
+            <Text className="font-black uppercase tracking-tight text-center" style={{color: '#1A1A1A', fontSize: getFontSize(isSmallDevice ? 24 : 28), marginBottom: moderateScale(8)}}>
+              WELCOME TO LUMBUS
             </Text>
             <Text className="font-bold text-center" style={{color: '#666666', fontSize: getFontSize(15)}}>
               Sign in to manage your eSIMs

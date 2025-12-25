@@ -6,13 +6,12 @@ import {
   Alert,
   Share,
   Linking,
-  ScrollView,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchReferralInfo, ReferralData } from '../../lib/api';
-import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
+import { fetchReferralInfo } from '../../lib/api';
+import { useResponsive, getFontSize } from '../../hooks/useResponsive';
 import { logger } from '../../lib/logger';
 import { ReferralLoader } from '../../components/loaders';
 
@@ -218,102 +217,6 @@ export default function ReferAndEarn() {
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Stats Cards */}
-      <View className="flex-row" style={{ marginBottom: moderateScale(16), gap: 8 }}>
-        <View className="flex-1 rounded-2xl" style={{ backgroundColor: '#FFFFFF', padding: moderateScale(16), borderWidth: 2, borderColor: '#E5E5E5' }}>
-          <Text className="font-black text-center" style={{ color: '#2EFECC', fontSize: getFontSize(28), marginBottom: moderateScale(4) }}>
-            {referralData.stats.total_signups}
-          </Text>
-          <Text className="font-bold uppercase text-center tracking-wide" style={{ color: '#666666', fontSize: getFontSize(11) }}>
-            Referrals
-          </Text>
-        </View>
-
-        <View className="flex-1 rounded-2xl" style={{ backgroundColor: '#FFFFFF', padding: moderateScale(16), borderWidth: 2, borderColor: '#E5E5E5' }}>
-          <Text className="font-black text-center" style={{ color: '#FDFD74', fontSize: getFontSize(28), marginBottom: moderateScale(4) }}>
-            {(referralData.stats.pending_rewards / 1024).toFixed(1)}
-          </Text>
-          <Text className="font-bold uppercase text-center tracking-wide" style={{ color: '#666666', fontSize: getFontSize(11) }}>
-            GB Pending
-          </Text>
-        </View>
-
-        <View className="flex-1 rounded-2xl" style={{ backgroundColor: '#FFFFFF', padding: moderateScale(16), borderWidth: 2, borderColor: '#E5E5E5' }}>
-          <Text className="font-black text-center" style={{ color: '#1A1A1A', fontSize: getFontSize(28), marginBottom: moderateScale(4) }}>
-            {(referralData.stats.earned_rewards / 1024).toFixed(1)}
-          </Text>
-          <Text className="font-bold uppercase text-center tracking-wide" style={{ color: '#666666', fontSize: getFontSize(11) }}>
-            GB Earned
-          </Text>
-        </View>
-      </View>
-
-      {/* Referee Bonus - subtle inline tag when pending reward displays as >= 0.1GB (0.05 rounds to 0.1) */}
-      {((referralData.stats.referee_pending_rewards ?? 0) / 1024) >= 0.05 && (
-        <View className="flex-row items-center justify-center" style={{ marginBottom: moderateScale(12) }}>
-          <View className="flex-row items-center rounded-full" style={{ backgroundColor: '#E0FEF7', paddingVertical: 6, paddingHorizontal: 12 }}>
-            <Ionicons name="gift-outline" size={14} color="#2EFECC" />
-            <Text style={{ color: '#1A1A1A', fontSize: getFontSize(11), marginLeft: 6, fontWeight: '600' }}>
-              +{((referralData.stats.referee_pending_rewards ?? 0) / 1024).toFixed(1)}GB bonus pending
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {/* Claim Rewards Notice - Always show */}
-      <TouchableOpacity
-        className="rounded-2xl flex-row items-center"
-        style={{
-          backgroundColor: '#FEF3C7',
-          padding: moderateScale(16),
-          marginBottom: moderateScale(16),
-          borderWidth: 2,
-          borderColor: '#FBBF24',
-        }}
-        onPress={() => {
-          const url = 'https://getlumbus.com';
-          Linking.openURL(url).catch((err) =>
-            logger.error('Error opening website:', err)
-          );
-        }}
-        activeOpacity={0.8}
-      >
-        <View style={{
-          backgroundColor: '#FFFFFF',
-          padding: moderateScale(8),
-          borderRadius: moderateScale(12),
-          marginRight: scale(12)
-        }}>
-          <Ionicons name="gift-outline" size={scale(24)} color="#FBBF24" />
-        </View>
-        <View style={{ flex: 1, paddingRight: scale(8) }}>
-          <Text
-            className="font-black uppercase tracking-wide"
-            style={{
-              color: '#1A1A1A',
-              fontSize: getFontSize(13),
-              marginBottom: moderateScale(4),
-            }}
-          >
-            {referralData.stats.pending_rewards > 0 || referralData.stats.earned_rewards > 0
-              ? 'CLAIM YOUR REWARDS'
-              : 'MANAGE REFERRALS'}
-          </Text>
-          <Text
-            className="font-bold"
-            style={{
-              color: '#666666',
-              fontSize: getFontSize(12),
-              lineHeight: getFontSize(16),
-              flexWrap: 'wrap',
-            }}
-          >
-            Visit getlumbus.com to claim data rewards
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={scale(20)} color="#FBBF24" />
-      </TouchableOpacity>
 
       {/* How it Works */}
       <View className="rounded-2xl" style={{ backgroundColor: '#E0FEF7', padding: moderateScale(20), borderWidth: 2, borderColor: '#2EFECC' }}>

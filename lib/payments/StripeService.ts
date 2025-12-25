@@ -84,7 +84,7 @@ export class StripeService {
         planId: params.planId,
         email: params.email,
         currency: params.currency,
-        amount: params.price, // Send the price in the currency to backend
+        // Note: amount is NOT sent for Stripe - backend calculates from planId
         isTopUp: params.isTopUp || false,
         existingOrderId: params.existingOrderId,
         iccid: params.iccid,
@@ -92,10 +92,25 @@ export class StripeService {
         discountCode: params.discountCode, // Pass discount code
       };
 
-      const { clientSecret, orderId, publishableKey } = await createCheckout(checkoutParams);
+      const checkoutResponse = await createCheckout(checkoutParams);
+      const { clientSecret, orderId, publishableKey, freeOrder } = checkoutResponse;
 
-      if (!clientSecret || !orderId) {
+      if (!orderId) {
         throw new Error('Invalid checkout response from server');
+      }
+
+      // Handle free orders (100% discount) - skip payment sheet entirely
+      if (freeOrder) {
+        logger.log('✅ Free order - no payment required');
+        return {
+          success: true,
+          orderId,
+          transactionId: 'free-order',
+        };
+      }
+
+      if (!clientSecret) {
+        throw new Error('Invalid checkout response from server - missing payment details');
       }
 
       // Check if we need to re-initialize with a test key (for reviewers)

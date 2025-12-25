@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Plan, Order, CheckoutParams, PaymentIntentResponse, TopUpCheckoutParams, TopUpCheckoutResponse, DeleteAccountResponse } from '../types';
+import { Plan, Order, CheckoutParams, PaymentIntentResponse, TopUpCheckoutParams, TopUpCheckoutResponse, DeleteAccountResponse, WalletData, ApplyDataParams, ApplyDataResponse } from '../types';
 import { config } from './config';
 import { logger } from './logger';
 
@@ -1029,5 +1029,66 @@ export async function deleteAccount(confirmText: string): Promise<DeleteAccountR
       throw error;
     }
     throw new Error('Failed to delete account');
+  }
+}
+
+// Wallet / Free Data Rewards API
+export async function fetchWalletData(): Promise<WalletData> {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetchWithTimeout(`${API_URL}/rewards/wallet`, {
+      method: 'GET',
+      headers,
+    }, 15000);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.error || 'Failed to fetch wallet data';
+      logger.error('Wallet fetch error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (error) {
+    logger.error('Error fetching wallet data:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to fetch wallet data');
+  }
+}
+
+export async function applyFreeData(params: ApplyDataParams): Promise<ApplyDataResponse> {
+  try {
+    const headers = await getAuthHeaders();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const response = await fetch(`${API_URL}/rewards/apply-data`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.error || 'Failed to apply free data';
+      logger.error('Apply free data error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again.');
+      }
+      throw error;
+    }
+    throw new Error('Failed to apply free data');
   }
 }
