@@ -19,7 +19,7 @@ import {
   FlagBE, FlagPT, FlagSE, FlagNO, FlagDK, FlagFI, FlagPL, FlagCZ, FlagHU, FlagRO,
   FlagBG, FlagHR, FlagRS, FlagSI, FlagSK, FlagLT, FlagLV, FlagEE, FlagIE, FlagCY,
   FlagLU, FlagMT, FlagIS, FlagAL, FlagBA, FlagMK, FlagME, FlagXK, FlagMD, FlagBY,
-  FlagUA, FlagAD, FlagMC, FlagLI, FlagGI, FlagIM, FlagJE, FlagGG, FlagAX, FlagFO,
+  FlagUA, FlagRU, FlagAD, FlagMC, FlagLI, FlagGI, FlagIM, FlagJE, FlagGG, FlagAX, FlagFO,
   FlagTR, FlagEU
 } from './Europe';
 
@@ -286,9 +286,9 @@ export const FLAG_MAP: Record<string, FlagComponent> = {
   DK: FlagDK, FI: FlagFI, PL: FlagPL, CZ: FlagCZ, HU: FlagHU, RO: FlagRO, BG: FlagBG,
   HR: FlagHR, RS: FlagRS, SI: FlagSI, SK: FlagSK, LT: FlagLT, LV: FlagLV, EE: FlagEE,
   IE: FlagIE, CY: FlagCY, LU: FlagLU, MT: FlagMT, IS: FlagIS, AL: FlagAL, BA: FlagBA,
-  MK: FlagMK, ME: FlagME, XK: FlagXK, MD: FlagMD, BY: FlagBY, UA: FlagUA, AD: FlagAD,
-  MC: FlagMC, LI: FlagLI, GI: FlagGI, IM: FlagIM, JE: FlagJE, GG: FlagGG, AX: FlagAX,
-  FO: FlagFO, TR: FlagTR, EU: FlagEU,
+  MK: FlagMK, ME: FlagME, XK: FlagXK, MD: FlagMD, BY: FlagBY, UA: FlagUA, RU: FlagRU,
+  AD: FlagAD, MC: FlagMC, LI: FlagLI, GI: FlagGI, IM: FlagIM, JE: FlagJE, GG: FlagGG,
+  AX: FlagAX, FO: FlagFO, TR: FlagTR, EU: FlagEU,
 
   // Americas
   US: FlagUS, CA: FlagCA, MX: FlagMX, BR: FlagBR, AR: FlagAR, CL: FlagCL, CO: FlagCO,
@@ -351,7 +351,7 @@ export const COUNTRY_NAME_TO_CODE: Record<string, string> = {
   'Latvia': 'LV', 'Estonia': 'EE', 'Ireland': 'IE', 'Cyprus': 'CY', 'Luxembourg': 'LU',
   'Malta': 'MT', 'Iceland': 'IS', 'Albania': 'AL', 'Bosnia and Herzegovina': 'BA',
   'North Macedonia': 'MK', 'Montenegro': 'ME', 'Kosovo': 'XK', 'Moldova': 'MD', 'Belarus': 'BY',
-  'Ukraine': 'UA', 'Andorra': 'AD', 'Monaco': 'MC', 'Liechtenstein': 'LI', 'Gibraltar': 'GI',
+  'Ukraine': 'UA', 'Russia': 'RU', 'Russian Federation': 'RU', 'Andorra': 'AD', 'Monaco': 'MC', 'Liechtenstein': 'LI', 'Gibraltar': 'GI',
   'Isle of Man': 'IM', 'Jersey': 'JE', 'Guernsey': 'GG', 'Åland Islands': 'AX',
   'Faroe Islands': 'FO', 'Turkey': 'TR', 'European Union': 'EU',
 

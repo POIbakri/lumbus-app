@@ -597,6 +597,20 @@ export function FlagUA({ size = 24 }: FlagProps) {
   );
 }
 
+// Russia
+export function FlagRU({ size = 24 }: FlagProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 512 512">
+      <Defs><ClipPath id="ruClip"><Rect width="512" height="512" rx="64" /></ClipPath></Defs>
+      <G clipPath="url(#ruClip)">
+        <Rect fill="#FFFFFF" width="512" height="171" />
+        <Rect fill="#0039A6" y="171" width="512" height="170" />
+        <Rect fill="#D52B1E" y="341" width="512" height="171" />
+      </G>
+    </Svg>
+  );
+}
+
 // Andorra
 export function FlagAD({ size = 24 }: FlagProps) {
   return (

@@ -36,14 +36,43 @@ const DIM = {
 };
 
 let logoIcon = null;
+let logoFull = null;
+let appleIcon = null;
+let playIcon = null;
 
 async function loadAssets() {
   try {
     const iconBuffer = await fs.readFile(path.join(ROOT, 'assets', 'iconlogotrans.png'));
     logoIcon = `data:image/png;base64,${iconBuffer.toString('base64')}`;
-    console.log('   ✓ Logo loaded');
+    console.log('   ✓ Icon logo loaded');
   } catch (e) {
-    console.log('   ○ Logo not found');
+    console.log('   ○ Icon logo not found');
+  }
+  try {
+    const logoBuffer = await fs.readFile(path.join(ROOT, 'assets', 'logotrans.png'));
+    logoFull = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+    console.log('   ✓ Full logo loaded');
+  } catch (e) {
+    console.log('   ○ Full logo not found');
+  }
+
+  // Fetch Apple and Google Play icons from Simple Icons CDN
+  try {
+    const appleResponse = await fetch('https://cdn.simpleicons.org/apple/white');
+    const appleSvg = await appleResponse.text();
+    appleIcon = `data:image/svg+xml;base64,${Buffer.from(appleSvg).toString('base64')}`;
+    console.log('   ✓ Apple icon loaded');
+  } catch (e) {
+    console.log('   ○ Apple icon not found');
+  }
+
+  try {
+    const playResponse = await fetch('https://cdn.simpleicons.org/googleplay/white');
+    const playSvg = await playResponse.text();
+    playIcon = `data:image/svg+xml;base64,${Buffer.from(playSvg).toString('base64')}`;
+    console.log('   ✓ Google Play icon loaded');
+  } catch (e) {
+    console.log('   ○ Google Play icon not found');
   }
 }
 
@@ -88,7 +117,7 @@ const img = (src, style = {}) => src ? ({
 }) : null;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// POST 1: LOGO - Dark background so turquoise logo pops
+// POST 1: LOGO - Yellow background with ICON logo
 // ═══════════════════════════════════════════════════════════════════════════
 
 function Post1({ format = 'portrait' }) {
@@ -97,51 +126,17 @@ function Post1({ format = 'portrait' }) {
   return el('div', {
     width: '100%',
     height: '100%',
-    backgroundColor: c.dark,
+    backgroundColor: c.yellow,
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   }, [
-    // Color accent bars at top
-    el('div', {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 16,
-      flexDirection: 'row',
-    }, [
-      el('div', { flex: 1, backgroundColor: c.turquoise }),
-      el('div', { flex: 1, backgroundColor: c.cyan }),
-      el('div', { flex: 1, backgroundColor: c.yellow }),
-    ]),
-    // Logo - large and centered
+    // Icon logo - large and centered (no text, just logo)
     logoIcon ? img(logoIcon, {
-      width: isStory ? 320 : 280,
-      height: isStory ? 320 : 280,
-      marginBottom: 40,
+      width: isStory ? 450 : 400,
+      height: isStory ? 450 : 400,
     }) : null,
-    // Brand name
-    txt('LUMBUS', {
-      fontSize: isStory ? 72 : 64,
-      fontWeight: 900,
-      color: c.white,
-      letterSpacing: 8,
-    }),
-    // Color accent bars at bottom
-    el('div', {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: 16,
-      flexDirection: 'row',
-    }, [
-      el('div', { flex: 1, backgroundColor: c.turquoise }),
-      el('div', { flex: 1, backgroundColor: c.cyan }),
-      el('div', { flex: 1, backgroundColor: c.yellow }),
-    ]),
     // 1/3
     txt('1/3', {
       position: 'absolute',
@@ -149,8 +144,8 @@ function Post1({ format = 'portrait' }) {
       right: 50,
       fontSize: 14,
       fontWeight: 900,
-      color: c.white,
-      opacity: 0.4,
+      color: c.black,
+      opacity: 0.3,
     }),
   ]);
 }
@@ -177,12 +172,8 @@ function Post2({ format = 'portrait' }) {
       position: 'absolute',
       top: isStory ? 60 : 50,
       left: isStory ? 60 : 50,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
     }, [
-      logoIcon ? img(logoIcon, { width: 40, height: 40 }) : null,
-      txt('LUMBUS', { fontSize: 20, fontWeight: 900, color: c.black, letterSpacing: 3 }),
+      logoFull ? img(logoFull, { height: 36, objectFit: 'contain' }) : null,
     ]),
     // Main text - stacked
     el('div', {
@@ -225,7 +216,7 @@ function Post2({ format = 'portrait' }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// POST 3: CTA - Yellow background with all the info
+// POST 3: CTA - Turquoise background with all the info
 // ═══════════════════════════════════════════════════════════════════════════
 
 function Post3({ format = 'portrait' }) {
@@ -234,39 +225,40 @@ function Post3({ format = 'portrait' }) {
   return el('div', {
     width: '100%',
     height: '100%',
-    backgroundColor: c.yellow,
+    backgroundColor: c.turquoise,
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     padding: isStory ? 60 : 50,
     position: 'relative',
   }, [
-    // Logo
+    // Icon logo (visible on turquoise)
     logoIcon ? img(logoIcon, {
       width: isStory ? 120 : 100,
       height: isStory ? 120 : 100,
       marginBottom: 24,
     }) : null,
-    // Brand
+    // Brand name
     txt('LUMBUS', {
-      fontSize: isStory ? 80 : 68,
+      fontSize: isStory ? 64 : 56,
       fontWeight: 900,
       color: c.black,
       letterSpacing: 4,
+      marginBottom: 8,
     }),
     txt('eSIM FOR TRAVELERS', {
-      fontSize: isStory ? 18 : 16,
+      fontSize: isStory ? 16 : 14,
       fontWeight: 700,
       color: c.black,
       opacity: 0.5,
       letterSpacing: 4,
-      marginBottom: isStory ? 60 : 48,
+      marginBottom: isStory ? 48 : 40,
     }),
-    // Stats row - FIXED: 150+ countries
+    // Stats row - 150+ countries
     el('div', {
       flexDirection: 'row',
       gap: isStory ? 48 : 36,
-      marginBottom: isStory ? 60 : 48,
+      marginBottom: isStory ? 48 : 40,
     }, [
       el('div', { alignItems: 'center' }, [
         txt('150+', { fontSize: isStory ? 52 : 44, fontWeight: 900, color: c.black }),
@@ -274,26 +266,55 @@ function Post3({ format = 'portrait' }) {
       ]),
       el('div', { alignItems: 'center' }, [
         txt('$1.99', { fontSize: isStory ? 52 : 44, fontWeight: 900, color: c.black }),
-        txt('Starting', { fontSize: 14, fontWeight: 700, color: c.black, opacity: 0.5 }),
+        txt('From', { fontSize: 14, fontWeight: 700, color: c.black, opacity: 0.5 }),
       ]),
       el('div', { alignItems: 'center' }, [
         txt('30s', { fontSize: isStory ? 52 : 44, fontWeight: 900, color: c.black }),
         txt('Setup', { fontSize: 14, fontWeight: 700, color: c.black, opacity: 0.5 }),
       ]),
     ]),
-    // CTA Button
+    // Download Now text
+    txt('Download Now', {
+      fontSize: isStory ? 28 : 24,
+      fontWeight: 900,
+      color: c.black,
+      marginBottom: 20,
+    }),
+    // App Store Badges
     el('div', {
-      padding: '22px 64px',
-      backgroundColor: c.black,
-      borderRadius: 100,
-    }, txt('DOWNLOAD FREE', { fontSize: 20, fontWeight: 900, color: c.white })),
+      flexDirection: 'row',
+      gap: 20,
+    }, [
+      // Apple App Store Badge
+      el('div', {
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '18px 32px',
+        backgroundColor: c.black,
+        borderRadius: 14,
+      }, [
+        txt('Download on the', { fontSize: 12, fontWeight: 500, color: c.white, opacity: 0.7 }),
+        txt('App Store', { fontSize: 22, fontWeight: 900, color: c.white, marginTop: 2 }),
+      ]),
+      // Google Play Badge
+      el('div', {
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '18px 32px',
+        backgroundColor: c.black,
+        borderRadius: 14,
+      }, [
+        txt('GET IT ON', { fontSize: 12, fontWeight: 500, color: c.white, opacity: 0.7 }),
+        txt('Google Play', { fontSize: 22, fontWeight: 900, color: c.white, marginTop: 2 }),
+      ]),
+    ]),
     // URL
     txt('getlumbus.com', {
       fontSize: 16,
       fontWeight: 700,
       color: c.black,
       opacity: 0.4,
-      marginTop: 20,
+      marginTop: 24,
     }),
     // 3/3
     txt('3/3', {
@@ -303,7 +324,7 @@ function Post3({ format = 'portrait' }) {
       fontSize: 14,
       fontWeight: 900,
       color: c.black,
-      opacity: 0.4,
+      opacity: 0.3,
     }),
   ]);
 }
@@ -331,7 +352,7 @@ async function main() {
   console.log('  ╔═══════════════════════════════════════════════════════════════╗');
   console.log('  ║                                                               ║');
   console.log('  ║   LUMBUS LAUNCH V4 - FIXED & IMPROVED                         ║');
-  console.log('  ║   Dark → Cyan → Yellow                                        ║');
+  console.log('  ║   Yellow → Cyan → Turquoise                                   ║');
   console.log('  ║                                                               ║');
   console.log('  ╚═══════════════════════════════════════════════════════════════╝');
   console.log('\n');
@@ -363,9 +384,9 @@ async function main() {
   console.log('  ╔═══════════════════════════════════════════════════════════════╗');
   console.log('  ║   LAUNCH V4 COMPLETE!                                         ║');
   console.log('  ║                                                               ║');
-  console.log('  ║   Post 1: Dark bg + Logo (turquoise pops)                     ║');
+  console.log('  ║   Post 1: Yellow bg + Full Logo                                ║');
   console.log('  ║   Post 2: Cyan bg + DATA WITHOUT BORDERS                      ║');
-  console.log('  ║   Post 3: Yellow bg + Stats + CTA                             ║');
+  console.log('  ║   Post 3: Turquoise bg + Stats + CTA                          ║');
   console.log('  ║                                                               ║');
   console.log('  ║   Output: marketing/ultimate/output/launch-*.png              ║');
   console.log('  ╚═══════════════════════════════════════════════════════════════╝');
