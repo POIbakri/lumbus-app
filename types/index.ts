@@ -8,6 +8,7 @@ export interface Plan {
   retail_price: number;
   currency: string;
   is_active: boolean;
+  is_reloadable?: boolean; // Daily unlimited plans (1GB/Day) don't support top-ups
   created_at: string;
   updated_at: string;
   // Client-side computed fields (not in database)
@@ -44,6 +45,7 @@ export interface Order {
   last_usage_update?: string | null;
   time_remaining?: TimeRemaining; // Pre-calculated time remaining from API
   is_topup?: boolean; // Whether this order is a top-up (from backend)
+  is_reloadable?: boolean; // Whether plan supports top-ups (daily unlimited plans don't)
 }
 
 export interface User {
@@ -143,6 +145,7 @@ export interface WalletActiveEsim {
   created_at: string;
   expires_at: string | null;
   region_code: string | null;
+  is_reloadable: boolean; // Daily unlimited plans (1GB/Day) don't support top-ups
 }
 
 export interface ApplyDataParams {

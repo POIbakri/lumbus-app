@@ -71,6 +71,18 @@ export default function FreeDataWallet() {
     return walletData.active_esims.find(e => e.id === selectedEsimId) || null;
   }, [walletData?.active_esims, selectedEsimId]);
 
+  // Filter to only reloadable eSIMs (daily unlimited plans don't support top-ups)
+  const reloadableEsims = useMemo(() => {
+    if (!walletData?.active_esims) return [];
+    return walletData.active_esims.filter(e => e.is_reloadable !== false);
+  }, [walletData?.active_esims]);
+
+  // Check if there are any non-reloadable eSIMs
+  const hasNonReloadableEsims = useMemo(() => {
+    if (!walletData?.active_esims) return false;
+    return walletData.active_esims.some(e => e.is_reloadable === false);
+  }, [walletData?.active_esims]);
+
   // Compute available amount options
   const amountOptions = useMemo(() => {
     if (!walletData) return [];
@@ -273,7 +285,35 @@ export default function FreeDataWallet() {
               Purchase an eSIM to use your free data
             </Text>
           </View>
-        ) : walletData.balance_mb >= 1024 && walletData.active_esims.length > 0 ? (
+        ) : reloadableEsims.length === 0 && hasNonReloadableEsims ? (
+          // All eSIMs are non-reloadable (daily unlimited plans)
+          <View style={{
+            backgroundColor: '#FEF3C7',
+            padding: moderateScale(16),
+            borderRadius: getBorderRadius(16),
+            borderWidth: 2,
+            borderColor: '#FBBF24',
+          }}>
+            <Text style={{
+              color: '#92400E',
+              fontSize: getFontSize(13),
+              fontWeight: '700',
+              textAlign: 'center',
+              marginBottom: moderateScale(8),
+            }}>
+              Your active plans don't support top-ups
+            </Text>
+            <Text style={{
+              color: '#92400E',
+              fontSize: getFontSize(12),
+              fontWeight: '600',
+              textAlign: 'center',
+              opacity: 0.8,
+            }}>
+              Daily unlimited plans can't be reloaded. Purchase a new plan to use your rewards.
+            </Text>
+          </View>
+        ) : walletData.balance_mb >= 1024 && reloadableEsims.length > 0 ? (
           <>
             {/* eSIM Selector */}
             <View style={{ marginBottom: moderateScale(12) }}>
@@ -437,7 +477,7 @@ export default function FreeDataWallet() {
               </Text>
             </View>
             <FlatList
-              data={walletData?.active_esims || []}
+              data={reloadableEsims}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -485,7 +525,7 @@ export default function FreeDataWallet() {
                     fontWeight: '700',
                     textAlign: 'center',
                   }}>
-                    No active eSIMs available
+                    No eligible eSIMs available
                   </Text>
                 </View>
               }

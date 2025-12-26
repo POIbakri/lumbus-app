@@ -124,7 +124,7 @@ export default function RegionPlans() {
           </View>
         </View>
 
-        <View className="flex-row items-center gap-6">
+        <View className="flex-row items-center flex-wrap" style={{gap: 8}}>
           <View className="flex-row items-center px-4 py-2 rounded-full" style={{backgroundColor: '#E0FEF7'}}>
             <Ionicons name="cellular" size={18} color="#2EFECC" />
             <Text className="ml-2 font-black text-sm uppercase" style={{color: '#1A1A1A'}}>
@@ -137,6 +137,14 @@ export default function RegionPlans() {
               {plan.validity_days} days
             </Text>
           </View>
+          {plan.is_reloadable === false && (
+            <View className="flex-row items-center px-3 py-2 rounded-full" style={{backgroundColor: '#FEE2E2'}}>
+              <Ionicons name="close-circle" size={14} color="#DC2626" />
+              <Text className="ml-1 font-bold text-xs uppercase" style={{color: '#DC2626'}}>
+                No Top-ups
+              </Text>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );

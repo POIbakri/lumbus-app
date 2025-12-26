@@ -590,6 +590,17 @@ export default function PlanDetail() {
                   {plan.region_code}
                 </Text>
               </View>
+              {plan.is_reloadable === false && (
+                <View className="flex-row justify-between items-center" style={{marginTop: moderateScale(12), paddingTop: moderateScale(12), borderTopWidth: 1, borderColor: '#E5E5E5'}}>
+                  <Text className="font-bold" style={{color: '#666666', fontSize: getFontSize(14)}}>Top-ups</Text>
+                  <View className="flex-row items-center px-3 py-1 rounded-full" style={{backgroundColor: '#FEE2E2'}}>
+                    <Ionicons name="close-circle" size={14} color="#DC2626" />
+                    <Text className="ml-1 font-bold text-xs uppercase" style={{color: '#DC2626'}}>
+                      Not Available
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           </View>
 

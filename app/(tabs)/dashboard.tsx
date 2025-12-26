@@ -508,12 +508,14 @@ export default function Dashboard() {
 
   // Get eSIMs eligible for top-up - memoized
   // Valid states: New (completed with iccid), In Use (active), Depleted (but not time-expired)
-  // Excludes: Expired (validity ended), top-up orders
+  // Excludes: Expired (validity ended), top-up orders, non-reloadable plans (daily unlimited)
   const activeEsimsWithIccid = useMemo(() => {
     if (!orders) return [];
     return orders.filter(order => {
       // Exclude top-up orders (they're not separate eSIMs)
       if (order.is_topup === true) return false;
+      // Exclude non-reloadable plans (daily unlimited plans don't support top-ups)
+      if (order.is_reloadable === false) return false;
       // Must have an ICCID to top-up
       if (!order.iccid) return false;
       // Check if validity period has ended (time-expired, not data-depleted)

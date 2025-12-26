@@ -530,8 +530,8 @@ export default function EsimDetails() {
           <Ionicons name="chevron-forward" size={scale(20)} color="#1A1A1A" />
         </TouchableOpacity>
 
-        {/* Top Up Button - for active eSIMs */}
-        {!expired && order.iccid && (
+        {/* Top Up Button - for active reloadable eSIMs */}
+        {!expired && order.iccid && order.is_reloadable !== false && (
           <TouchableOpacity
             className="rounded-2xl"
             style={{backgroundColor: '#FDFD74', borderWidth: 2, borderColor: '#E5E5E5', padding: moderateScale(20), marginBottom: moderateScale(24), shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.08, shadowRadius: 8}}
@@ -548,6 +548,28 @@ export default function EsimDetails() {
                 </Text>
               </View>
               <Ionicons name="add-circle" size={scale(32)} color="#1A1A1A" />
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Non-reloadable Plan Notice - for daily unlimited plans */}
+        {!expired && order.iccid && order.is_reloadable === false && (
+          <TouchableOpacity
+            className="rounded-2xl"
+            style={{backgroundColor: '#FEF3C7', borderWidth: 2, borderColor: '#FBBF24', padding: moderateScale(20), marginBottom: moderateScale(24)}}
+            onPress={() => router.push(`/region/${encodeURIComponent(region)}`)}
+            activeOpacity={0.8}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="font-black uppercase tracking-tight" style={{color: '#92400E', fontSize: getFontSize(16), marginBottom: moderateScale(4)}}>
+                  Top-ups not available
+                </Text>
+                <Text className="font-bold" style={{color: '#92400E', fontSize: getFontSize(13), opacity: 0.8}}>
+                  Daily unlimited plans can't be reloaded. Tap to buy a new plan.
+                </Text>
+              </View>
+              <Ionicons name="bag-add-outline" size={scale(28)} color="#92400E" />
             </View>
           </TouchableOpacity>
         )}

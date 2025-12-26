@@ -18,6 +18,7 @@ export default function InstallEsim() {
   const [showManual, setShowManual] = useState(false);
   const [pollingStatus, setPollingStatus] = useState<string>('');
   const [isPolling, setIsPolling] = useState(false);
+  const [russiaAlertShown, setRussiaAlertShown] = useState(false);
   const { moderateScale, adaptiveScale, isTablet } = useResponsive();
 
   const { data: order, isLoading, refetch } = useQuery({
@@ -50,6 +51,20 @@ export default function InstallEsim() {
       router.replace(`/esim-details/${orderId}`);
     }
   }, [order, orderId, fromPurchase]);
+
+  // Show Russia eSIM activation alert
+  useEffect(() => {
+    if (!order || russiaAlertShown) return;
+
+    if (order.plan?.region_code === 'RU') {
+      setRussiaAlertShown(true);
+      Alert.alert(
+        '🇷🇺 Russia eSIM - Extra Step Required',
+        'After installing your eSIM, you\'ll receive an SMS from MTS with a registration link. Complete the quick registration to activate your data.\n\nScroll down for detailed instructions.',
+        [{ text: 'Got it', style: 'default' }]
+      );
+    }
+  }, [order, russiaAlertShown]);
 
   // Poll for order completion if needed
   useEffect(() => {
@@ -416,6 +431,106 @@ export default function InstallEsim() {
             {getQRInstructions()}
           </Text>
         </View>
+
+        {/* Russia eSIM Special Activation Notice */}
+        {order.plan?.region_code === 'RU' && (
+          <View className="rounded-3xl mb-6" style={{backgroundColor: '#FEE2E2', borderWidth: 2, borderColor: '#EF4444', padding: 0, overflow: 'hidden'}}>
+            {/* Header */}
+            <View className="flex-row items-center" style={{backgroundColor: '#EF4444', paddingVertical: moderateScale(14), paddingHorizontal: moderateScale(20)}}>
+              <Ionicons name="warning" size={getIconSize(24)} color="#FFFFFF" />
+              <Text className="flex-1 font-black uppercase tracking-wide" style={{color: '#FFFFFF', fontSize: getFontSize(14), marginLeft: moderateScale(10)}}>
+                Important: Russia eSIM Activation
+              </Text>
+              <Text style={{fontSize: getFontSize(20)}}>🇷🇺</Text>
+            </View>
+
+            {/* Content */}
+            <View style={{padding: moderateScale(20)}}>
+              <Text className="font-bold" style={{color: '#991B1B', fontSize: getFontSize(14), lineHeight: getFontSize(14) * 1.5, marginBottom: moderateScale(16)}}>
+                Russia eSIMs use the MTS network and require a quick registration after installation:
+              </Text>
+
+              {/* Step 1 */}
+              <View className="flex-row items-start" style={{marginBottom: moderateScale(14)}}>
+                <View className="rounded-full items-center justify-center" style={{backgroundColor: '#EF4444', width: adaptiveScale(28), height: adaptiveScale(28), marginRight: moderateScale(12)}}>
+                  <Text className="font-black" style={{color: '#FFFFFF', fontSize: getFontSize(14)}}>1</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
+                    Complete eSIM installation above
+                  </Text>
+                  <Text className="font-bold" style={{color: '#7F1D1D', fontSize: getFontSize(12), marginTop: moderateScale(2)}}>
+                    Install your eSIM using the button or QR code
+                  </Text>
+                </View>
+              </View>
+
+              {/* Step 2 */}
+              <View className="flex-row items-start" style={{marginBottom: moderateScale(14)}}>
+                <View className="rounded-full items-center justify-center" style={{backgroundColor: '#EF4444', width: adaptiveScale(28), height: adaptiveScale(28), marginRight: moderateScale(12)}}>
+                  <Text className="font-black" style={{color: '#FFFFFF', fontSize: getFontSize(14)}}>2</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
+                    Wait for the registration SMS
+                  </Text>
+                  <Text className="font-bold" style={{color: '#7F1D1D', fontSize: getFontSize(12), marginTop: moderateScale(2)}}>
+                    You'll receive an SMS from MTS with a registration link
+                  </Text>
+                </View>
+              </View>
+
+              {/* Step 3 */}
+              <View className="flex-row items-start" style={{marginBottom: moderateScale(16)}}>
+                <View className="rounded-full items-center justify-center" style={{backgroundColor: '#EF4444', width: adaptiveScale(28), height: adaptiveScale(28), marginRight: moderateScale(12)}}>
+                  <Text className="font-black" style={{color: '#FFFFFF', fontSize: getFontSize(14)}}>3</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(14)}}>
+                    Open the link and fill out the form
+                  </Text>
+                  <Text className="font-bold" style={{color: '#7F1D1D', fontSize: getFontSize(12), marginTop: moderateScale(2)}}>
+                    Complete the short registration form in the link
+                  </Text>
+                </View>
+              </View>
+
+              {/* Good news box */}
+              <View className="rounded-2xl" style={{backgroundColor: '#D1FAE5', borderWidth: 1, borderColor: '#10B981', padding: moderateScale(14), marginBottom: moderateScale(16)}}>
+                <View className="flex-row items-center" style={{marginBottom: moderateScale(6)}}>
+                  <Ionicons name="checkmark-circle" size={getIconSize(18)} color="#059669" />
+                  <Text className="font-black" style={{color: '#059669', fontSize: getFontSize(13), marginLeft: moderateScale(8)}}>
+                    Good news!
+                  </Text>
+                </View>
+                <Text className="font-bold" style={{color: '#065F46', fontSize: getFontSize(12), lineHeight: getFontSize(12) * 1.5}}>
+                  Once registered, you're all set! No need to wait 24 hours - we've tested this and it works immediately.
+                </Text>
+              </View>
+
+              {/* Troubleshooting box */}
+              <View className="rounded-2xl" style={{backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#F59E0B', padding: moderateScale(14)}}>
+                <View className="flex-row items-center" style={{marginBottom: moderateScale(8)}}>
+                  <Ionicons name="phone-portrait-outline" size={getIconSize(18)} color="#D97706" />
+                  <Text className="font-black" style={{color: '#D97706', fontSize: getFontSize(13), marginLeft: moderateScale(8)}}>
+                    No network bars after registering?
+                  </Text>
+                </View>
+                <View style={{marginLeft: moderateScale(4)}}>
+                  <Text className="font-bold" style={{color: '#92400E', fontSize: getFontSize(12), marginBottom: moderateScale(4)}}>
+                    1. Turn ON Airplane mode
+                  </Text>
+                  <Text className="font-bold" style={{color: '#92400E', fontSize: getFontSize(12), marginBottom: moderateScale(4)}}>
+                    2. Wait a few seconds
+                  </Text>
+                  <Text className="font-bold" style={{color: '#92400E', fontSize: getFontSize(12)}}>
+                    3. Turn OFF Airplane mode
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Step 2 Card - Enhanced with clear sub-steps */}
         <View className="rounded-3xl mb-6" style={{backgroundColor: '#F5F5F5', padding: 24}}>
