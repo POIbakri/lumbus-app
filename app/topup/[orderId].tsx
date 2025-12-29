@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchOrderById, fetchPlans } from '../../lib/api';
+import { fetchOrderById, fetchTopUpPackages, fetchPlans, TopUpPackage as ApiTopUpPackage } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useLocationCurrency } from '../../hooks/useLocationCurrency';
 import { useResponsive, getFontSize, getHorizontalPadding } from '../../hooks/useResponsive';
@@ -54,39 +54,65 @@ export default function TopUpScreen() {
     gcTime: 600000,
   });
 
-  // Fetch plans - same query as Browse, cached from splash
-  const { data: plans, isLoading: plansLoading } = useQuery({
-    queryKey: ['plans'],
-    queryFn: fetchPlans,
-    staleTime: 600000,
-    gcTime: 1800000,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+  // Fetch top-up packages from dedicated API endpoint
+  // This returns pre-filtered, curated packages for the eSIM's region
+  const { data: topUpResponse, isLoading: packagesLoading } = useQuery({
+    queryKey: ['topUpPackages', orderId],
+    queryFn: () => fetchTopUpPackages(orderId!),
+    enabled: !!orderId,
+    staleTime: 300000,
+    gcTime: 600000,
   });
 
-  // Filter plans by region - case-insensitive to handle inconsistent backend data
-  const packages: TopUpPackage[] = React.useMemo(() => {
-    if (!plans || !order?.plan?.region_code) return [];
+  // Fallback: Fetch all plans if API fails for ANY reason (network error, HTTP error, timeout, invalid data)
+  const needsFallback = topUpResponse && !topUpResponse.success;
+  const { data: allPlans, isLoading: fallbackLoading } = useQuery({
+    queryKey: ['plans'],
+    queryFn: fetchPlans,
+    enabled: needsFallback,
+    staleTime: 600000,
+    gcTime: 1800000,
+  });
 
-    const regionCode = order.plan.region_code.toLowerCase().trim();
-    return plans
-      .filter(plan => {
-        const planRegion = plan.region_code?.toLowerCase().trim() || '';
-        // Match exact or if one contains the other (e.g., 'US' vs 'USA')
-        return (planRegion === regionCode ||
-                planRegion.includes(regionCode) ||
-                regionCode.includes(planRegion)) &&
-               plan.is_active !== false;
-      })
-      .sort((a, b) => a.data_gb - b.data_gb)
-      .map(plan => ({
-        id: plan.id,
-        name: plan.name,
-        dataGb: plan.data_gb,
-        validityDays: plan.validity_days,
-        price: plan.retail_price,
+  // Use API packages or fallback to filtered local plans
+  const packages: TopUpPackage[] = React.useMemo(() => {
+    // Primary: Use dedicated API endpoint
+    if (topUpResponse?.success && topUpResponse.packages.length > 0) {
+      return topUpResponse.packages.map(pkg => ({
+        id: pkg.id,
+        name: pkg.name,
+        dataGb: pkg.dataGb,
+        validityDays: pkg.validityDays,
+        price: pkg.price,
       }));
-  }, [plans, order?.plan?.region_code]);
+    }
+
+    // Fallback: Filter local plans if API fails (network error, HTTP error, timeout, etc.)
+    if (needsFallback && allPlans && order?.plan?.region_code) {
+      const regionCode = order.plan.region_code.toLowerCase().trim();
+      return allPlans
+        .filter(plan => {
+          const planRegion = plan.region_code?.toLowerCase().trim() || '';
+          return (planRegion === regionCode ||
+                  planRegion.includes(regionCode) ||
+                  regionCode.includes(planRegion)) &&
+                 plan.is_active !== false &&
+                 plan.is_reloadable !== false;
+        })
+        .sort((a, b) => a.data_gb - b.data_gb)
+        .map(plan => ({
+          id: plan.id,
+          name: plan.name,
+          dataGb: plan.data_gb,
+          validityDays: plan.validity_days,
+          price: plan.retail_price,
+        }));
+    }
+
+    return [];
+  }, [topUpResponse, needsFallback, allPlans, order?.plan?.region_code]);
+
+  const plansLoading = packagesLoading || (needsFallback && fallbackLoading);
 
   // Convert prices - capture packages at start to avoid race condition
   const convertPrices = React.useCallback(async () => {
@@ -353,11 +379,19 @@ export default function TopUpScreen() {
               </Text>
             </View>
             <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center" style={{gap: 8}}>
+              <View className="flex-row items-center flex-1" style={{gap: 8, marginRight: moderateScale(12)}}>
                 {getFlag(regionCode, isSmallDevice ? 20 : 24)}
-                <Text className="font-black" style={{color: '#1A1A1A', fontSize: getFontSize(16)}}>{region}</Text>
+                <Text
+                  className="font-black"
+                  style={{color: '#1A1A1A', fontSize: getFontSize(16), flex: 1}}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.7}
+                >
+                  {region}
+                </Text>
               </View>
-              <View className="flex-row items-center" style={{gap: moderateScale(8)}}>
+              <View className="flex-row items-center" style={{gap: moderateScale(8), flexShrink: 0}}>
                 <View className="px-3 py-1 rounded-full" style={{backgroundColor: '#FFFFFF'}}>
                   <Text className="font-bold" style={{color: '#1A1A1A', fontSize: getFontSize(12)}}>
                     {currentDataDisplay}

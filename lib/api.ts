@@ -86,6 +86,7 @@ export async function fetchPlans(): Promise<Plan[]> {
       const { data, error: supabaseError } = await supabase
         .from('plans')
         .select('*')
+        .eq('is_active', true)
         .order('retail_price', { ascending: true })
         .range(from, from + limit - 1);
 

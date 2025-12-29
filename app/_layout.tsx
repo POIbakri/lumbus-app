@@ -14,6 +14,7 @@ import { logger } from '../lib/logger';
 import { ReferralProvider, useReferral } from '../contexts/ReferralContext';
 import { DeepLinkHandler } from './components/DeepLinkHandler';
 import { fetchUserOrders } from '../lib/api';
+import { trackFirstOpen } from '../lib/analytics';
 import "../global.css";
 
 const queryClient = new QueryClient({
@@ -43,6 +44,11 @@ function AppContent() {
 
   // Stripe configuration for both iOS and Android
   const stripePublishableKey = config.stripePublishableKey || '';
+
+  // Track first app open for analytics
+  useEffect(() => {
+    trackFirstOpen();
+  }, []);
 
   // Clear referral code on app startup if user has already made a purchase
   useEffect(() => {

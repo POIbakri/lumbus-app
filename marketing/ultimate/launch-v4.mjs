@@ -287,25 +287,33 @@ function Post3({ format = 'portrait' }) {
     }, [
       // Apple App Store Badge
       el('div', {
-        flexDirection: 'column',
+        flexDirection: 'row',
         alignItems: 'center',
-        padding: '18px 32px',
+        padding: '16px 28px',
         backgroundColor: c.black,
-        borderRadius: 14,
+        borderRadius: 12,
+        gap: 14,
       }, [
-        txt('Download on the', { fontSize: 12, fontWeight: 500, color: c.white, opacity: 0.7 }),
-        txt('App Store', { fontSize: 22, fontWeight: 900, color: c.white, marginTop: 2 }),
+        appleIcon ? img(appleIcon, { width: 32, height: 32 }) : null,
+        el('div', { flexDirection: 'column', alignItems: 'flex-start' }, [
+          txt('Download on the', { fontSize: 11, fontWeight: 400, color: c.white, opacity: 0.8 }),
+          txt('App Store', { fontSize: 20, fontWeight: 700, color: c.white }),
+        ]),
       ]),
       // Google Play Badge
       el('div', {
-        flexDirection: 'column',
+        flexDirection: 'row',
         alignItems: 'center',
-        padding: '18px 32px',
+        padding: '16px 28px',
         backgroundColor: c.black,
-        borderRadius: 14,
+        borderRadius: 12,
+        gap: 14,
       }, [
-        txt('GET IT ON', { fontSize: 12, fontWeight: 500, color: c.white, opacity: 0.7 }),
-        txt('Google Play', { fontSize: 22, fontWeight: 900, color: c.white, marginTop: 2 }),
+        playIcon ? img(playIcon, { width: 28, height: 28 }) : null,
+        el('div', { flexDirection: 'column', alignItems: 'flex-start' }, [
+          txt('GET IT ON', { fontSize: 11, fontWeight: 400, color: c.white, opacity: 0.8 }),
+          txt('Google Play', { fontSize: 20, fontWeight: 700, color: c.white }),
+        ]),
       ]),
     ]),
     // URL
