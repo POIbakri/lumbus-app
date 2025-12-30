@@ -353,7 +353,7 @@ export default function Account() {
                 color: '#666666',
                 fontSize: getFontSize(12),
               }}>
-                Lumbus v1.0.22
+                Lumbus v1.0.23
               </Text>
             </View>
           </View>

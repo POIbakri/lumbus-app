@@ -1,8 +1,7 @@
 /**
- * LUMBUS REFERRAL CAMPAIGN
+ * LUMBUS GIVEAWAY
  *
- * Refer a friend - Both get 1GB FREE + Friend gets 10% OFF
- * Creative, fun, click-worthy design!
+ * WIN FREE DATA FOR A YEAR - 20GB/month
  */
 
 import satori from 'satori';
@@ -21,7 +20,6 @@ const c = {
   cyan: '#87EFFF',
   white: '#FFFFFF',
   black: '#1A1A1A',
-  dark: '#0A0A0A',
 };
 
 const DIM = {
@@ -30,28 +28,12 @@ const DIM = {
 };
 
 let logoIcon = null;
-let appleIcon = null;
-let googleIcon = null;
 
 async function loadAssets() {
   try {
     const iconBuffer = await fs.readFile(path.join(ROOT, 'assets', 'iconlogotrans.png'));
     logoIcon = `data:image/png;base64,${iconBuffer.toString('base64')}`;
     console.log('   ✓ Icon logo loaded');
-  } catch (e) {}
-
-  try {
-    const appleResponse = await fetch('https://cdn.simpleicons.org/apple/FFFFFF');
-    const appleSvg = await appleResponse.text();
-    appleIcon = `data:image/svg+xml;base64,${Buffer.from(appleSvg).toString('base64')}`;
-    console.log('   ✓ Apple icon loaded');
-  } catch (e) {}
-
-  try {
-    const playResponse = await fetch('https://cdn.simpleicons.org/googleplay/FFFFFF');
-    const playSvg = await playResponse.text();
-    googleIcon = `data:image/svg+xml;base64,${Buffer.from(playSvg).toString('base64')}`;
-    console.log('   ✓ Google Play icon loaded');
   } catch (e) {}
 }
 
@@ -93,10 +75,10 @@ const img = (src, style = {}) => src ? ({
 }) : null;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REFERRAL POST - Main Design
+// GIVEAWAY POST
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ReferralPost({ format = 'portrait' }) {
+function GiveawayPost({ format = 'portrait' }) {
   const isStory = format === 'story';
 
   return el('div', {
@@ -127,146 +109,77 @@ function ReferralPost({ format = 'portrait' }) {
         txt('getlumbus.com', { fontSize: 14, fontWeight: 700, color: c.black, opacity: 0.5 }),
       ]),
 
-      // Main content area
+      // Main content
       el('div', {
         flex: 1,
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
       }, [
-        // FREE DATA banner
+        // GIVEAWAY badge
         el('div', {
           backgroundColor: c.black,
-          padding: '18px 48px',
+          padding: '18px 52px',
           borderRadius: 100,
-          marginBottom: isStory ? 28 : 22,
+          marginBottom: isStory ? 28 : 24,
         }, [
-          txt('FREE DATA FOREVER', { fontSize: isStory ? 24 : 22, fontWeight: 900, color: c.yellow, letterSpacing: 4 }),
+          txt('GIVEAWAY', { fontSize: isStory ? 28 : 26, fontWeight: 900, color: c.yellow, letterSpacing: 8 }),
         ]),
 
-        // Big REFER A FRIEND
-        txt('REFER', {
-          fontSize: isStory ? 200 : 180,
+        // WIN
+        txt('WIN', {
+          fontSize: isStory ? 240 : 200,
           fontWeight: 900,
           color: c.black,
-          letterSpacing: -10,
-          lineHeight: 0.82,
-        }),
-        txt('A FRIEND', {
-          fontSize: isStory ? 100 : 90,
-          fontWeight: 900,
-          color: c.black,
-          letterSpacing: -3,
-          lineHeight: 0.88,
-          marginBottom: isStory ? 40 : 32,
+          letterSpacing: -12,
+          lineHeight: 0.8,
         }),
 
-        // Two big reward cards - stacked vertically
+        // FREE DATA
+        txt('FREE DATA', {
+          fontSize: isStory ? 140 : 120,
+          fontWeight: 900,
+          color: c.black,
+          letterSpacing: -5,
+          lineHeight: 0.85,
+          marginBottom: isStory ? 16 : 12,
+        }),
+
+        // FOR A YEAR
         el('div', {
-          flexDirection: 'column',
-          gap: isStory ? 20 : 16,
-          width: '100%',
+          backgroundColor: c.turquoise,
+          padding: '18px 52px',
+          borderRadius: 100,
+          marginBottom: isStory ? 32 : 26,
         }, [
-          // YOU GET card
-          el('div', {
-            backgroundColor: c.turquoise,
-            borderRadius: 28,
-            padding: isStory ? '28px 40px' : '24px 36px',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }, [
-            txt('YOU GET', { fontSize: isStory ? 32 : 28, fontWeight: 900, color: c.black }),
-            el('div', {
-              flexDirection: 'row',
-              alignItems: 'baseline',
-              gap: 10,
-            }, [
-              txt('1GB', { fontSize: isStory ? 72 : 64, fontWeight: 900, color: c.black, lineHeight: 1 }),
-              txt('FREE', { fontSize: isStory ? 28 : 24, fontWeight: 900, color: c.black }),
-            ]),
-          ]),
-
-          // FRIEND GETS card
-          el('div', {
-            backgroundColor: c.black,
-            borderRadius: 28,
-            padding: isStory ? '28px 40px' : '24px 36px',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }, [
-            txt('FRIEND GETS', { fontSize: isStory ? 32 : 28, fontWeight: 900, color: c.white }),
-            el('div', {
-              flexDirection: 'column',
-              alignItems: 'flex-end',
-            }, [
-              el('div', {
-                flexDirection: 'row',
-                alignItems: 'baseline',
-                gap: 10,
-              }, [
-                txt('1GB', { fontSize: isStory ? 72 : 64, fontWeight: 900, color: c.white, lineHeight: 1 }),
-                txt('FREE', { fontSize: isStory ? 28 : 24, fontWeight: 900, color: c.turquoise }),
-              ]),
-              txt('+10% OFF', { fontSize: isStory ? 22 : 20, fontWeight: 900, color: c.yellow }),
-            ]),
-          ]),
+          txt('FOR A YEAR', { fontSize: isStory ? 36 : 32, fontWeight: 900, color: c.black, letterSpacing: 5 }),
         ]),
 
-        // Download section
+        // Prize details card
         el('div', {
-          flexDirection: 'column',
+          backgroundColor: c.black,
+          borderRadius: 28,
+          padding: isStory ? '28px 52px' : '24px 44px',
           alignItems: 'center',
-          marginTop: isStory ? 40 : 32,
-          gap: isStory ? 20 : 16,
+          marginBottom: isStory ? 28 : 24,
         }, [
-          // Download text with icon
           el('div', {
-            flexDirection: 'row',
+            flexDirection: 'column',
             alignItems: 'center',
-            gap: 14,
+            gap: 4,
           }, [
-            logoIcon ? img(logoIcon, { width: isStory ? 44 : 40, height: isStory ? 44 : 40 }) : null,
-            txt('Download Lumbus today!', { fontSize: isStory ? 28 : 26, fontWeight: 700, color: c.black }),
+            txt('20GB', { fontSize: isStory ? 80 : 72, fontWeight: 900, color: c.white, lineHeight: 1 }),
+            txt('EVERY MONTH', { fontSize: isStory ? 22 : 20, fontWeight: 900, color: c.white, opacity: 0.6, letterSpacing: 3 }),
           ]),
+        ]),
 
-          // App store badges
-          el('div', {
-            flexDirection: 'row',
-            gap: 16,
-          }, [
-            // Apple badge
-            el('div', {
-              backgroundColor: c.black,
-              borderRadius: 16,
-              padding: '16px 28px',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-            }, [
-              appleIcon ? img(appleIcon, { width: 32, height: 32 }) : null,
-              el('div', { flexDirection: 'column' }, [
-                txt('Download on the', { fontSize: 12, color: c.white, lineHeight: 1.2 }),
-                txt('App Store', { fontSize: 20, fontWeight: 700, color: c.white, lineHeight: 1.2 }),
-              ]),
-            ]),
-            // Google badge
-            el('div', {
-              backgroundColor: c.black,
-              borderRadius: 16,
-              padding: '16px 28px',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-            }, [
-              googleIcon ? img(googleIcon, { width: 32, height: 32 }) : null,
-              el('div', { flexDirection: 'column' }, [
-                txt('GET IT ON', { fontSize: 12, color: c.white, lineHeight: 1.2 }),
-                txt('Google Play', { fontSize: 20, fontWeight: 700, color: c.white, lineHeight: 1.2 }),
-              ]),
-            ]),
-          ]),
+        // Check caption
+        el('div', {
+          backgroundColor: c.cyan,
+          padding: '16px 40px',
+          borderRadius: 100,
+        }, [
+          txt('CHECK CAPTION TO WIN', { fontSize: isStory ? 20 : 18, fontWeight: 900, color: c.black, letterSpacing: 3 }),
         ]),
       ]),
     ]),
@@ -292,8 +205,8 @@ async function main() {
   console.log('\n');
   console.log('  ╔═══════════════════════════════════════════════════════════════╗');
   console.log('  ║                                                               ║');
-  console.log('  ║   LUMBUS REFERRAL CAMPAIGN                                    ║');
-  console.log('  ║   Share the Love - Free Data Forever!                         ║');
+  console.log('  ║   LUMBUS GIVEAWAY                                             ║');
+  console.log('  ║   Win Free Data for a Year!                                   ║');
   console.log('  ║                                                               ║');
   console.log('  ╚═══════════════════════════════════════════════════════════════╝');
   console.log('\n');
@@ -308,20 +221,19 @@ async function main() {
   const PT = DIM.PORTRAIT;
   const ST = DIM.STORY;
 
-  console.log('  Generating Referral Posts...');
+  console.log('  Generating Giveaway Posts...');
   console.log('  ─────────────────────────────────────────────');
 
-  await generateImage(ReferralPost({ format: 'portrait' }), PT.w, PT.h, 'referral-campaign-ig.png', fonts);
-  await generateImage(ReferralPost({ format: 'story' }), ST.w, ST.h, 'referral-campaign-tiktok.png', fonts);
+  await generateImage(GiveawayPost({ format: 'portrait' }), PT.w, PT.h, 'giveaway-ig.png', fonts);
+  await generateImage(GiveawayPost({ format: 'story' }), ST.w, ST.h, 'giveaway-tiktok.png', fonts);
 
   console.log('\n');
   console.log('  ╔═══════════════════════════════════════════════════════════════╗');
-  console.log('  ║   REFERRAL CAMPAIGN COMPLETE!                                 ║');
+  console.log('  ║   GIVEAWAY COMPLETE!                                          ║');
   console.log('  ║                                                               ║');
-  console.log('  ║   • You get: 1GB FREE                                         ║');
-  console.log('  ║   • Friend gets: 1GB FREE + 10% OFF                           ║');
+  console.log('  ║   Prize: 20GB/month for 12 months FREE                        ║');
   console.log('  ║                                                               ║');
-  console.log('  ║   Output: marketing/ultimate/output/referral-campaign-*.png   ║');
+  console.log('  ║   Output: marketing/ultimate/output/giveaway-*.png            ║');
   console.log('  ╚═══════════════════════════════════════════════════════════════╝');
   console.log('\n');
 }

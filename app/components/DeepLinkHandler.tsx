@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Linking, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useReferral } from '../../contexts/ReferralContext';
 import { isValidUUID } from '../../lib/validation';
 import { logger } from '../../lib/logger';
 import { getPendingPayment, clearPendingPayment } from '../../lib/payments/pendingPayment';
@@ -15,11 +14,11 @@ import { supabase } from '../../lib/supabase';
  * Handles incoming deep links for:
  * - Email confirmation (lumbus://auth/confirm?token_hash=...&type=signup)
  * - Payment success redirects
- * - Referral code sharing (https://lumbus.com/r/ABC12345 or lumbus://ref/ABC12345)
+ *
+ * Note: Referral links are handled by Expo Router routes (app/ref/[code].tsx, app/r/[code].tsx)
  */
 export function DeepLinkHandler() {
   const router = useRouter();
-  const { setReferralCode } = useReferral();
 
   useEffect(() => {
     const parseUrl = (url: string): { path: string | null; queryParams: Record<string, string> } => {
@@ -55,21 +54,8 @@ export function DeepLinkHandler() {
       try {
         const { path, queryParams } = parseUrl(event.url);
 
-        // Handle referral deep links: https://lumbus.com/r/ABC12345 or lumbus://ref/ABC12345
-        // Pattern 1: /r/CODE (web URL)
-        // Pattern 2: ref/CODE (app deep link)
-        const referralMatch = path?.match(/^(?:r|ref)\/([A-Z0-9]{8})$/i);
-        if (referralMatch) {
-          const code = referralMatch[1].toUpperCase();
-          setReferralCode(code);
-          Alert.alert(
-            'Referral Code Applied!',
-            "You'll get 10% OFF + 1GB FREE on your first purchase!",
-            [{ text: 'Got it!' }]
-          );
-          logger.log('✅ Referral code applied:', code);
-          return;
-        }
+        // Referral links (r/CODE, ref/CODE) are handled by Expo Router routes
+        // See: app/ref/[code].tsx, app/r/[code].tsx
 
         // Handle email confirmation deep link: lumbus://auth/confirm#access_token=...&refresh_token=...
         // Supabase verifies the email and sends tokens in the URL hash fragment
@@ -312,7 +298,7 @@ export function DeepLinkHandler() {
     return () => {
       subscription.remove();
     };
-  }, [router, setReferralCode]);
+  }, [router]);
 
   return null; // This component doesn't render anything
 }
